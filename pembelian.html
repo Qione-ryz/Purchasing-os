@@ -170,6 +170,8 @@
       .field-row { grid-template-columns:1fr; }
       .item-row,.item-header { grid-template-columns:1fr 70px 100px 70px 24px; }
     }
+    /* Dipakai oleh switchTab untuk hide brandSelect sidebar di tab Riwayat & Cari Barang */
+    .sidebar-brand-hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -199,7 +201,7 @@
 
     <!-- TAB -->
     <div class="tab-bar">
-      <button class="tab-btn active admin-only" id="tabBtnForm" onclick="switchTab('form')">＋ Catat Pembelian</button>
+      <button class="tab-btn active admin-only" id="tabBtnForm" onclick="switchTab('form')">🛒 Catat Pembelian</button>
       <button class="tab-btn"        id="tabBtnRiwayat" onclick="switchTab('riwayat')">📋 Riwayat</button>
       <button class="tab-btn"        id="tabBtnBarang"  onclick="switchTab('barang')">🔍 Cari Barang</button>
     </div>
@@ -226,15 +228,33 @@
                 </div>
                 <div class="field">
                   <label>Vendor *</label>
-                  <div class="item-search-wrap">
-                    <input class="input" type="text" id="fVendorSearch"
-                      placeholder="Cari vendor..."
-                      autocomplete="off"
-                      oninput="onVendorSearch()"
-                      onfocus="showVendorDropdown()"
-                    />
+                  <div class="item-search-wrap" style="position:relative">
+                    <!-- Trigger tombol (tampilan seperti select) -->
+                    <div id="vendorComboBtn" onclick="toggleVendorDropdown()"
+                      style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s;min-height:38px;user-select:none"
+                      onmouseover="this.style.borderColor='var(--accent)'"
+                      onmouseout="if(!window._vendorOpen)this.style.borderColor='var(--border)'">
+                      <span id="vendorComboLabel" style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Pilih vendor...</span>
+                      <span style="font-size:10px;color:var(--muted);flex-shrink:0;transition:transform .2s" id="vendorComboArrow">▾</span>
+                    </div>
                     <input type="hidden" id="fVendor" />
-                    <div class="item-dropdown" id="vendorDropdown" style="display:none"></div>
+                    <!-- Dropdown panel -->
+                    <div id="vendorDropdownPanel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden">
+                      <div style="padding:8px 8px 4px">
+                        <div style="position:relative">
+                          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>
+                          <input type="text" id="fVendorSearch"
+                            placeholder="Cari vendor..."
+                            autocomplete="off"
+                            oninput="onVendorSearch()"
+                            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 10px 8px 32px;outline:none;transition:border-color .2s"
+                            onfocus="this.style.borderColor='var(--accent)'"
+                            onblur="this.style.borderColor='var(--border)'"
+                          />
+                        </div>
+                      </div>
+                      <div id="vendorDropdown" class="item-dropdown" style="display:block;position:static;max-height:220px;overflow-y:auto;border:none;border-radius:0;box-shadow:none;background:transparent"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -440,7 +460,27 @@
             style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
-        <select class="filter-select" id="rFilterBrand"  onchange="onContentBrandChange()"><option value="">Semua Brand</option></select>
+        <div class="brand-filter-wrap" style="position:relative">
+          <button class="brand-mfilter-btn" id="rBrandFilterBtn" onclick="toggleRBrandDropdown(event)"
+            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans)"
+            onmouseover="this.style.borderColor='var(--accent)'"
+            onmouseout="if(!(window._rSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
+            <span id="rBrandFilterLabel">🏷 Semua Brand</span>
+            <span id="rBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
+            <span style="font-size:10px;color:var(--muted)">▾</span>
+          </button>
+          <div id="rBrandFilterDropdown"
+            style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
+            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+              <input type="checkbox" id="rChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+              <span>Semua Brand</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:6px 0"></div>
+            <div id="rBrandOptionsList"></div>
+          </div>
+        </div>
+        <!-- Hidden single-select untuk backward compat query -->
+        <select id="rFilterBrand" style="display:none" onchange="rPage=1;fetchRiwayatPage()"><option value="">Semua Brand</option></select>
         <select class="filter-select" id="rFilterStatus" onchange="rPage=1;fetchRiwayatPage()">
           <option value="">Semua Status</option>
           <option value="selesai">Selesai</option>
@@ -533,9 +573,26 @@
             style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
-        <select class="filter-select" id="cbFilterBrand" onchange="cbFetch()">
-          <option value="">Semua Brand</option>
-        </select>
+        <div class="brand-filter-wrap" style="position:relative">
+          <button id="cbBrandFilterBtn" onclick="toggleCbBrandDropdown(event)"
+            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans)"
+            onmouseover="this.style.borderColor='var(--accent)'"
+            onmouseout="if(!(window._cbSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
+            <span id="cbBrandFilterLabel">🏷 Semua Brand</span>
+            <span id="cbBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
+            <span style="font-size:10px;color:var(--muted)">▾</span>
+          </button>
+          <div id="cbBrandFilterDropdown"
+            style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
+            <div onclick="cbSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+              <input type="checkbox" id="cbChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+              <span>Semua Brand</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:6px 0"></div>
+            <div id="cbBrandOptionsList"></div>
+          </div>
+        </div>
+        <select id="cbFilterBrand" style="display:none" onchange="cbFetch()"><option value="">Semua Brand</option></select>
         <select class="filter-select" id="cbFilterKategori" onchange="cbApplySearch()" style="min-width:130px">
           <option value="">Semua Kategori</option>
         </select>
@@ -800,6 +857,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     /* Allow cbInit to run again with fresh data */
     if (typeof _cbInited !== 'undefined') window._cbInited = false;
     await loadMasterData();
+    if (typeof _afterLoadMasterData === 'function') await _afterLoadMasterData();
     if (btn) { btn.disabled = false; btn.innerHTML = '⟳ Refresh Data'; }
     showToast('✓ Data barang & vendor diperbarui', 'success');
   };
@@ -825,8 +883,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     });
 
     await loadMasterData();
-
-    /* ── Terapkan filter dari dashboard SEBELUM load data ── */
+    if (typeof _afterLoadMasterData === 'function') await _afterLoadMasterData();
     const urlParams = new URLSearchParams(location.search);
     const paramBrand    = urlParams.get('brand');
     const paramDateFrom = urlParams.get('dateFrom');
@@ -1037,62 +1094,343 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     window._vendorOptions = (window.allVendors || []);
   }
 
-  function onVendorSearch() {
-    const q  = document.getElementById('fVendorSearch').value.toLowerCase().trim();
-    const dd = document.getElementById('vendorDropdown');
+  /* ══════════════════════════════════════════
+     VENDOR COMBO BOX (searchable dropdown)
+  ══════════════════════════════════════════ */
+  window._vendorOpen = false;
+
+  function toggleVendorDropdown() {
+    if (window._vendorOpen) { closeVendorPanel(); return; }
+    openVendorPanel();
+  }
+
+  function openVendorPanel() {
+    window._vendorOpen = true;
+    const panel = document.getElementById('vendorDropdownPanel');
+    const btn   = document.getElementById('vendorComboBtn');
+    const arrow = document.getElementById('vendorComboArrow');
+    panel.style.display = 'block';
+    btn.style.borderColor = 'var(--accent)';
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    renderVendorList('');
+    setTimeout(() => {
+      const inp = document.getElementById('fVendorSearch');
+      if (inp) { inp.value = ''; inp.focus(); }
+    }, 30);
+  }
+
+  function closeVendorPanel() {
+    window._vendorOpen = false;
+    const panel = document.getElementById('vendorDropdownPanel');
+    const btn   = document.getElementById('vendorComboBtn');
+    const arrow = document.getElementById('vendorComboArrow');
+    if (panel) panel.style.display = 'none';
+    if (btn)   btn.style.borderColor = 'var(--border)';
+    if (arrow) arrow.style.transform = '';
+    const inp = document.getElementById('fVendorSearch');
+    if (inp) inp.value = '';
+  }
+
+  function renderVendorList(q) {
+    const dd   = document.getElementById('vendorDropdown');
+    if (!dd) return;
     const list = (window._vendorOptions || []).filter(v =>
       !q || v.nama.toLowerCase().includes(q) || (v.kode || '').toLowerCase().includes(q)
     );
-    if (!list.length) { dd.style.display = 'none'; return; }
+    const curId = document.getElementById('fVendor').value;
+    if (!list.length) {
+      dd.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--muted);text-align:center">Tidak ditemukan</div>';
+      return;
+    }
     dd.innerHTML = list.map(v =>
-      `<div class="item-option" onmousedown="selectVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
-        <div class="item-option-name">${v.nama}</div>
-        <div class="item-option-sub">${v.kode || ''}${v.kota ? ' · ' + v.kota : ''}</div>
+      `<div class="item-option" style="${v.id===curId?'background:rgba(79,142,247,0.1);color:var(--accent)':''}"
+        onmousedown="selectVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
+        <div class="item-option-name">${v.nama}${v.id===curId?' ✓':''}</div>
+        <div class="item-option-sub">${v.kode||''}${v.kota?' · '+v.kota:''}</div>
       </div>`
     ).join('');
-    dd.style.display = 'block';
   }
 
-  function showVendorDropdown() {
-    onVendorSearch();
-    if (!(window._vendorOptions || []).length) return;
-    const q = document.getElementById('fVendorSearch').value.toLowerCase().trim();
-    if (!q) {
-      const dd = document.getElementById('vendorDropdown');
-      dd.innerHTML = (window._vendorOptions || []).map(v =>
-        `<div class="item-option" onmousedown="selectVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
-          <div class="item-option-name">${v.nama}</div>
-          <div class="item-option-sub">${v.kode || ''}${v.kota ? ' · ' + v.kota : ''}</div>
-        </div>`
-      ).join('');
-      dd.style.display = 'block';
-    }
+  function onVendorSearch() {
+    const q = (document.getElementById('fVendorSearch').value || '').toLowerCase().trim();
+    renderVendorList(q);
   }
+
+  /* Backward compat untuk kode lain yang masih panggil showVendorDropdown */
+  function showVendorDropdown() { openVendorPanel(); }
 
   function selectVendor(id, nama) {
     document.getElementById('fVendor').value = id;
-    document.getElementById('fVendorSearch').value = nama;
-    document.getElementById('vendorDropdown').style.display = 'none';
+    const lbl = document.getElementById('vendorComboLabel');
+    if (lbl) { lbl.textContent = nama; lbl.style.color = 'var(--text)'; }
+    closeVendorPanel();
     onVendorChange();
   }
 
   function clearVendorSearch() {
     document.getElementById('fVendor').value = '';
-    document.getElementById('fVendorSearch').value = '';
-    document.getElementById('vendorDropdown').style.display = 'none';
+    const lbl = document.getElementById('vendorComboLabel');
+    if (lbl) { lbl.textContent = 'Pilih vendor...'; lbl.style.color = 'var(--muted)'; }
+    closeVendorPanel();
   }
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#vendorDropdown') && !e.target.closest('#fVendorSearch')) {
-      document.getElementById('vendorDropdown').style.display = 'none';
+  /* Tutup vendor panel saat klik di luar */
+  document.addEventListener('mousedown', e => {
+    if (!window._vendorOpen) return;
+    const panel = document.getElementById('vendorDropdownPanel');
+    const btn   = document.getElementById('vendorComboBtn');
+    if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+      closeVendorPanel();
     }
   });
 
-  window.populateVendorSelect = populateVendorSelect;
-  window.onVendorSearch       = onVendorSearch;
-  window.showVendorDropdown   = showVendorDropdown;
-  window.selectVendor         = selectVendor;
-  window.clearVendorSearch    = clearVendorSearch;
+  window.populateVendorSelect  = populateVendorSelect;
+  window.onVendorSearch        = onVendorSearch;
+  window.showVendorDropdown    = showVendorDropdown;
+  window.toggleVendorDropdown  = toggleVendorDropdown;
+  window.openVendorPanel       = openVendorPanel;
+  window.closeVendorPanel      = closeVendorPanel;
+  window.selectVendor          = selectVendor;
+  window.clearVendorSearch     = clearVendorSearch;
+
+  /* ══════════════════════════════════════════
+     MULTI-BRAND FILTER — Riwayat & Cari Barang
+     (tidak berlaku di form Catat Pembelian)
+  ══════════════════════════════════════════ */
+  const _BRAND_COLORS = ['#4f8ef7','#38d9a9','#f7924f','#a78bfa','#f472b6','#facc15','#34d399','#fb923c'];
+  window._rSelectedBrands  = []; // untuk tab Riwayat
+  window._cbSelectedBrands = []; // untuk tab Cari Barang
+
+  function _buildBrandOptions(brands) {
+    return brands.map((b, i) => {
+      const color = b.warna || _BRAND_COLORS[i % _BRAND_COLORS.length];
+      return { id: b.id, nama: b.nama, color };
+    });
+  }
+
+  /* ── RIWAYAT brand filter ── */
+  function buildRBrandOptions() {
+    const list = document.getElementById('rBrandOptionsList');
+    if (!list) return;
+    const brands = window._brandOptions || [];
+    list.innerHTML = brands.map(b =>
+      `<div data-rbrand="${b.id}" onclick="toggleRBrand(event,'${b.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
+        onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+        <input type="checkbox" class="rChkBrand" data-id="${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+        <div style="width:8px;height:8px;border-radius:50%;background:${b.color};flex-shrink:0"></div>
+        <span>${b.nama}</span>
+      </div>`
+    ).join('');
+  }
+
+  function toggleRBrandDropdown(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('rBrandFilterDropdown');
+    const btn = document.getElementById('rBrandFilterBtn');
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
+    dd.style.display = 'block';
+  }
+
+  function toggleRBrand(e, id) {
+    e.stopPropagation();
+    const idx = window._rSelectedBrands.indexOf(id);
+    if (idx === -1) window._rSelectedBrands.push(id);
+    else            window._rSelectedBrands.splice(idx, 1);
+    updateRBrandUI();
+    _syncRFilterBrand();
+    rPage = 1; fetchRiwayatPage();
+  }
+
+  function rSelectAllBrands() {
+    window._rSelectedBrands = [];
+    updateRBrandUI();
+    _syncRFilterBrand();
+    rPage = 1; fetchRiwayatPage();
+  }
+
+  function updateRBrandUI() {
+    const sel   = window._rSelectedBrands;
+    const isAll = sel.length === 0;
+    const allChk = document.getElementById('rChkAllBrands');
+    if (allChk) allChk.checked = isAll;
+    document.querySelectorAll('.rChkBrand').forEach(c => {
+      c.checked = !isAll && sel.includes(c.dataset.id);
+      const row = c.closest('[data-rbrand]');
+      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(79,142,247,0.12)' : '';
+    });
+    const lbl   = document.getElementById('rBrandFilterLabel');
+    const count = document.getElementById('rBrandFilterCount');
+    const btn   = document.getElementById('rBrandFilterBtn');
+    if (isAll) {
+      if (lbl)   { lbl.textContent = '🏷 Semua Brand'; }
+      if (count) count.style.display = 'none';
+      if (btn)   btn.style.borderColor = 'var(--border)';
+    } else if (sel.length === 1) {
+      const found = (window._brandOptions||[]).find(b=>b.id===sel[0]);
+      if (lbl)   { lbl.textContent = '🏷 ' + (found?.nama || sel[0]); }
+      if (count) count.style.display = 'none';
+      if (btn)   btn.style.borderColor = 'var(--accent)';
+    } else {
+      if (lbl)   { lbl.textContent = '🏷 Brand'; }
+      if (count) { count.textContent = sel.length; count.style.display = ''; }
+      if (btn)   btn.style.borderColor = 'var(--accent)';
+    }
+  }
+
+  function _syncRFilterBrand() {
+    /* Sync ke hidden select — single value jika 1 brand dipilih, '' jika multi/all */
+    const sel = window._rSelectedBrands;
+    const el  = document.getElementById('rFilterBrand');
+    if (el) el.value = sel.length === 1 ? sel[0] : '';
+  }
+
+  /* ── Override _buildRiwayatQuery untuk multi-brand ── */
+  const _origBuildRiwayatQuery = _buildRiwayatQuery;
+  window._buildRiwayatQuery = function() {
+    const sel      = window._rSelectedBrands || [];
+    const status   = document.getElementById('rFilterStatus').value;
+    const dateFrom = document.getElementById('rDateFrom').value;
+    const dateTo   = document.getElementById('rDateTo').value;
+    let q = window._sb.from('riwayat_beli').select('*, riwayat_beli_items(*)');
+    if (sel.length === 1)     q = q.eq('brand_id', sel[0]);
+    else if (sel.length > 1)  q = q.in('brand_id', sel);
+    if (status)   q = q.eq('status', status);
+    if (dateFrom) q = q.gte('tanggal', dateFrom);
+    if (dateTo)   q = q.lte('tanggal', dateTo);
+    return q;
+  };
+  const _origBuildCountQuery = _buildCountQuery;
+  window._buildCountQuery = function() {
+    const sel      = window._rSelectedBrands || [];
+    const status   = document.getElementById('rFilterStatus').value;
+    const dateFrom = document.getElementById('rDateFrom').value;
+    const dateTo   = document.getElementById('rDateTo').value;
+    let q = window._sb.from('riwayat_beli').select('id', { count: 'exact', head: true });
+    if (sel.length === 1)     q = q.eq('brand_id', sel[0]);
+    else if (sel.length > 1)  q = q.in('brand_id', sel);
+    if (status)   q = q.eq('status', status);
+    if (dateFrom) q = q.gte('tanggal', dateFrom);
+    if (dateTo)   q = q.lte('tanggal', dateTo);
+    return q;
+  };
+
+  /* ── CARI BARANG brand filter ── */
+  function buildCbBrandOptions() {
+    const list = document.getElementById('cbBrandOptionsList');
+    if (!list) return;
+    const brands = window._brandOptions || [];
+    list.innerHTML = brands.map(b =>
+      `<div data-cbbrand="${b.id}" onclick="toggleCbBrand(event,'${b.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
+        onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+        <input type="checkbox" class="cbChkBrand" data-id="${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+        <div style="width:8px;height:8px;border-radius:50%;background:${b.color};flex-shrink:0"></div>
+        <span>${b.nama}</span>
+      </div>`
+    ).join('');
+  }
+
+  function toggleCbBrandDropdown(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('cbBrandFilterDropdown');
+    const btn = document.getElementById('cbBrandFilterBtn');
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
+    dd.style.display = 'block';
+  }
+
+  function toggleCbBrand(e, id) {
+    e.stopPropagation();
+    const idx = window._cbSelectedBrands.indexOf(id);
+    if (idx === -1) window._cbSelectedBrands.push(id);
+    else            window._cbSelectedBrands.splice(idx, 1);
+    updateCbBrandUI();
+    _syncCbFilterBrand();
+    if (typeof cbFetch === 'function') cbFetch();
+  }
+
+  function cbSelectAllBrands() {
+    window._cbSelectedBrands = [];
+    updateCbBrandUI();
+    _syncCbFilterBrand();
+    if (typeof cbFetch === 'function') cbFetch();
+  }
+
+  function updateCbBrandUI() {
+    const sel   = window._cbSelectedBrands;
+    const isAll = sel.length === 0;
+    const allChk = document.getElementById('cbChkAllBrands');
+    if (allChk) allChk.checked = isAll;
+    document.querySelectorAll('.cbChkBrand').forEach(c => {
+      c.checked = !isAll && sel.includes(c.dataset.id);
+      const row = c.closest('[data-cbbrand]');
+      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(79,142,247,0.12)' : '';
+    });
+    const lbl   = document.getElementById('cbBrandFilterLabel');
+    const count = document.getElementById('cbBrandFilterCount');
+    const btn   = document.getElementById('cbBrandFilterBtn');
+    if (isAll) {
+      if (lbl)   { lbl.textContent = '🏷 Semua Brand'; }
+      if (count) count.style.display = 'none';
+      if (btn)   btn.style.borderColor = 'var(--border)';
+    } else if (sel.length === 1) {
+      const found = (window._brandOptions||[]).find(b=>b.id===sel[0]);
+      if (lbl)   { lbl.textContent = '🏷 ' + (found?.nama || sel[0]); }
+      if (count) count.style.display = 'none';
+      if (btn)   btn.style.borderColor = 'var(--accent)';
+    } else {
+      if (lbl)   { lbl.textContent = '🏷 Brand'; }
+      if (count) { count.textContent = sel.length; count.style.display = ''; }
+      if (btn)   btn.style.borderColor = 'var(--accent)';
+    }
+  }
+
+  function _syncCbFilterBrand() {
+    const sel = window._cbSelectedBrands;
+    const el  = document.getElementById('cbFilterBrand');
+    if (el) el.value = sel.length === 1 ? sel[0] : '';
+  }
+
+  /* Close dropdowns on outside click */
+  document.addEventListener('mousedown', e => {
+    /* Riwayat brand dropdown */
+    const rdd = document.getElementById('rBrandFilterDropdown');
+    const rbtn = document.getElementById('rBrandFilterBtn');
+    if (rdd && rdd.style.display !== 'none' && !rdd.contains(e.target) && rbtn && !rbtn.contains(e.target)) {
+      rdd.style.display = 'none';
+    }
+    /* Cari Barang brand dropdown */
+    const cdd = document.getElementById('cbBrandFilterDropdown');
+    const cbtn = document.getElementById('cbBrandFilterBtn');
+    if (cdd && cdd.style.display !== 'none' && !cdd.contains(e.target) && cbtn && !cbtn.contains(e.target)) {
+      cdd.style.display = 'none';
+    }
+  });
+
+  /* Hook ke loadMasterData — populate brand filter options setelah brands loaded.
+     PENTING: jangan re-declare loadMasterData karena menyebabkan infinite recursion.
+     Sebagai gantinya, panggil _afterLoadMasterData() di akhir init setelah loadMasterData selesai. */
+  async function _afterLoadMasterData() {
+    window._brandOptions = _buildBrandOptions(window.allBrands || []);
+    buildRBrandOptions();
+    buildCbBrandOptions();
+  }
+  window._afterLoadMasterData = _afterLoadMasterData;
+
+  window.toggleRBrandDropdown  = toggleRBrandDropdown;
+  window.toggleRBrand          = toggleRBrand;
+  window.rSelectAllBrands      = rSelectAllBrands;
+  window.toggleCbBrandDropdown = toggleCbBrandDropdown;
+  window.toggleCbBrand         = toggleCbBrand;
+  window.cbSelectAllBrands     = cbSelectAllBrands;
 
   /* ── LOAD RIWAYAT ── */
   /* ── Normalisasi baris dari Supabase ── */
@@ -1296,6 +1634,28 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     document.getElementById('tabBtnRiwayat').classList.toggle('active', tab === 'riwayat');
     document.getElementById('tabBtnBarang').classList.toggle('active',  tab === 'barang');
     if (tab === 'barang') cbInit();
+
+    /* Sembunyikan brandSelect di sidebar saat tab Riwayat / Cari Barang aktif,
+       karena kedua tab tsb punya multi-brand filter sendiri. */
+    const hideSidebar = (tab === 'riwayat' || tab === 'barang');
+    const bsSel = document.getElementById('brandSelect');
+    if (bsSel) {
+      /* Cari container paling dekat yang dibuat oleh sidebar.js.
+         Naik max 4 level hingga ketemu sesuatu yang bisa di-hide. */
+      let target = bsSel;
+      for (let i = 0; i < 4; i++) {
+        const p = target.parentElement;
+        if (!p || p.id === 'sidebar' || p.tagName === 'ASIDE' || p.tagName === 'BODY') break;
+        target = p;
+        /* Berhenti di level yang paling dekat dengan brandSelect (div/nav-item wrapper) */
+        if (['DIV','LI','SECTION'].includes(target.tagName) && target !== bsSel) break;
+      }
+      if (hideSidebar) {
+        target.classList.add('sidebar-brand-hidden');
+      } else {
+        target.classList.remove('sidebar-brand-hidden');
+      }
+    }
   }
 
   /* ══════════════════════════════════════════
@@ -1325,11 +1685,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
 
   function onContentBrandChange() {
-    const val = document.getElementById('rFilterBrand').value;
-    const sidebarVal = val === '' ? 'all' : val;
-    document.getElementById('brandSelect').value = sidebarVal;
-    localStorage.setItem('activeBrand', sidebarVal);
-    updateBrandLabel();
+    /* Tidak dipakai lagi — filter brand kini lewat multi-select dropdown */
     rPage = 1; fetchRiwayatPage();
   }
 
@@ -3294,7 +3650,7 @@ window.cbApplySearch     = cbApplySearch;
 window.cbSortBy          = cbSortBy;
 window.cbToggleDatePicker= cbToggleDatePicker;
 window.cbSetQuick        = cbSetQuick;
-window.cbApplyDateRange  = cbApplyDateRange;
+window.cbApplyDateRange  = cbOnCustomDate;
 window.cbGoPage          = cbGoPage;
 window.cbExport          = cbExport;
 </script>
