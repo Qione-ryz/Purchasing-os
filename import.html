@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PurchaseOS — Import Data</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="sidebar.js"></script>
+  <style>
+    .import-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:20px; overflow:hidden; }
+    .import-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .import-title { font-size:15px; font-weight:600; }
+    .import-desc  { font-size:12px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
+    .import-body  { padding:20px; }
+
+    .drop-zone {
+      border:2px dashed var(--border); border-radius:10px; padding:36px 20px;
+      text-align:center; cursor:pointer; transition:border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color:var(--accent); background:rgba(79,142,247,0.04);
+    }
+    .drop-icon { font-size:32px; margin-bottom:10px; }
+    .drop-text { font-size:14px; font-weight:500; margin-bottom:4px; }
+    .drop-sub  { font-size:12px; color:var(--muted); font-family:var(--mono); }
+
+    .field-map { margin-top:16px; }
+    .field-map-row { display:grid; grid-template-columns:1fr 24px 1fr; gap:8px; align-items:center; margin-bottom:8px; font-size:13px; }
+    .field-map-label { font-family:var(--mono); font-size:11px; color:var(--muted); padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; }
+    .field-map-arrow { text-align:center; color:var(--muted); }
+
+    .preview-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:14px; }
+    .preview-table th { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--border); text-align:left; background:var(--bg); }
+    .preview-table td { padding:8px 10px; border-bottom:1px solid rgba(37,40,48,0.3); }
+    .preview-table tr.row-ok td { }
+    .preview-table tr.row-err td { background:rgba(248,113,113,0.06); }
+    .row-status-ok  { color:var(--accent2); font-size:16px; }
+    .row-status-err { color:var(--danger);  font-size:12px; font-family:var(--mono); }
+
+    .schema-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:16px; }
+    .schema-title { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:10px; }
+    .schema-row { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(37,40,48,0.3); font-size:12px; }
+    .schema-row:last-child { border-bottom:none; }
+    .schema-col  { font-family:var(--mono); font-weight:500; min-width:160px; }
+    .schema-req  { font-size:10px; font-family:var(--mono); padding:1px 6px; border-radius:3px; flex-shrink:0; }
+    .req-yes  { background:rgba(248,113,113,0.12); color:var(--danger); }
+    .req-no   { background:rgba(107,114,128,0.1);  color:var(--muted); }
+    .schema-desc { color:var(--muted); flex:1; }
+
+    .progress-bar-wrap { background:var(--border); border-radius:4px; height:6px; margin:12px 0; overflow:hidden; }
+    .progress-bar      { height:100%; background:var(--accent2); border-radius:4px; transition:width .3s; }
+
+    .result-box { padding:12px 16px; border-radius:8px; font-size:13px; margin-top:12px; display:none; }
+    .result-box.show { display:block; }
+    .result-box.success { background:rgba(56,217,169,0.1); border:1px solid rgba(56,217,169,0.3); color:var(--accent2); }
+    .result-box.error   { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); color:var(--danger); }
+
+    .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:20px; width:fit-content; }
+    .tab-btn { padding:8px 18px; border:none; border-radius:7px; font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--muted); transition:background .2s,color .2s; }
+    .tab-btn.active { background:var(--surface2); color:var(--text); }
+
+    .btn-download { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.3); border-radius:7px; color:var(--accent); font-size:12px; font-family:var(--mono); cursor:pointer; text-decoration:none; transition:all .15s; }
+    .btn-download:hover { background:rgba(79,142,247,0.2); }
+  </style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar"></aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar" id="mainTopbar">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Import Data</div>
+      <div class="page-sub">Upload data massal dari file Excel atau CSV</div>
+    </div>
+    <a href="settings.html" class="btn btn-ghost btn-sm">← Kembali ke Pengaturan</a>
+  </div>
+
+  <div class="content">
+
+    <!-- TAB -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabBtnBarang"    onclick="switchTab('barang')">📋 Barang</button>
+      <button class="tab-btn"        id="tabBtnVendor"    onclick="switchTab('vendor')">🏢 Vendor</button>
+      <button class="tab-btn"        id="tabBtnPembelian" onclick="switchTab('pembelian')">🛒 Pembelian</button>
+      <button class="tab-btn"        id="tabBtnHarga"     onclick="switchTab('harga')">📈 Harga</button>
+    </div>
+
+    <!-- ═══ TAB BARANG ═══ -->
+    <div id="tabBarang">
+      <div class="import-card">
+        <div class="import-header">
+          <div>
+            <div class="import-title">Import Barang</div>
+            <div class="import-desc">Upload daftar barang/SKU dari file Excel atau CSV</div>
+          </div>
+          <button class="btn-download" onclick="downloadTemplate('barang')">⬇ Download Template</button>
+        </div>
+        <div class="import-body">
+
+          <!-- Schema -->
+          <div class="schema-box">
+            <div class="schema-title">Kolom yang diperlukan</div>
+            <div class="schema-row"><span class="schema-col">nama</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama barang</span></div>
+            <div class="schema-row"><span class="schema-col">satuan</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Satuan: pcs, kg, liter, rim, box, lusin, karton, set, unit, pak, botol, meter</span></div>
+            <div class="schema-row"><span class="schema-col">brand</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama brand (harus sudah ada di sistem). Pisahkan dengan koma jika lebih dari satu: "Bakeout, Mburger"</span></div>
+            <div class="schema-row"><span class="schema-col">sku</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Kode SKU barang</span></div>
+            <div class="schema-row"><span class="schema-col">kategori</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Kategori barang</span></div>
+            <div class="schema-row"><span class="schema-col">deskripsi</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Keterangan singkat</span></div>
+            <div class="schema-row"><span class="schema-col">stok_minimum</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Angka stok minimum (default: 0)</span></div>
+          </div>
+
+          <!-- Drop zone -->
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:12px;color:var(--muted);font-family:var(--mono);flex:1">Jika nama barang sudah ada di sistem:</span>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupBarang" value="skip" checked style="accent-color:var(--accent)"/> Lewati (skip)
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupBarang" value="update" style="accent-color:var(--accent)"/> Update data
+            </label>
+          </div>
+          <div class="drop-zone" id="dropBarang" onclick="document.getElementById('fileBarang').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event,'dropBarang')" ondrop="onDrop(event,'barang')">
+            <div class="drop-icon">📂</div>
+            <div class="drop-text">Klik atau seret file ke sini</div>
+            <div class="drop-sub">Format: .xlsx, .xls, .csv — maks 5MB</div>
+          </div>
+          <input type="file" id="fileBarang" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event,'barang')"/>
+
+          <div id="previewBarang"></div>
+          <div class="result-box" id="resultBarang"></div>
+          <div id="progressBarang" style="display:none">
+            <div class="progress-bar-wrap"><div class="progress-bar" id="pbBarang" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelBarang">0 / 0</div>
+          </div>
+          <div id="actionBarang" style="display:none;margin-top:14px;display:flex;gap:10px">
+            <button class="btn btn-primary" id="btnImportBarang" onclick="doImport('barang')">⬆ Mulai Import</button>
+            <button class="btn btn-ghost" onclick="resetImport('barang')">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB VENDOR ═══ -->
+    <div id="tabVendor" style="display:none">
+      <div class="import-card">
+        <div class="import-header">
+          <div>
+            <div class="import-title">Import Vendor</div>
+            <div class="import-desc">Upload daftar supplier/vendor dari file Excel atau CSV</div>
+          </div>
+          <button class="btn-download" onclick="downloadTemplate('vendor')">⬇ Download Template</button>
+        </div>
+        <div class="import-body">
+          <div class="schema-box">
+            <div class="schema-title">Kolom yang diperlukan</div>
+            <div class="schema-row"><span class="schema-col">nama</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama vendor/supplier</span></div>
+            <div class="schema-row"><span class="schema-col">brand</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama brand. Pisahkan dengan koma jika lebih dari satu</span></div>
+            <div class="schema-row"><span class="schema-col">kode</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Kode vendor (misal: VND-001)</span></div>
+            <div class="schema-row"><span class="schema-col">kategori</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Kategori produk vendor</span></div>
+            <div class="schema-row"><span class="schema-col">pic</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nama kontak/PIC</span></div>
+            <div class="schema-row"><span class="schema-col">telp</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nomor telepon</span></div>
+            <div class="schema-row"><span class="schema-col">email</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Alamat email</span></div>
+            <div class="schema-row"><span class="schema-col">kota</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Kota</span></div>
+            <div class="schema-row"><span class="schema-col">provinsi</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Provinsi</span></div>
+            <div class="schema-row"><span class="schema-col">alamat</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Alamat lengkap</span></div>
+            <div class="schema-row"><span class="schema-col">npwp</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nomor NPWP</span></div>
+            <div class="schema-row"><span class="schema-col">termin</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">cash / net7 / net14 / net30 / net60</span></div>
+            <div class="schema-row"><span class="schema-col">catatan</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Catatan tambahan</span></div>
+          </div>
+
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:12px;color:var(--muted);font-family:var(--mono);flex:1">Jika nama vendor sudah ada di sistem:</span>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupVendor" value="skip" checked style="accent-color:var(--accent)"/> Lewati (skip)
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupVendor" value="update" style="accent-color:var(--accent)"/> Update data
+            </label>
+          </div>
+          <div class="drop-zone" id="dropVendor" onclick="document.getElementById('fileVendor').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event,'dropVendor')" ondrop="onDrop(event,'vendor')">
+            <div class="drop-icon">📂</div>
+            <div class="drop-text">Klik atau seret file ke sini</div>
+            <div class="drop-sub">Format: .xlsx, .xls, .csv — maks 5MB</div>
+          </div>
+          <input type="file" id="fileVendor" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event,'vendor')"/>
+
+          <div id="previewVendor"></div>
+          <div class="result-box" id="resultVendor"></div>
+          <div id="progressVendor" style="display:none">
+            <div class="progress-bar-wrap"><div class="progress-bar" id="pbVendor" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelVendor">0 / 0</div>
+          </div>
+          <div id="actionVendor" style="display:none;margin-top:14px;display:flex;gap:10px">
+            <button class="btn btn-primary" id="btnImportVendor" onclick="doImport('vendor')">⬆ Mulai Import</button>
+            <button class="btn btn-ghost" onclick="resetImport('vendor')">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB PEMBELIAN ═══ -->
+    <div id="tabPembelian" style="display:none">
+      <div class="import-card">
+        <div class="import-header">
+          <div>
+            <div class="import-title">Import Pembelian</div>
+            <div class="import-desc">Upload riwayat transaksi pembelian. Setiap baris = satu item dalam transaksi.</div>
+          </div>
+          <button class="btn-download" onclick="downloadTemplate('pembelian')">⬇ Download Template</button>
+        </div>
+        <div class="import-body">
+          <div class="schema-box">
+            <div class="schema-title">Kolom yang diperlukan</div>
+            <div class="schema-row"><span class="schema-col">tanggal</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Format: YYYY-MM-DD (misal: 2024-01-15)</span></div>
+            <div class="schema-row"><span class="schema-col">nama_barang</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama barang (harus sudah ada di sistem)</span></div>
+            <div class="schema-row"><span class="schema-col">qty</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Jumlah/kuantitas (angka)</span></div>
+            <div class="schema-row"><span class="schema-col">harga_satuan</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Harga per satuan (angka, tanpa titik/koma ribuan)</span></div>
+            <div class="schema-row"><span class="schema-col">brand</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama brand transaksi (harus sudah ada di sistem)</span></div>
+            <div class="schema-row"><span class="schema-col">status_harga</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">exc (harga belum termasuk PPN) atau inc (sudah termasuk PPN)</span></div>
+            <div class="schema-row"><span class="schema-col">vendor</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nama vendor (harus sudah ada di sistem)</span></div>
+            <div class="schema-row"><span class="schema-col">nomor_faktur</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nomor faktur/PO</span></div>
+            <div class="schema-row"><span class="schema-col">catatan</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Catatan transaksi</span></div>
+            <div class="schema-row"><span class="schema-col">status</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">selesai (default) / pending / batal</span></div>
+            <div class="schema-row"><span class="schema-col">diskon</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nominal diskon dalam Rupiah (default: 0)</span></div>
+            <div class="schema-row"><span class="schema-col">ongkir</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Ongkos kirim (default: 0)</span></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:10px 14px;background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.15);border-radius:7px;margin-bottom:16px">
+            ℹ Baris dengan tanggal + vendor + brand sama akan digabung menjadi satu transaksi. Brand berbeda = transaksi berbeda.
+          </div>
+
+          <div class="drop-zone" id="dropPembelian" onclick="document.getElementById('filePembelian').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event,'dropPembelian')" ondrop="onDrop(event,'pembelian')">
+            <div class="drop-icon">📂</div>
+            <div class="drop-text">Klik atau seret file ke sini</div>
+            <div class="drop-sub">Format: .xlsx, .xls, .csv — maks 5MB</div>
+          </div>
+          <input type="file" id="filePembelian" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event,'pembelian')"/>
+
+          <div id="previewPembelian"></div>
+          <div class="result-box" id="resultPembelian"></div>
+          <div id="progressPembelian" style="display:none">
+            <div class="progress-bar-wrap"><div class="progress-bar" id="pbPembelian" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelPembelian">0 / 0</div>
+          </div>
+          <div id="actionPembelian" style="display:none;margin-top:14px;display:flex;gap:10px">
+            <button class="btn btn-primary" id="btnImportPembelian" onclick="doImport('pembelian')">⬆ Mulai Import</button>
+            <button class="btn btn-ghost" onclick="resetImport('pembelian')">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB HARGA ═══ -->
+    <div id="tabHarga" style="display:none">
+      <div class="import-card">
+        <div class="import-header">
+          <div>
+            <div class="import-title">Import Harga Barang</div>
+            <div class="import-desc">Upload riwayat harga survey / catatan harga manual</div>
+          </div>
+          <button class="btn-download" onclick="downloadTemplate('harga')">⬇ Download Template</button>
+        </div>
+        <div class="import-body">
+          <div class="schema-box">
+            <div class="schema-title">Kolom yang diperlukan</div>
+            <div class="schema-row"><span class="schema-col">tanggal</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Format: YYYY-MM-DD (misal: 2024-01-15)</span></div>
+            <div class="schema-row"><span class="schema-col">nama_barang</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama barang (harus sudah ada di sistem)</span></div>
+            <div class="schema-row"><span class="schema-col">harga</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Harga satuan (angka, tanpa titik/koma ribuan)</span></div>
+            <div class="schema-row"><span class="schema-col">status_harga</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">exc (belum termasuk PPN) atau inc (sudah termasuk PPN)</span></div>
+            <div class="schema-row"><span class="schema-col">vendor</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Nama vendor (harus sudah ada di sistem)</span></div>
+            <div class="schema-row"><span class="schema-col">catatan</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Keterangan harga (misal: harga promo, survey pasar)</span></div>
+          </div>
+
+          <div class="drop-zone" id="dropHarga" onclick="document.getElementById('fileHarga').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event,'dropHarga')" ondrop="onDrop(event,'harga')">
+            <div class="drop-icon">📂</div>
+            <div class="drop-text">Klik atau seret file ke sini</div>
+            <div class="drop-sub">Format: .xlsx, .xls, .csv — maks 5MB</div>
+          </div>
+          <input type="file" id="fileHarga" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event,'harga')"/>
+
+          <div id="previewHarga"></div>
+          <div class="result-box" id="resultHarga"></div>
+          <div id="progressHarga" style="display:none">
+            <div class="progress-bar-wrap"><div class="progress-bar" id="pbHarga" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelHarga">0 / 0</div>
+          </div>
+          <div id="actionHarga" style="display:none;margin-top:14px;display:flex;gap:10px">
+            <button class="btn btn-primary" id="btnImportHarga" onclick="doImport('harga')">⬆ Mulai Import</button>
+            <button class="btn btn-ghost" onclick="resetImport('harga')">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script src="ppn.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  window._sb = supabase.createClient(
+    'https://jpfqysbaygcvlkxcecdo.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
+  );
+
+  (async () => {
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    renderSidebar('settings.html')
+    const user = session.user;
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    document.getElementById('userName').textContent   = name;
+    document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+    window._sb.auth.onAuthStateChange(e => { if (e === 'SIGNED_OUT') window.location.href = 'index.html'; });
+
+    const role = await getUserRole(); applyRoleUI(role);
+    await loadPPNRate();
+
+    /* Load brands & master data */
+    const { data: brands } = await window._sb.from('brands').select('*').order('nama');
+    window.allBrands = brands || [];
+    const sel = document.getElementById('brandSelect');
+    window.allBrands.forEach(b => {
+      const opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.nama; sel.appendChild(opt);
+    });
+    const saved = localStorage.getItem('activeBrand');
+    if (saved) sel.value = saved;
+
+    const { data: barRows } = await window._sb.from('barang').select('id, nama, sku, satuan').order('nama');
+    window.allBarang = barRows || [];
+    window.barangMap = {};
+    window.allBarang.forEach(b => { window.barangMap[b.nama?.toLowerCase()] = b; });
+
+    const { data: vRows } = await window._sb.from('vendor').select('id, nama').order('nama');
+    window.allVendors = vRows || [];
+    window.vendorMap = {};
+    window.allVendors.forEach(v => { window.vendorMap[v.nama?.toLowerCase()] = v; });
+
+    /* Check URL param */
+    const type = new URLSearchParams(location.search).get('type');
+    if (type) switchTab(type);
+  })();
+</script>
+
+<script>
+  /* ══ STATE ══ */
+  const importState = { barang: null, vendor: null, pembelian: null, harga: null };
+
+  /* ══ TAB ══ */
+  function switchTab(name) {
+    ['barang','vendor','pembelian','harga'].forEach(t => {
+      document.getElementById('tab'+cap(t)).style.display        = t===name ? '' : 'none';
+      document.getElementById('tabBtn'+cap(t)).classList.toggle('active', t===name);
+    });
+  }
+  function cap(s) { return s.charAt(0).toUpperCase()+s.slice(1); }
+
+  /* ══ DRAG & DROP ══ */
+  function onDragOver(e)        { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+  function onDragLeave(e, id)   { document.getElementById(id).classList.remove('drag-over'); }
+  function onDrop(e, type)      { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); processFile(e.dataTransfer.files[0], type); }
+  function onFileSelect(e, type){ processFile(e.target.files[0], type); e.target.value=''; }
+
+  /* ══ FILE PROCESSING ══ */
+  function processFile(file, type) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls','csv'].includes(ext)) { showToast('Format file tidak didukung', 'error'); return; }
+    if (file.size > 5*1024*1024) { showToast('File terlalu besar (maks 5MB)', 'error'); return; }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        let rows;
+        if (ext === 'csv') {
+          const text = new TextDecoder().decode(e.target.result);
+          rows = parseCSV(text);
+        } else {
+          const wb = XLSX.read(e.target.result, { type:'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+        }
+        rows = rows.map(r => {
+          const clean = {};
+          Object.keys(r).forEach(k => { clean[k.trim().toLowerCase().replace(/\s+/g,'_')] = String(r[k] ?? '').trim(); });
+          return clean;
+        }).filter(r => Object.values(r).some(v => v !== ''));
+
+        if (!rows.length) { showToast('File kosong atau tidak ada data', 'error'); return; }
+        validateAndPreview(rows, type);
+      } catch(err) { showToast('Gagal membaca file: '+err.message, 'error'); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parseCSV(text) {
+    const lines = text.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    return lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g,''));
+      const row = {};
+      headers.forEach((h,i) => { row[h] = vals[i]||''; });
+      return row;
+    });
+  }
+
+  /* ══ EXCEL SERIAL DATE CONVERTER ══ */
+  function excelSerialToYMD(serial) {
+    // Excel serial: days since 1900-01-00 (with leap year bug on 1900)
+    const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function normalizeTanggal(val) {
+    if (!val && val !== 0) return val;
+    const s = String(val).trim();
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // Excel serial number
+    if (/^\d{5}$/.test(s)) return excelSerialToYMD(Number(s));
+    return s;
+  }
+
+  /* ══ VALIDATE & PREVIEW ══ */
+  function validateAndPreview(rows, type) {
+    const validated = rows.map((r, i) => {
+      // Normalize tanggal from Excel serial if needed
+      if (r.tanggal !== undefined) r = { ...r, tanggal: normalizeTanggal(r.tanggal) };
+      const errors = [];
+      if (type === 'barang') {
+        if (!r.nama)   errors.push('nama kosong');
+        if (!r.satuan) errors.push('satuan kosong');
+        if (!r.brand)  errors.push('brand kosong');
+        else {
+          const brandNames = r.brand.split(',').map(s=>s.trim().toLowerCase());
+          const missing = brandNames.filter(bn => !window.allBrands.find(b=>b.nama.toLowerCase()===bn));
+          if (missing.length) errors.push(`brand tidak ditemukan: ${missing.join(', ')}`);
+        }
+        /* Flag duplikat — barangMap sudah loaded dari DB */
+        if (r.nama && window.barangMap[r.nama.toLowerCase()]) {
+          r._duplikat = true;
+        }
+      } else if (type === 'vendor') {
+        if (!r.nama)  errors.push('nama kosong');
+        if (!r.brand) errors.push('brand kosong');
+        /* Flag duplikat vendor */
+        if (r.nama && window.vendorMap[r.nama.toLowerCase()]) {
+          r._duplikat = true;
+        }
+        else {
+          const brandNames = r.brand.split(',').map(s=>s.trim().toLowerCase());
+          const missing = brandNames.filter(bn => !window.allBrands.find(b=>b.nama.toLowerCase()===bn));
+          if (missing.length) errors.push(`brand tidak ditemukan: ${missing.join(', ')}`);
+        }
+      } else if (type === 'pembelian') {
+        if (!r.tanggal)     errors.push('tanggal kosong');
+        else if (!/^\d{4}-\d{2}-\d{2}$/.test(r.tanggal)) errors.push('format tanggal harus YYYY-MM-DD');
+        if (!r.nama_barang) errors.push('nama_barang kosong');
+        else {
+          const barangDb = window.barangMap[r.nama_barang.toLowerCase()];
+          if (!barangDb) {
+            errors.push(`barang "${r.nama_barang}" tidak ditemukan di database`);
+          } else if (r.satuan && r.satuan.trim() !== '' && r.satuan.trim().toLowerCase() !== (barangDb.satuan || '').toLowerCase()) {
+            errors.push(`satuan "${r.satuan}" tidak sesuai (terdaftar: "${barangDb.satuan}")`);
+          }
+        }
+        if (!r.qty || isNaN(parseFloat(r.qty))) errors.push('qty tidak valid');
+        if (r.harga_satuan === '' || r.harga_satuan === undefined || r.harga_satuan === null || isNaN(Number(r.harga_satuan))) errors.push('harga_satuan tidak valid');
+        if (!r.brand) errors.push('brand kosong');
+        else if (!window.allBrands.find(b=>b.nama.toLowerCase()===r.brand.toLowerCase())) errors.push(`brand "${r.brand}" tidak ditemukan`);
+        if (r.status_harga && !['exc','inc'].includes(r.status_harga.toLowerCase())) errors.push('status_harga harus "exc" atau "inc"');
+        if (r.vendor && r.vendor !== '' && !window.vendorMap[r.vendor.toLowerCase()]) errors.push(`vendor "${r.vendor}" tidak ditemukan di database`);
+        if (r.status && !['selesai','pending','batal'].includes(r.status.toLowerCase())) errors.push('status harus selesai/pending/batal');
+      } else if (type === 'harga') {
+        if (!r.tanggal)     errors.push('tanggal kosong');
+        else if (!/^\d{4}-\d{2}-\d{2}$/.test(r.tanggal)) errors.push('format tanggal harus YYYY-MM-DD');
+        if (!r.nama_barang) errors.push('nama_barang kosong');
+        else {
+          const barangDb = window.barangMap[r.nama_barang.toLowerCase()];
+          if (!barangDb) {
+            errors.push(`barang "${r.nama_barang}" tidak ditemukan di database`);
+          } else if (r.satuan && r.satuan.trim() !== '' && r.satuan.trim().toLowerCase() !== (barangDb.satuan || '').toLowerCase()) {
+            errors.push(`satuan "${r.satuan}" tidak sesuai (terdaftar: "${barangDb.satuan}")`);
+          }
+        }
+        if (!r.harga || isNaN(parseFloat(r.harga))) errors.push('harga tidak valid');
+        if (!r.status_harga) errors.push('status_harga kosong');
+        else if (!['exc','inc'].includes(r.status_harga.toLowerCase())) errors.push('status_harga harus "exc" atau "inc"');
+        if (r.vendor && r.vendor !== '' && !window.vendorMap[r.vendor.toLowerCase()]) errors.push(`vendor "${r.vendor}" tidak ditemukan`);
+      }
+      return { ...r, _idx: i + 1, _ok: errors.length === 0, _errors: errors };
+    });
+
+    importState[type] = validated;
+    previewState[type] = { tab: 'all', page: 1 };
+    renderPreview(validated, type);
+
+    const hasData = validated.length > 0;
+    const actionEl = document.getElementById('action'+cap(type));
+    actionEl.style.display = hasData ? 'flex' : 'none';
+    document.getElementById('result'+cap(type)).classList.remove('show');
+  }
+
+  /* ── preview state per type ── */
+  const previewState = { barang: { tab: 'all', page: 1 }, vendor: { tab: 'all', page: 1 }, pembelian: { tab: 'all', page: 1 }, harga: { tab: 'all', page: 1 } };
+  const PAGE_SIZE = 50;
+
+  function renderPreview(rows, type) {
+    const el = document.getElementById('preview'+cap(type));
+    const cols = type === 'barang'
+      ? ['nama','sku','satuan','brand','kategori']
+      : type === 'vendor'
+      ? ['nama','kode','brand','kota','telp']
+      : type === 'harga'
+      ? ['tanggal','nama_barang','harga','status_harga','vendor','catatan']
+      : ['tanggal','nama_barang','qty','harga_satuan','status_harga','vendor','brand','nomor_faktur'];
+
+    const okCount  = rows.filter(r=>r._ok).length;
+    const errCount = rows.length - okCount;
+    const dupCount = rows.filter(r=>r._ok && r._duplikat).length;
+
+    const state = previewState[type];
+
+    const filtered = state.tab === 'ok'  ? rows.filter(r=>r._ok)
+                   : state.tab === 'err' ? rows.filter(r=>!r._ok)
+                   : rows;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (state.page > totalPages) state.page = 1;
+    const pageRows = filtered.slice((state.page-1)*PAGE_SIZE, state.page*PAGE_SIZE);
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap">
+        <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px">
+          <button onclick="setPreviewTab('${type}','all')" style="padding:4px 12px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--mono);background:${state.tab==='all'?'var(--surface2)':'transparent'};color:${state.tab==='all'?'var(--text)':'var(--muted)'}">Semua (${rows.length})</button>
+          <button onclick="setPreviewTab('${type}','ok')"  style="padding:4px 12px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--mono);background:${state.tab==='ok'?'var(--surface2)':'transparent'};color:${state.tab==='ok'?'var(--accent2)':'var(--muted)'}">✓ Valid (${okCount})</button>
+          ${errCount ? `<button onclick="setPreviewTab('${type}','err')" style="padding:4px 12px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--mono);background:${state.tab==='err'?'var(--surface2)':'transparent'};color:${state.tab==='err'?'var(--danger)':'var(--muted)'}">✕ Error (${errCount})</button>` : ''}
+        </div>
+        ${dupCount ? `<span style="font-size:12px;color:var(--accent3)">⚠ ${dupCount} duplikat</span>` : ''}
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto">${filtered.length} baris · hal ${state.page}/${totalPages}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="preview-table">
+          <thead><tr>
+            <th>#</th>${cols.map(c=>`<th>${c}</th>`).join('')}<th>Status</th>
+          </tr></thead>
+          <tbody>
+            ${pageRows.map(r=>`<tr class="${r._ok?'row-ok':'row-err'}">
+              <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r._idx}</td>
+              ${cols.map(c=>`<td>${r[c]||''}</td>`).join('')}
+              <td>${r._ok
+                ? (r._duplikat
+                    ? '<span style="font-size:10px;font-family:var(--mono);background:rgba(247,146,79,0.15);color:var(--accent3);padding:2px 7px;border-radius:3px">duplikat</span>'
+                    : '<span class="row-status-ok">✓</span>')
+                : `<span class="row-status-err">${r._errors.join('; ')}</span>`}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${totalPages > 1 ? `
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button onclick="setPreviewPage('${type}',1)" ${state.page===1?'disabled':''} style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer">«</button>
+        <button onclick="setPreviewPage('${type}',${state.page-1})" ${state.page===1?'disabled':''} style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer">‹</button>
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text);padding:0 8px">${state.page} / ${totalPages}</span>
+        <button onclick="setPreviewPage('${type}',${state.page+1})" ${state.page===totalPages?'disabled':''} style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer">›</button>
+        <button onclick="setPreviewPage('${type}',${totalPages})" ${state.page===totalPages?'disabled':''} style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer">»</button>
+      </div>` : ''}`;
+  }
+
+  function setPreviewTab(type, tab) {
+    previewState[type].tab  = tab;
+    previewState[type].page = 1;
+    renderPreview(importState[type], type);
+  }
+
+  function setPreviewPage(type, page) {
+    const rows     = importState[type] || [];
+    const state    = previewState[type];
+    const filtered = state.tab === 'ok'  ? rows.filter(r=>r._ok)
+                   : state.tab === 'err' ? rows.filter(r=>!r._ok)
+                   : rows;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    state.page = Math.min(Math.max(1, page), totalPages);
+    renderPreview(rows, type);
+  }
+
+  window.setPreviewTab  = setPreviewTab;
+  window.setPreviewPage = setPreviewPage;
+
+  /* ══ IMPORT ══ */
+  async function doImport(type) {
+    const rows = (importState[type]||[]).filter(r=>r._ok);
+    if (!rows.length) { showToast('Tidak ada baris valid untuk diimport', 'error'); return; }
+
+    const btn = document.getElementById('btnImport'+cap(type));
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Mengimport...';
+
+    const progWrap = document.getElementById('progress'+cap(type));
+    const pb       = document.getElementById('pb'+cap(type));
+    const pbLabel  = document.getElementById('pbLabel'+cap(type));
+    progWrap.style.display = '';
+
+    const resultEl = document.getElementById('result'+cap(type));
+    resultEl.classList.remove('show');
+
+    let done = 0, failed = 0;
+    const total = type === 'pembelian' ? countPembelianGroups(rows) : rows.length;
+
+    const updateProgress = () => {
+      const pct = Math.round((done+failed)/total*100);
+      pb.style.width = pct+'%';
+      pbLabel.textContent = `${done+failed} / ${total}`;
+    };
+
+    try {
+      let result;
+      if (type === 'barang')      { result = await importBarang(rows, updateProgress); }
+      else if (type === 'vendor')  { result = await importVendor(rows, updateProgress); }
+      else if (type === 'harga')   { result = await importHarga(rows, updateProgress); }
+      else                         { result = await importPembelian(rows, updateProgress); }
+
+      done   = result.done   || 0;
+      failed = result.failed || 0;
+      const skipped = result.skipped || 0;
+
+      pb.style.width = '100%';
+      resultEl.className = 'result-box show ' + (failed ? 'error' : 'success');
+      resultEl.textContent = failed
+        ? `Import selesai: ${done} berhasil, ${failed} gagal${skipped ? `, ${skipped} dilewati` : ''}.`
+        : `✓ ${done} ${type} berhasil diimport${skipped ? ` · ${skipped} duplikat dilewati` : ''}.`;
+
+      /* Invalidate caches */
+      localStorage.removeItem('_hargaCache');
+      localStorage.removeItem('_c_barang');
+      localStorage.removeItem('_c_vendors');
+    } catch(e) {
+      resultEl.className = 'result-box show error';
+      resultEl.textContent = 'Import gagal: ' + e.message;
+    } finally {
+      btn.disabled = false; btn.innerHTML = '⬆ Mulai Import';
+    }
+  }
+
+  /* ══ IMPORT BARANG ══ */
+  async function importBarang(rows, onProgress) {
+    let done = 0, failed = 0, skipped = 0;
+    const dupMode = document.querySelector('input[name="dupBarang"]:checked')?.value || 'skip';
+
+    for (const r of rows) {
+      try {
+        const brandIds = r.brand.split(',').map(s => {
+          const b = window.allBrands.find(x => x.nama.toLowerCase() === s.trim().toLowerCase());
+          return b?.id;
+        }).filter(Boolean);
+
+        const existing = window.barangMap[r.nama.toLowerCase()];
+
+        if (existing && dupMode === 'skip') {
+          skipped++;
+          onProgress();
+          continue;
+        }
+
+        if (existing && dupMode === 'update') {
+          /* Hanya update field yang memang diisi di file (tidak kosong) dan berbeda dari data lama */
+          const patch = { updated_at: new Date().toISOString() };
+          if (r.sku          && r.sku          !== (existing.sku       || '')) patch.sku          = r.sku;
+          if (r.satuan       && r.satuan        !== existing.satuan)            patch.satuan       = r.satuan;
+          if (r.kategori     && r.kategori      !== (existing.kategori  || '')) patch.kategori     = r.kategori;
+          if (r.deskripsi    && r.deskripsi     !== (existing.deskripsi || '')) patch.deskripsi    = r.deskripsi;
+          const stokMin = r.stok_minimum !== '' ? parseInt(r.stok_minimum) : null;
+          if (stokMin !== null && stokMin !== (existing.stok_minimum || 0))     patch.stok_minimum = stokMin;
+
+          /* Hanya kirim update jika ada perubahan selain updated_at */
+          if (Object.keys(patch).length > 1) {
+            await window._sb.from('barang').update(patch).eq('id', existing.id);
+          }
+
+          /* Update brand hanya jika brand di file berbeda dari yang tersimpan */
+          if (brandIds.length) {
+            const { data: existingBrands } = await window._sb.from('barang_brands')
+              .select('brand_id').eq('barang_id', existing.id);
+            const existingBrandIds = (existingBrands || []).map(x => x.brand_id).sort().join(',');
+            const newBrandIds      = [...brandIds].sort().join(',');
+            if (existingBrandIds !== newBrandIds) {
+              await window._sb.from('barang_brands').delete().eq('barang_id', existing.id);
+              await window._sb.from('barang_brands').insert(brandIds.map(bid => ({ barang_id: existing.id, brand_id: bid })));
+            }
+          }
+          done++;
+        } else {
+          /* Insert baru */
+          const { data: nb, error } = await window._sb.from('barang').insert({
+            nama:         r.nama,
+            sku:          r.sku          || null,
+            kategori:     r.kategori     || null,
+            satuan:       r.satuan,
+            deskripsi:    r.deskripsi    || null,
+            stok_minimum: parseInt(r.stok_minimum)||0,
+            updated_at:   new Date().toISOString()
+          }).select().single();
+          if (error) throw error;
+
+          if (brandIds.length) {
+            await window._sb.from('barang_brands').insert(brandIds.map(bid => ({ barang_id: nb.id, brand_id: bid })));
+          }
+          /* Update local map so subsequent rows with same name are detected */
+          window.barangMap[r.nama.toLowerCase()] = nb;
+          done++;
+        }
+      } catch(e) { failed++; }
+      onProgress();
+    }
+
+    return { done, failed, skipped };
+  }
+
+  /* ══ IMPORT VENDOR ══ */
+  async function importVendor(rows, onProgress) {
+    let done = 0, failed = 0, skipped = 0;
+    const dupMode = document.querySelector('input[name="dupVendor"]:checked')?.value || 'skip';
+
+    for (const r of rows) {
+      try {
+        const brandIds = r.brand.split(',').map(s => {
+          const b = window.allBrands.find(x => x.nama.toLowerCase() === s.trim().toLowerCase());
+          return b?.id;
+        }).filter(Boolean);
+
+        const existing = window.vendorMap[r.nama.toLowerCase()];
+
+        if (existing && dupMode === 'skip') {
+          skipped++;
+          onProgress();
+          continue;
+        }
+
+        if (existing && dupMode === 'update') {
+          /* Hanya update field yang diisi di file dan berbeda dari data lama */
+          const { data: ex } = await window._sb.from('vendor').select('*').eq('id', existing.id).single();
+          const patch = { updated_at: new Date().toISOString() };
+          const chk = (key, val) => { if (val && val !== (ex?.[key] || '')) patch[key] = val; };
+          chk('kode',     r.kode);
+          chk('kategori', r.kategori);
+          chk('pic',      r.pic);
+          chk('telepon',  r.telp);
+          chk('telp',     r.telp);
+          chk('email',    r.email);
+          chk('kota',     r.kota);
+          chk('provinsi', r.provinsi);
+          chk('alamat',   r.alamat);
+          chk('npwp',     r.npwp);
+          chk('termin',   r.termin);
+          chk('catatan',  r.catatan);
+
+          if (Object.keys(patch).length > 1) {
+            await window._sb.from('vendor').update(patch).eq('id', existing.id);
+          }
+
+          /* Update brand hanya jika berbeda */
+          if (brandIds.length) {
+            const { data: existingBrands } = await window._sb.from('vendor_brands')
+              .select('brand_id').eq('vendor_id', existing.id);
+            const existingBrandIds = (existingBrands || []).map(x => x.brand_id).sort().join(',');
+            const newBrandIds      = [...brandIds].sort().join(',');
+            if (existingBrandIds !== newBrandIds) {
+              await window._sb.from('vendor_brands').delete().eq('vendor_id', existing.id);
+              await window._sb.from('vendor_brands').insert(brandIds.map(bid => ({ vendor_id: existing.id, brand_id: bid })));
+            }
+          }
+          done++;
+        } else {
+          /* Insert baru */
+          const { data: nv, error } = await window._sb.from('vendor').insert({
+            nama:      r.nama,
+            kode:      r.kode      || null,
+            kategori:  r.kategori  || null,
+            pic:       r.pic       || null,
+            telepon:   r.telp      || null,
+            telp:      r.telp      || null,
+            email:     r.email     || null,
+            website:   r.website   || null,
+            kota:      r.kota      || null,
+            provinsi:  r.provinsi  || null,
+            alamat:    r.alamat    || null,
+            npwp:      r.npwp      || null,
+            termin:    r.termin    || null,
+            catatan:   r.catatan   || null,
+            aktif:     true,
+            updated_at: new Date().toISOString()
+          }).select().single();
+          if (error) throw error;
+
+          if (brandIds.length) {
+            await window._sb.from('vendor_brands').insert(brandIds.map(bid => ({ vendor_id: nv.id, brand_id: bid })));
+          }
+          /* Update local map */
+          window.vendorMap[r.nama.toLowerCase()] = nv;
+          done++;
+        }
+      } catch(e) { failed++; }
+      onProgress();
+    }
+    return { done, failed, skipped };
+  }
+
+  /* ══ IMPORT PEMBELIAN ══ */
+  function countPembelianGroups(rows) {
+    const keys = new Set(rows.map(r => {
+      const faktur = r.nomor_faktur?.trim() || '';
+      // Jika ada nomor faktur: group by tanggal+faktur+vendor+brand
+      // Jika tidak ada: group by tanggal+vendor+brand (brand beda = transaksi beda)
+      return faktur
+        ? `INV__${r.tanggal}__${faktur}__${r.vendor||''}__${r.brand||''}`
+        : `NOINV__${r.tanggal}__${r.vendor||''}__${r.brand||''}`;
+    }));
+    return keys.size;
+  }
+
+  async function importPembelian(rows, onProgress) {
+    /* Group by:
+       - Ada nomor_faktur: tanggal + faktur + vendor + brand
+       - Tanpa nomor_faktur: tanggal + vendor + brand (brand beda = transaksi beda) */
+    const groups = {};
+    rows.forEach(r => {
+      const faktur = r.nomor_faktur?.trim() || '';
+      const key = faktur
+        ? `INV__${r.tanggal}__${faktur}__${r.vendor||''}__${r.brand||''}`
+        : `NOINV__${r.tanggal}__${r.vendor||''}__${r.brand||''}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    });
+
+    let done = 0, failed = 0;
+    const ppnRate = window._ppnRate || 11;
+
+    for (const [, grpRows] of Object.entries(groups)) {
+      try {
+        const first = grpRows[0];
+        const brandObj  = window.allBrands.find(b => b.nama.toLowerCase() === first.brand.toLowerCase());
+        const vendorObj = first.vendor ? window.vendorMap[first.vendor.toLowerCase()] : null;
+        const ppnInc = (first.status_harga||'exc').toLowerCase() === 'inc';
+
+        const items = grpRows.map(r => {
+          const b = window.barangMap[r.nama_barang.toLowerCase()];
+          const hargaRaw  = parseFloat(r.harga_satuan) || 0;
+          const harga_exc = ppnInc ? Math.round(hargaRaw / (1 + ppnRate/100)) : hargaRaw;
+          const harga_inc = ppnInc ? hargaRaw : Math.round(hargaRaw * (1 + ppnRate/100));
+          const qty       = parseFloat(r.qty) || 0;
+          const hargaSubtotal = ppnInc ? harga_inc : harga_exc;
+          return {
+            barang_id:     b?.id || null,
+            nama:          r.nama_barang,
+            sku:           b?.sku || '',
+            satuan:        b?.satuan || '',
+            brand_id:      brandObj?.id || null,
+            qty,
+            harga_satuan:  harga_exc,
+            harga_exc_ppn: harga_exc,
+            harga_inc_ppn: harga_inc,
+            ppn_included:  ppnInc,
+            subtotal:      qty * hargaSubtotal
+          };
+        });
+
+        const diskon  = parseFloat(first.diskon||'0') || 0;
+        const ongkir  = parseFloat(first.ongkir||'0') || 0;
+        const subtotal = items.reduce((s,i) => s + i.subtotal, 0);
+        const total    = Math.max(0, subtotal - diskon + ongkir);
+
+        const { data: beli, error: beliErr } = await window._sb.from('riwayat_beli').insert({
+          tanggal:       first.tanggal,
+          nomor_faktur:  first.nomor_faktur || null,
+          vendor_id:     vendorObj?.id || null,
+          brand_id:      brandObj?.id || null,
+          catatan:       first.catatan || null,
+          status:        first.status?.toLowerCase() || 'selesai',
+          ppn_included:  ppnInc,
+          diskon,
+          diskon_mode:   'rp',
+          ongkir,
+          subtotal,
+          total,
+          updated_at:    new Date().toISOString()
+        }).select().single();
+        if (beliErr) throw beliErr;
+
+        await window._sb.from('riwayat_beli_items').insert(items.map(i => ({ ...i, beli_id: beli.id })));
+
+        /* Insert riwayat_harga */
+        const hargaPayloads = items.map(item => ({
+          barang_id:     item.barang_id,
+          barang_nama:   item.nama,
+          barang_sku:    item.sku,
+          vendor_id:     vendorObj?.id || null,
+          brand_id:      brandObj?.id || null,
+          harga:         item.harga_exc_ppn,
+          harga_exc_ppn: item.harga_exc_ppn,
+          harga_inc_ppn: item.harga_inc_ppn,
+          ppn_included:  ppnInc,
+          qty:           item.qty,
+          tanggal:       first.tanggal,
+          sumber:        'pembelian',
+          beli_id:       beli.id
+        }));
+        await window._sb.from('riwayat_harga').insert(hargaPayloads);
+
+        done++;
+      } catch(e) { failed++; }
+      onProgress();
+    }
+    return { done, failed };
+  }
+
+  /* ══ IMPORT HARGA ══ */
+  async function importHarga(rows, onProgress) {
+    let done = 0, failed = 0;
+    const ppnRate = window._ppnRate || 11;
+
+    for (const r of rows) {
+      try {
+        const b          = window.barangMap[r.nama_barang.toLowerCase()];
+        const vendorObj  = r.vendor ? window.vendorMap[r.vendor.toLowerCase()] : null;
+        const brandId    = b?.brand_id || (b?.brand_ids || [])[0] || null;
+        const ppnInc     = r.status_harga.toLowerCase() === 'inc';
+        const hargaRaw   = parseFloat(r.harga) || 0;
+        const harga_exc  = ppnInc ? Math.round(hargaRaw / (1 + ppnRate/100)) : hargaRaw;
+        const harga_inc  = ppnInc ? hargaRaw : Math.round(hargaRaw * (1 + ppnRate/100));
+
+        const { error } = await window._sb.from('riwayat_harga').insert({
+          barang_id:     b?.id || null,
+          barang_nama:   r.nama_barang,
+          barang_sku:    b?.sku || '',
+          vendor_id:     vendorObj?.id || null,
+          brand_id:      brandId,
+          harga:         harga_exc,
+          harga_exc_ppn: harga_exc,
+          harga_inc_ppn: harga_inc,
+          ppn_included:  ppnInc,
+          tanggal:       r.tanggal,
+          sumber:        'survey',
+          catatan:       r.catatan || null
+        });
+        if (error) throw error;
+        done++;
+      } catch(e) { failed++; }
+      onProgress();
+    }
+    return { done, failed };
+  }
+
+  /* ══ DOWNLOAD TEMPLATE ══ */
+  function downloadTemplate(type) {
+    const wb = XLSX.utils.book_new();
+    let headers, example;
+
+    if (type === 'barang') {
+      headers = ['nama','sku','satuan','brand','kategori','deskripsi','stok_minimum'];
+      example = ['Kertas HVS A4','KRT-A4-80','rim','Bakeout','Alat Tulis','Kertas ukuran A4 80gr','10'];
+    } else if (type === 'vendor') {
+      headers = ['nama','kode','brand','kategori','pic','telp','email','kota','provinsi','alamat','npwp','termin','catatan'];
+      example = ['PT Maju Bersama','VND-001','Bakeout','Alat Tulis','Budi Santoso','0812-3456-7890','vendor@email.com','Medan','Sumatera Utara','Jl. Contoh No.1','00.000.000.0-000.000','net30',''];
+    } else if (type === 'harga') {
+      headers = ['tanggal','nama_barang','harga','status_harga','vendor','catatan'];
+      example = ['2024-01-15','Kertas HVS A4','50000','exc','PT Maju Bersama','harga survey pasar'];
+    } else if (type === 'pembelian') {
+      headers = ['tanggal','nama_barang','qty','harga_satuan','status_harga','brand','vendor','nomor_faktur','catatan','status','diskon','ongkir'];
+      example = ['2024-01-15','Kertas HVS A4','10','50000','exc','Bakeout','PT Maju Bersama','INV-001','','selesai','0','0'];
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    ws['!cols'] = headers.map(() => ({ wch: 20 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, `template_import_${type}.xlsx`);
+  }
+
+  function resetImport(type) {
+    importState[type] = null;
+    document.getElementById('preview'+cap(type)).innerHTML = '';
+    document.getElementById('result'+cap(type)).classList.remove('show');
+    document.getElementById('action'+cap(type)).style.display = 'none';
+    document.getElementById('progress'+cap(type)).style.display = 'none';
+    document.getElementById('pb'+cap(type)).style.width = '0%';
+  }
+
+  /* ══ HELPERS ══ */
+  let toastT;
+  function showToast(msg, type='success') {
+    const t=document.getElementById('toast'); t.className='toast '+type; t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500);
+  }
+  async function doLogout() {
+    if(!confirm('Yakin ingin keluar?')) return;
+    await window._sb.auth.signOut(); window.location.href='index.html';
+  }
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+  function closeSidebar()  { document.getElementById('sidebar').classList.remove('open');  document.getElementById('overlay').classList.remove('show'); }
+
+  window.switchTab=switchTab; window.onDragOver=onDragOver; window.onDragLeave=onDragLeave;
+  window.onDrop=onDrop; window.onFileSelect=onFileSelect; window.doImport=doImport;
+  window.resetImport=resetImport; window.downloadTemplate=downloadTemplate;
+  window.doLogout=doLogout; window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
+</script>
+</body>
+</html>

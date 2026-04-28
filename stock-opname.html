@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PurchaseOS — Stock Opname</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="sidebar.js"></script>
+  <style>
+    /* Page-specific overrides only — all shared components live in style.css */
+
+    /* Month label as clickable button */
+    button.month-label {
+      cursor: pointer;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 6px 14px;
+      transition: border-color .2s, background .2s;
+    }
+    button.month-label:hover { border-color: var(--accent); background: var(--surface2); }
+    button.month-label::after { content: ' ▾'; font-size: 10px; color: var(--muted); }
+
+    /* Month picker grid buttons */
+    .picker-month-btn {
+      padding: 8px 4px; border: 1px solid var(--border); border-radius: 7px;
+      background: var(--surface2); color: var(--muted); font-family: var(--mono);
+      font-size: 12px; cursor: pointer; transition: all .15s; text-align: center;
+    }
+    .picker-month-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.08); }
+    .picker-month-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .grpby-btn { padding:5px 11px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; transition:all .15s; }
+    .grpby-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
+    .grpby-btn:hover:not(.active) { border-color:var(--accent); color:var(--text); }
+
+    /* ── Progress bar ── */
+    .progress-wrap { margin-bottom:12px; }
+    .progress-label { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:5px; }
+    .progress-label strong { color:var(--text); }
+    .progress-bar-track { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+    .progress-bar-fill  { height:100%; border-radius:3px; background:var(--accent2); transition:width .4s ease; }
+
+    /* ── Hide empty rows toggle ── */
+    .hide-empty-active tr.empty-data-row { display:none; }
+
+    /* ── Input affordance — cell inputs ── */
+    .cell-input {
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      text-align: right;
+      width: 90px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    .cell-input:focus  { border-color: var(--accent); background: rgba(79,142,247,0.06); }
+    .cell-input.changed { border-color: var(--accent3); background: rgba(247,146,79,0.08); }
+    .cell-input-wrap   { text-align:right; }
+
+    /* ── Highlight baris yang sudah terisi ── */
+    tr.row-filled td { background: rgba(56,217,169,0.04); }
+
+    /* ── Modal pilih barang ── */
+    .item-select-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .2s;
+    }
+    .item-select-overlay.show { opacity:1; pointer-events:all; }
+    .item-select-modal {
+      background:var(--surface); border:1px solid var(--border); border-radius:14px;
+      width:min(720px,95vw); max-height:80vh; display:flex; flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6);
+      transform:translateY(16px); transition:transform .2s;
+    }
+    .item-select-overlay.show .item-select-modal { transform:translateY(0); }
+    .item-select-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .item-select-body   { flex:1; overflow-y:auto; padding:14px 22px; }
+    .item-select-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .item-select-list   { display:flex; flex-direction:column; gap:2px; }
+    .item-select-row {
+      display:flex; align-items:center; gap:12px; padding:9px 12px;
+      border-radius:7px; cursor:pointer; transition:background .12s; user-select:none;
+    }
+    .item-select-row:hover { background:rgba(79,142,247,0.07); }
+    .item-select-row.checked { background:rgba(56,217,169,0.08); }
+    .item-select-cb {
+      width:17px; height:17px; border:1.5px solid var(--border); border-radius:4px;
+      flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      font-size:11px; transition:all .12s; background:var(--bg);
+    }
+    .item-select-row.checked .item-select-cb { background:var(--accent2); border-color:var(--accent2); color:#0d0f14; }
+    .item-select-nama { font-size:13px; font-weight:500; flex:1; }
+    .item-select-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
+    .item-select-group { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; padding:12px 12px 4px; }
+
+    /* ── Tombol kelola barang ── */
+    .btn-kelola { padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .btn-kelola:hover { border-color:var(--accent); color:var(--accent); }
+
+  </style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar"></aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar" id="mainTopbar">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Stock Opname</div>
+      <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button onclick="exportExcel()"
+        style="padding:7px 14px;background:var(--surface);border:1px solid rgba(56,217,169,0.3);border-radius:8px;color:var(--accent2);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s"
+        onmouseover="this.style.background='rgba(56,217,169,0.08)'"
+        onmouseout="this.style.background='var(--surface)'">⬇ Export</button>
+    </div>
+  </div>
+
+  <div class="content" style="position:relative">
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabBtnOpname"    onclick="switchTab('opname')">📋 Stock Opname</button>
+      <button class="tab-btn"        id="tabBtnPemakaian" onclick="switchTab('pemakaian')">📊 Pemakaian</button>
+      <button class="tab-btn"        id="tabBtnPlan"      onclick="switchTab('plan')">🎯 Purchase Plan</button>
+      <button class="tab-btn"        id="tabBtnRealisasi" onclick="switchTab('realisasi')">✅ Realisasi</button>
+    </div>
+
+    <!-- MONTH NAV -->
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="goMonth(-1)">‹</button>
+      <button class="month-label" id="monthLabel" onclick="toggleMonthPicker()" title="Klik untuk pilih bulan">—</button>
+      <button class="month-nav-btn" onclick="goMonth(1)">›</button>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="monthSubLabel"></span>
+      <div class="brand-filter-row" style="margin-left:auto">
+        <label>Brand</label>
+        <select class="filter-select" id="soFilterBrand" onchange="onFilterChange()"></select>
+      </div>
+    </div>
+
+    <!-- MONTH PICKER POPUP -->
+    <div id="monthPickerPopup" style="display:none;position:absolute;z-index:80;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:280px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <button class="month-nav-btn" onclick="pickerChangeYear(-1)">‹</button>
+        <span id="pickerYear" style="font-family:var(--mono);font-size:15px;font-weight:600;"></span>
+        <button class="month-nav-btn" onclick="pickerChangeYear(1)">›</button>
+      </div>
+      <div id="pickerMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
+      <div style="margin-top:12px;text-align:right;">
+        <button class="btn btn-ghost btn-sm" onclick="closeMonthPicker()">Tutup</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB 1: STOCK OPNAME ══ -->
+    <div id="tabOpname">
+      <div class="notice-box info" id="noticeOpname" style="display:none"></div>
+      <!-- Progress bar -->
+      <div class="progress-wrap" id="opnameProgressWrap">
+        <div class="progress-label">
+          <span>Progress Pengisian</span>
+          <strong id="opnameCountLabel">0 / 0 barang terisi</strong>
+        </div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="opnameProgressBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" id="opnameSearch" placeholder="Cari nama barang atau SKU..." oninput="renderOpname();toggleClear('opnameSearch','opnameClear')"/>
+          <button id="opnameClear" onclick="clearSearch('opnameSearch','opnameClear',renderOpname)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
+          <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
+        </div>
+        <button class="btn-kelola" id="btnHideEmpty" onclick="toggleHideEmpty()" title="Sembunyikan baris yang belum diisi">👁 Tampilkan semua</button>
+        <button class="btn-kelola" onclick="openItemSelectModal()">⚙ Kelola Barang</button>
+        <span id="opnameSaveStatus" style="font-family:var(--mono);font-size:11px;color:var(--accent2);margin-left:auto"></span>
+      </div>
+      <div class="table-card anim">
+        <div class="card-header">
+          <span class="card-title">Stock Opname — <span id="opnameMonthTitle" style="color:var(--accent)">—</span></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Barang</th>
+                <th style="width:100px">SKU</th>
+                <th style="width:70px">Satuan</th>
+                <th style="text-align:right;width:120px">Stok Bulan Lalu</th>
+                <th style="text-align:right;width:130px">Stok Bulan Ini <span style="color:var(--accent3)">*</span></th>
+                <th style="text-align:right;width:90px">Selisih</th>
+              </tr>
+            </thead>
+            <tbody id="opnameTableBody">
+              <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="save-bar admin-only" id="opnameSaveBar" style="display:none">
+        <span class="unsaved-label">⚠ Ada perubahan yang belum disimpan</span>
+        <button class="btn btn-primary" onclick="saveOpname()">💾 Simpan Stock Opname</button>
+        <button class="btn btn-ghost"   onclick="discardOpname()">Batal</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB 2: PEMAKAIAN ══ -->
+    <div id="tabPemakaian" style="display:none">
+      <div class="stat-grid" id="statGridPemakaian"></div>
+      <div class="notice-box warning" id="noticePemakaian" style="display:none"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" id="pemakaianSearch" placeholder="Cari nama barang atau SKU..." oninput="renderPemakaian();toggleClear('pemakaianSearch','pemakaianClear')"/>
+          <button id="pemakaianClear" onclick="clearSearch('pemakaianSearch','pemakaianClear',renderPemakaian)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
+          <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
+        </div>
+      </div>
+      <div class="table-card anim">
+        <div class="card-header">
+          <span class="card-title">Pemakaian — <span id="pemakaianMonthTitle" style="color:var(--accent)">—</span></span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">= Stok Awal + Pembelian − Stok Akhir</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Barang</th>
+                <th style="width:100px">SKU</th>
+                <th style="width:70px">Satuan</th>
+                <th style="text-align:right;width:100px">Stok Awal</th>
+                <th style="text-align:right;width:100px">Pembelian</th>
+                <th style="text-align:right;width:100px">Stok Akhir</th>
+                <th style="text-align:right;width:110px">Pemakaian</th>
+              </tr>
+            </thead>
+            <tbody id="pemakaianTableBody">
+              <tr class="empty-row"><td colspan="7">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 3: PURCHASE PLAN ══ -->
+    <div id="tabPlan" style="display:none">
+      <div class="plan-gen-bar admin-only">
+        <label>Generate Plan</label>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">Rekomendasi = Stok Akhir Bln Lalu − Rata-rata Pakai</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">+</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input type="number" id="planBufferPct" value="0" min="0" max="500"
+            style="width:62px;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;text-align:center"
+            oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">% buffer dari rata-rata pakai</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="generatePlan()">⚡ Generate</button>
+      </div>
+      <div class="notice-box info" id="noticePlan" style="display:none"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" id="planSearch" placeholder="Cari nama barang atau SKU..." oninput="renderPlan();toggleClear('planSearch','planClear')"/>
+          <button id="planClear" onclick="clearSearch('planSearch','planClear',renderPlan)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
+          <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
+        </div>
+        <span id="planDraftBadge"></span>
+      </div>
+      <div class="table-card anim">
+        <div class="card-header">
+          <span class="card-title">Purchase Plan — <span id="planMonthTitle" style="color:var(--accent)">—</span></span>
+
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Barang</th>
+                <th style="width:100px">SKU</th>
+                <th style="width:70px">Satuan</th>
+                <th style="text-align:right;width:120px">Stok Akhir Bln Lalu</th>
+                <th style="text-align:right;width:110px">Rata-rata Pakai 3 Bln</th>
+                <th style="text-align:right;width:110px">Rekomendasi Plan</th>
+                <th style="text-align:right;width:110px">Purchase Plan</th>
+              </tr>
+            </thead>
+            <tbody id="planTableBody">
+              <tr class="empty-row"><td colspan="7">Klik Generate untuk membuat draft purchase plan.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="save-bar admin-only" id="planSaveBar" style="display:none">
+        <span class="unsaved-label">⚡ Draft plan belum disimpan</span>
+        <button class="btn btn-primary" onclick="savePlan()">💾 Simpan Purchase Plan</button>
+        <button class="btn btn-ghost"   onclick="discardPlan()">Buang Draft</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB 4: REALISASI ══ -->
+    <div id="tabRealisasi" style="display:none">
+      <div class="stat-grid" id="statGridRealisasi"></div>
+      <div class="notice-box warning" id="noticeRealisasi" style="display:none"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" id="realisasiSearch" placeholder="Cari nama barang atau SKU..." oninput="renderRealisasi();toggleClear('realisasiSearch','realisasiClear')"/>
+          <button id="realisasiClear" onclick="clearSearch('realisasiSearch','realisasiClear',renderRealisasi)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
+          <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
+        </div>
+      </div>
+      <div class="table-card anim">
+        <div class="card-header">
+          <span class="card-title">Realisasi vs Purchase Plan — <span id="realisasiMonthTitle" style="color:var(--accent)">—</span></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Barang</th>
+                <th style="width:100px">SKU</th>
+                <th style="width:70px">Satuan</th>
+                <th style="text-align:right;width:120px">Purchase Plan</th>
+                <th style="text-align:right;width:130px">Pembelian Aktual</th>
+                <th style="text-align:right;width:90px">Selisih</th>
+                <th style="text-align:center;width:90px">Status</th>
+              </tr>
+            </thead>
+            <tbody id="realisasiTableBody">
+              <tr class="empty-row"><td colspan="7">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+<!-- MODAL PILIH BARANG STOCK OPNAME -->
+<div class="item-select-overlay" id="itemSelectOverlay" onclick="if(event.target===this)closeItemSelectModal()">
+  <div class="item-select-modal">
+    <div class="item-select-header">
+      <div>
+        <div style="font-size:15px;font-weight:600">⚙ Kelola Barang Stock Opname</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--mono)">Pilih barang yang akan masuk daftar stock opname untuk brand ini</div>
+      </div>
+      <button class="modal-close" onclick="closeItemSelectModal()">✕</button>
+    </div>
+    <div class="item-select-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="search-wrap" style="flex:1;position:relative">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="itemSelectSearch" type="text" placeholder="Cari barang..." oninput="renderItemSelectList()"/>
+        </div>
+        <button class="btn-kelola" onclick="itemSelectAll()">Pilih Semua</button>
+        <button class="btn-kelola" onclick="itemSelectNone()">Hapus Semua</button>
+      </div>
+      <div id="itemSelectCountInfo" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px"></div>
+      <div class="item-select-list" id="itemSelectList"></div>
+    </div>
+    <div class="item-select-footer">
+      <span id="itemSelectSelected" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeItemSelectModal()">Batal</button>
+        <button class="btn btn-primary" onclick="saveItemSelection()">💾 Simpan Pilihan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script src="logger.js"></script>
+<script src="ppn.js"></script>
+<script>
+  window._sb = supabase.createClient(
+    'https://jpfqysbaygcvlkxcecdo.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
+  );
+
+  renderSidebar('stock-opname.html', 'Brand aktif', 'onBrandChange()')
+  
+  /* ── STATE ── */
+  const MONTHS_ID    = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+  let curYear  = new Date().getFullYear();
+  let curMonth = new Date().getMonth();
+  let activeTab = 'opname';
+  let allBrands  = [];
+  let allBarang  = [];
+  let filterBrandId = '';
+
+  let stockData    = {}; // { "YYYY-MM": { barang_id: qty } }
+  let purchaseData = {}; // { "YYYY-MM": { barang_id: qty } }
+  let planData     = {}; // { "YYYY-MM": { barang_id: qty } }
+
+  let opnameDraft   = {};
+  let opnameChanged = false;
+  let planDraft     = null;
+  let hideEmptyMode = false;  // sembunyikan baris tanpa data
+
+  /* Set barang yang masuk daftar SO per brand — key: brandId, val: Set<barang_id>
+     null = semua barang brand tsb (default) */
+  let soBarangConfig = {};  // dimuat dari localStorage
+
+  function loadSoConfig() {
+    try {
+      const raw = localStorage.getItem('soBarangConfig');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        Object.keys(parsed).forEach(k => { soBarangConfig[k] = new Set(parsed[k]); });
+      }
+    } catch(e) {}
+  }
+
+  function saveSoConfig() {
+    const plain = {};
+    Object.keys(soBarangConfig).forEach(k => { plain[k] = [...soBarangConfig[k]]; });
+    localStorage.setItem('soBarangConfig', JSON.stringify(plain));
+  }
+
+  function getActiveBarang() {
+    /* Barang untuk brand aktif, sudah difilter sesuai konfigurasi SO */
+    const byBrand = !filterBrandId
+      ? allBarang
+      : allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+    const cfg = soBarangConfig[filterBrandId];
+    const filtered = cfg ? byBrand.filter(b => cfg.has(b.id)) : byBrand;
+    return filtered.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
+  }
+
+  /* ── HELPERS ── */
+  function mk(y, m)  { return `${y}-${String(m+1).padStart(2,'0')}`; }
+  function prevYM(y, m, steps) {
+    steps = steps || 1;
+    let mm = m - steps, yy = y;
+    while (mm < 0) { mm += 12; yy--; }
+    return { y: yy, m: mm };
+  }
+  function fmt(n) { return n == null ? '—' : Number(n).toLocaleString('id-ID'); }
+  function mlabel(y, m) { return MONTHS_ID[m] + ' ' + y; }
+
+  function getFilteredBarang() {
+    return getActiveBarang();
+  }
+
+  function filterSearch(list, q) {
+    if (!q) return list;
+    const lq = q.toLowerCase();
+    return list.filter(b => b.nama.toLowerCase().includes(lq) || (b.sku||'').toLowerCase().includes(lq));
+  }
+
+  function getStock(y, m, bid)    { return (stockData[mk(y,m)]    || {})[bid] ?? null; }
+  function getPurchase(y, m, bid) { return (purchaseData[mk(y,m)] || {})[bid] ?? 0; }
+  function getPlan(y, m, bid)     { return (planData[mk(y,m)]     || {})[bid] ?? null; }
+
+  function calcUsage(y, m, bid) {
+    const p = prevYM(y, m);
+    const s0 = getStock(p.y, p.m, bid);
+    const pu = getPurchase(p.y, p.m, bid);
+    const s1 = getStock(y, m, bid);
+    if (s0 == null || s1 == null) return null;
+    return s0 + pu - s1;
+  }
+
+  function getUsageLast3(bid) {
+    const out = [];
+    for (let i = 1; i <= 3; i++) {
+      const p = prevYM(curYear, curMonth, i);
+      const u = calcUsage(p.y, p.m, bid);
+      if (u != null) out.push({ label: MONTHS_SHORT[p.m], val: u });
+    }
+    return out; // index 0 = M-1, 1 = M-2, 2 = M-3
+  }
+
+  function brandNameOf(bid) {
+    return (allBrands.find(b => b.id === bid) || {}).nama || bid;
+  }
+
+  function groupByBrand(list) {
+    const map = {}, order = [];
+    list.forEach(b => {
+      // If a brand filter is active, use that brand as the key
+      // so multi-brand items don't fall into the wrong group
+      let key;
+      if (filterBrandId) {
+        key = filterBrandId;
+      } else {
+        key = (b.brand_ids || [])[0] || '__none__';
+      }
+      if (!map[key]) { map[key] = []; order.push(key); }
+      map[key].push(b);
+    });
+    return order.map(k => ({
+      brandId: k,
+      items: map[k].sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }))
+    }));
+  }
+
+  function brandGroupRow(brandId, cols) {
+    const name = brandId === '__none__' ? 'Tanpa Brand' : brandNameOf(brandId);
+    return `<tr class="brand-group-row"><td colspan="${cols}">${name}</td></tr>`;
+  }
+
+  /* Group by kategori */
+  let groupByMode = 'brand'; // 'brand' | 'kategori'
+
+  function groupByKategori(list) {
+    const map = {}, order = [];
+    list.forEach(b => {
+      const key = (b.kategori || '').trim() || '__none__';
+      if (!map[key]) { map[key] = []; order.push(key); }
+      map[key].push(b);
+    });
+    order.sort((a, b) => {
+      if (a === '__none__') return 1;
+      if (b === '__none__') return -1;
+      return a.localeCompare(b, 'id', { sensitivity: 'base' });
+    });
+    return order.map(k => ({
+      groupKey: k,
+      label: k === '__none__' ? 'Tanpa Kategori' : k,
+      items: map[k].sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }))
+    }));
+  }
+
+  function getGroups(list) {
+    if (groupByMode === 'kategori') {
+      return groupByKategori(list).map(g => ({ ...g, brandId: null, isBrand: false }));
+    }
+    return groupByBrand(list).map(g => ({ ...g, label: g.brandId === '__none__' ? 'Tanpa Brand' : brandNameOf(g.brandId), isBrand: true }));
+  }
+
+  function groupHeaderRow(g, cols) {
+    if (groupByMode === 'kategori') {
+      return `<tr class="brand-group-row"><td colspan="${cols}" style="color:var(--accent3)">${g.label}</td></tr>`;
+    }
+    return brandGroupRow(g.brandId, cols);
+  }
+
+  function setGroupBy(mode) {
+    groupByMode = mode;
+    document.querySelectorAll('.grpby-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderTab();
+  }
+  window.setGroupBy = setGroupBy;
+
+  /* ── AUTH & INIT ── */
+  (async function init() {
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    const user = session.user;
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    document.getElementById('userName').textContent   = name;
+    document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+    window._sb.auth.onAuthStateChange(ev => {
+      if (ev === 'SIGNED_OUT') window.location.href = 'index.html';
+    });
+    const role = await getUserRole(); applyRoleUI(role);
+    window._userRole = role;
+    loadSoConfig();
+    await loadBrands();
+    await loadBarang();
+    updateMonthLabel();
+    await loadAllData();
+    renderTab();
+  })();
+
+  /* ── MASTER DATA ── */
+  async function loadBrands() {
+    const { data } = await window._sb.from('brands').select('*').order('nama');
+    allBrands = data || [];
+    const sbs = document.getElementById('brandSelect');
+    const sbf = document.getElementById('soFilterBrand');
+    // Populate soFilterBrand (no "Semua Brand" option — brand always required)
+    allBrands.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.id; o.textContent = b.nama; sbf.appendChild(o);
+    });
+    // Populate sidebar brandSelect (keeps "— Semua Brand —" from sidebar.js)
+    allBrands.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.id; o.textContent = b.nama; sbs.appendChild(o);
+    });
+    const saved = localStorage.getItem('activeBrand');
+    // Pick saved brand, or first brand if saved is 'all'/null
+    const firstBrand = allBrands[0] ? allBrands[0].id : '';
+    const pick = (saved && saved !== 'all' && allBrands.find(b => b.id === saved)) ? saved : firstBrand;
+    sbs.value = pick;
+    sbf.value = pick;
+    filterBrandId = pick;
+    if (pick && pick !== saved) localStorage.setItem('activeBrand', pick);
+    updateBrandLabel();
+  }
+
+  async function loadBarang() {
+    const { data } = await window._sb
+      .from('barang')
+      .select('id, nama, sku, satuan, kategori, barang_brands(brand_id)')
+      .order('nama');
+    allBarang = (data || []).map(b => ({
+      ...b, brand_ids: (b.barang_brands || []).map(x => x.brand_id)
+    }));
+  }
+
+  async function loadAllData() {
+    /* Stock opname */
+    const { data: soRows } = await window._sb.from('stock_opname').select('*');
+    (soRows || []).forEach(r => {
+      if (!stockData[r.periode]) stockData[r.periode] = {};
+      stockData[r.periode][r.barang_id] = r.qty;
+    });
+
+    /* Purchase plan */
+    const { data: ppRows } = await window._sb.from('purchase_plan').select('*');
+    (ppRows || []).forEach(r => {
+      if (!planData[r.periode]) planData[r.periode] = {};
+      planData[r.periode][r.barang_id] = r.qty;
+    });
+
+    /* Pembelian aktual per barang per bulan */
+    const { data: beliRows } = await window._sb
+      .from('riwayat_beli')
+      .select('tanggal, riwayat_beli_items(barang_id, qty)')
+      .eq('status', 'selesai');
+    (beliRows || []).forEach(r => {
+      if (!r.tanggal) return;
+      const d = new Date(r.tanggal);
+      const period = mk(d.getFullYear(), d.getMonth());
+      (r.riwayat_beli_items || []).forEach(item => {
+        if (!item.barang_id) return;
+        if (!purchaseData[period]) purchaseData[period] = {};
+        purchaseData[period][item.barang_id] = (purchaseData[period][item.barang_id] || 0) + (item.qty || 0);
+      });
+    });
+  }
+
+  /* ── NAVIGATION ── */
+  function goMonth(dir) {
+    curMonth += dir;
+    if (curMonth < 0)  { curMonth = 11; curYear--; }
+    if (curMonth > 11) { curMonth = 0;  curYear++; }
+    opnameDraft = {}; opnameChanged = false; planDraft = null;
+    updateMonthLabel();
+    renderTab();
+  }
+
+  function updateMonthLabel() {
+    document.getElementById('monthLabel').textContent = mlabel(curYear, curMonth);
+    const p = prevYM(curYear, curMonth);
+    document.getElementById('monthSubLabel').textContent = 'vs ' + MONTHS_SHORT[p.m] + ' ' + p.y;
+    ['opname','pemakaian','plan','realisasi'].forEach(t => {
+      const el = document.getElementById(t + 'MonthTitle');
+      if (el) el.textContent = mlabel(curYear, curMonth);
+    });
+  }
+
+  /* ── TABS ── */
+  function switchTab(tab) {
+    activeTab = tab;
+    ['opname','pemakaian','plan','realisasi'].forEach(t => {
+      const cap = t[0].toUpperCase() + t.slice(1);
+      document.getElementById('tab' + cap).style.display = t === tab ? '' : 'none';
+      document.getElementById('tabBtn' + cap).classList.toggle('active', t === tab);
+    });
+    renderTab();
+  }
+
+  function onFilterChange() {
+    filterBrandId = document.getElementById('soFilterBrand').value;
+    renderTab();
+  }
+
+  function renderTab() {
+    if (activeTab === 'opname')    renderOpname();
+    if (activeTab === 'pemakaian') renderPemakaian();
+    if (activeTab === 'plan')      renderPlan();
+    if (activeTab === 'realisasi') renderRealisasi();
+  }
+
+  /* ── TAB 1: STOCK OPNAME ── */
+  function renderOpname() {
+    const q    = document.getElementById('opnameSearch').value;
+    const curr = mk(curYear, curMonth);
+    const p    = prevYM(curYear, curMonth);
+    const list = filterSearch(getFilteredBarang(), q);
+    const grps = getGroups(list);
+    const tbody = document.getElementById('opnameTableBody');
+
+    const hasCurr = list.some(b => stockData[curr] && stockData[curr][b.id] != null);
+    const notice  = document.getElementById('noticeOpname');
+    if (!hasCurr && list.length > 0 && window._userRole === 'admin') {
+      notice.style.display = 'flex';
+      notice.innerHTML = 'ℹ️ Belum ada stock opname untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Input nilai di kolom "Stok Bulan Ini" lalu klik Simpan.';
+    } else { notice.style.display = 'none'; }
+
+    let rows = '', filled = 0;
+    grps.forEach(function(g) {
+      rows += groupHeaderRow(g, 6);
+      g.items.forEach(function(b) {
+        const prevQty = getStock(p.y, p.m, b.id);
+        const rawQty  = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
+        const currQty = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
+        const diff    = prevQty != null && currQty != null ? currQty - prevQty : null;
+        const isDraft = opnameDraft[b.id] !== undefined;
+        const isFilled = currQty != null;
+        if (isFilled) filled++;
+
+        const diffHtml = diff == null
+          ? '<span style="color:var(--muted)">—</span>'
+          : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
+          : diff < 0 ? '<span style="color:var(--danger)">'  + fmt(diff) + '</span>'
+          : '<span style="color:var(--muted)">0</span>';
+
+        const rowClass = isFilled ? 'row-filled' : 'empty-data-row';
+        rows += '<tr class="' + rowClass + '">'
+          + '<td><div class="item-name">' + b.nama + '</div></td>'
+          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
+          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + (window._userRole === 'admin'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+                +   ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
+                +   ' data-bid="' + b.id + '"'
+                +   ' value="' + (currQty != null ? currQty : '') + '" placeholder="—"'
+                +   ' oninput="onOpnameInput(this,\'' + b.id + '\',this.value)"/></td>'
+              : '<td style="text-align:right;font-family:var(--mono)">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
+            )
+          + '<td style="text-align:right;font-family:var(--mono)" data-diff="' + b.id + '">' + diffHtml + '</td>'
+          + '</tr>';
+      });
+    });
+
+    tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="6">Tidak ada barang ditemukan.</td></tr>';
+    const pct = list.length > 0 ? Math.round(filled / list.length * 100) : 0;
+    document.getElementById('opnameCountLabel').textContent = filled + ' / ' + list.length + ' barang terisi (' + pct + '%)';
+    const bar = document.getElementById('opnameProgressBar');
+    if (bar) { bar.style.width = pct + '%'; bar.style.background = pct === 100 ? 'var(--accent2)' : pct > 50 ? 'var(--accent)' : 'var(--accent3)'; }
+    document.getElementById('opnameSaveStatus').textContent = hasCurr && !opnameChanged ? '✓ Data tersimpan' : '';
+    if (window._userRole === 'admin') document.getElementById('opnameSaveBar').style.display = opnameChanged ? 'flex' : 'none';
+    /* Apply hide-empty class */
+    const tbody2 = document.getElementById('opnameTableBody');
+    if (tbody2) tbody2.closest('table').classList.toggle('hide-empty-active', hideEmptyMode);
+  }
+
+  function onOpnameInput(el, barangId, val) {
+    opnameDraft[barangId] = val === '' ? null : Number(val);
+    opnameChanged = true;
+    document.getElementById('opnameSaveBar').style.display = 'flex';
+    document.getElementById('opnameSaveStatus').textContent = '';
+    el.classList.add('changed');
+    // Update diff cell without re-rendering (preserves focus)
+    const curr = mk(curYear, curMonth);
+    const p    = prevYM(curYear, curMonth);
+    const prevQty = getStock(p.y, p.m, barangId);
+    const currQty = opnameDraft[barangId];
+    const diff    = prevQty != null && currQty != null ? currQty - prevQty : null;
+    const diffCell = document.querySelector('#opnameTableBody td[data-diff="' + barangId + '"]');
+    if (diffCell) diffCell.innerHTML = diff == null
+      ? '<span style="color:var(--muted)">—</span>'
+      : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
+      : diff < 0 ? '<span style="color:var(--danger)">'  + fmt(diff) + '</span>'
+      : '<span style="color:var(--muted)">0</span>';
+    // Update progress bar
+    const list = getFilteredBarang();
+    const filled = list.filter(b => {
+      const raw = (stockData[curr] || {})[b.id] ?? null;
+      const v   = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : raw;
+      return v != null;
+    }).length;
+    const pct = list.length > 0 ? Math.round(filled / list.length * 100) : 0;
+    document.getElementById('opnameCountLabel').textContent = filled + ' / ' + list.length + ' barang terisi (' + pct + '%)';
+    const bar = document.getElementById('opnameProgressBar');
+    if (bar) { bar.style.width = pct + '%'; bar.style.background = pct === 100 ? 'var(--accent2)' : pct > 50 ? 'var(--accent)' : 'var(--accent3)'; }
+    /* Update row class */
+    const row = el ? el.closest('tr') : null;
+    if (row) { const v = opnameDraft[barangId]; row.className = (v != null) ? 'row-filled' : 'empty-data-row'; }
+  }
+
+
+  async function saveOpname() {
+    const btn = document.querySelector('#opnameSaveBar .btn-primary');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try {
+      const curr = mk(curYear, curMonth);
+      const ups  = Object.entries(opnameDraft)
+        .filter(function(e) { return e[1] !== null; })
+        .map(function(e)    { return { periode: curr, barang_id: e[0], qty: e[1] }; });
+      if (!ups.length) { showToast('Tidak ada data untuk disimpan.', 'error'); return; }
+      const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,barang_id' });
+      if (error) throw error;
+      if (!stockData[curr]) stockData[curr] = {};
+      ups.forEach(function(u) { stockData[curr][u.barang_id] = u.qty; });
+      opnameDraft = {}; opnameChanged = false;
+      showToast('✓ Stock opname ' + mlabel(curYear, curMonth) + ' disimpan', 'success');
+      renderOpname();
+    } catch(e) {
+      showToast('❌ Gagal menyimpan: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Simpan Stock Opname';
+    }
+  }
+
+  function discardOpname() { opnameDraft = {}; opnameChanged = false; renderOpname(); }
+
+  /* ── TAB 2: PEMAKAIAN ── */
+  function renderPemakaian() {
+    const q    = document.getElementById('pemakaianSearch').value;
+    const prev = prevYM(curYear, curMonth);
+    const list = filterSearch(getFilteredBarang(), q);
+    const grps = getGroups(list);
+    const tbody = document.getElementById('pemakaianTableBody');
+
+    let totalUsage = 0, countOk = 0, countMissing = 0, rows = '';
+
+    grps.forEach(function(g) {
+      rows += groupHeaderRow(g, 7);
+      g.items.forEach(function(b) {
+        const s0 = getStock(prev.y, prev.m, b.id);
+        const pu = getPurchase(prev.y, prev.m, b.id);
+        const s1 = getStock(curYear, curMonth, b.id);
+        const u  = s0 != null && s1 != null ? s0 + pu - s1 : null;
+        if (u != null) { totalUsage += u; countOk++; } else countMissing++;
+
+        rows += '<tr>'
+          + '<td><div class="item-name">' + b.nama + '</div></td>'
+          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
+          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + fmt(pu) + '</td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="text-align:right">'
+          + (u != null ? '<strong style="font-family:var(--mono);color:var(--accent2)">' + fmt(u) + '</strong>' : '<span style="color:var(--muted);font-size:11px">Data kurang</span>')
+          + '</td></tr>';
+      });
+    });
+
+    tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
+    document.getElementById('statGridPemakaian').innerHTML =
+      '<div class="stat-card"><div class="stat-label">Total Pemakaian</div><div class="stat-val green">' + fmt(totalUsage) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Barang Terhitung</div><div class="stat-val blue">' + countOk + '</div><div class="stat-sub">dari ' + list.length + ' barang</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Data Kurang</div><div class="stat-val ' + (countMissing > 0 ? 'orange' : 'green') + '">' + countMissing + '</div><div class="stat-sub">barang belum lengkap</div></div>';
+
+    const notice = document.getElementById('noticePemakaian');
+    if (countMissing > 0) {
+      notice.style.display = 'flex';
+      notice.innerHTML = '⚠️ ' + countMissing + ' barang belum memiliki data stok lengkap. Pastikan stock opname bulan lalu dan bulan ini sudah diisi.';
+    } else notice.style.display = 'none';
+  }
+
+  /* ── TAB 3: PURCHASE PLAN ── */
+  function renderPlan() {
+    const q      = document.getElementById('planSearch').value;
+    const curr   = mk(curYear, curMonth);
+    const prevM  = prevYM(curYear, curMonth);
+    const list   = filterSearch(getFilteredBarang(), q);
+    const grps   = getGroups(list);
+    const hasPlan = list.some(function(b) { return planData[curr] && planData[curr][b.id] != null; });
+    const tbody  = document.getElementById('planTableBody');
+    const notice = document.getElementById('noticePlan');
+
+    if (planDraft) {
+      notice.style.display = 'flex';
+      notice.innerHTML = '⚡ Draft plan sedang diedit. Review kolom "Purchase Plan" lalu klik <strong>Simpan Purchase Plan</strong>.';
+      notice.className = 'notice-box info';
+      document.getElementById('planDraftBadge').innerHTML = '<span class="badge badge-draft">DRAFT</span>';
+    } else if (hasPlan) {
+      notice.style.display = 'flex';
+      notice.innerHTML = '✓ Purchase plan tersimpan untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Edit langsung di kolom "Purchase Plan" untuk mengubah.';
+      notice.className = 'notice-box success';
+      document.getElementById('planDraftBadge').innerHTML = '<span class="badge badge-ok">TERSIMPAN</span>';
+    } else {
+      notice.style.display = 'flex';
+      notice.innerHTML = 'Belum ada purchase plan untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Klik ⚡ Generate atau langsung isi kolom "Purchase Plan".';
+      notice.className = 'notice-box warning';
+      document.getElementById('planDraftBadge').innerHTML = '';
+    }
+
+    let rows = '';
+    grps.forEach(function(g) {
+      rows += groupHeaderRow(g, 7);
+      g.items.forEach(function(b) {
+        // Stok akhir bulan lalu
+        const stokAkhirLalu = getStock(prevM.y, prevM.m, b.id);
+
+        // Rata-rata pemakaian 3 bulan terakhir
+        const last3    = getUsageLast3(b.id);
+        const vals     = last3.map(function(v) { return v.val; });
+        const avg      = vals.length ? vals.reduce(function(s,v){return s+v;},0) / vals.length : null;
+        const avgRound = avg != null ? Math.round(avg) : null;
+
+        // Rekomendasi = stok akhir bln lalu - rata-rata pemakaian
+        const rekomen = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
+
+        // Nilai input
+        const savedVal = planData[curr] && planData[curr][b.id] != null ? planData[curr][b.id] : null;
+        const editVal  = planDraft
+          ? (planDraft[b.id] != null ? planDraft[b.id] : (rekomen != null ? rekomen : ''))
+          : (savedVal != null ? savedVal : '');
+        const isChanged = planDraft && planDraft[b.id] != null;
+
+        const rekomenHtml = rekomen == null
+          ? '<span style="color:var(--muted)">—</span>'
+          : rekomen < 0
+            ? '<span style="font-family:var(--mono);color:var(--danger)">' + fmt(rekomen) + '</span>'
+            : '<span style="font-family:var(--mono);color:var(--accent2)">' + fmt(rekomen) + '</span>';
+
+        rows += '<tr>'
+          + '<td><div class="item-name">' + b.nama + '</div></td>'
+          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
+          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="text-align:right;font-family:var(--mono);color:var(--muted)">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
+          + '<td style="text-align:right">' + rekomenHtml + '</td>'
+          + (window._userRole === 'admin'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+                +   ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
+                +   ' data-bid="' + b.id + '"'
+                +   ' value="' + editVal + '" placeholder="0"'
+                +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"/></td>'
+              : '<td style="text-align:right;font-family:var(--mono)">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
+            )
+          + '</tr>';
+      });
+    });
+
+    tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
+    if (window._userRole === 'admin') document.getElementById('planSaveBar').style.display = (planDraft && Object.keys(planDraft).length) ? 'flex' : 'none';
+  }
+
+  function generatePlan() {
+    const list      = getFilteredBarang();
+    const prevM     = prevYM(curYear, curMonth);
+    const bufferPct = Number(document.getElementById('planBufferPct').value) || 0;
+    const draft     = {};
+    list.forEach(function(b) {
+      const stokAkhirLalu = getStock(prevM.y, prevM.m, b.id);
+      const last3    = getUsageLast3(b.id);
+      const avg      = last3.length ? last3.reduce(function(s,v){return s+v.val;},0) / last3.length : null;
+      const avgRound = avg != null ? Math.round(avg) : 0;
+      const buffer   = Math.round(avgRound * bufferPct / 100);
+      const rekomen  = stokAkhirLalu != null ? stokAkhirLalu - avgRound + buffer : buffer;
+      draft[b.id] = Math.max(0, rekomen);
+    });
+    planDraft = draft;
+    renderPlan();
+    const bufMsg = bufferPct > 0 ? ' (buffer +' + bufferPct + '%)' : '';
+    showToast('⚡ Draft plan digenerate untuk ' + list.length + ' barang' + bufMsg + '. Review lalu simpan.', 'success');
+  }
+
+  function onPlanInput(el, barangId, val) {
+    if (!planDraft) planDraft = {};
+    planDraft[barangId] = val === '' ? 0 : Number(val);
+    if (el) el.classList.add('changed');
+    document.getElementById('planSaveBar').style.display = 'flex';
+  }
+
+
+  async function savePlan() {
+    if (!planDraft) return;
+    const btn = document.querySelector('#planSaveBar .btn-primary');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try {
+      const curr = mk(curYear, curMonth);
+      const ups  = Object.entries(planDraft).map(function(e) {
+        return { periode: curr, barang_id: e[0], qty: e[1] };
+      });
+      const { error } = await window._sb.from('purchase_plan').upsert(ups, { onConflict: 'periode,barang_id' });
+      if (error) throw error;
+      if (!planData[curr]) planData[curr] = {};
+      ups.forEach(function(u) { planData[curr][u.barang_id] = u.qty; });
+      planDraft = null;
+      showToast('✓ Purchase plan ' + mlabel(curYear, curMonth) + ' disimpan', 'success');
+      renderPlan();
+    } catch(e) {
+      showToast('❌ Gagal menyimpan: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Simpan Purchase Plan';
+    }
+  }
+
+  function discardPlan() { planDraft = null; renderPlan(); }
+
+  /* ── TAB 4: REALISASI ── */
+  function renderRealisasi() {
+    const q    = document.getElementById('realisasiSearch').value;
+    const curr = mk(curYear, curMonth);
+    const list = filterSearch(getFilteredBarang(), q);
+    const grps = getGroups(list);
+    const tbody = document.getElementById('realisasiTableBody');
+
+    let totalPlan = 0, totalActual = 0, countOver = 0, countUnder = 0, countOk = 0, rows = '';
+
+    grps.forEach(function(g) {
+      rows += groupHeaderRow(g, 7);
+      g.items.forEach(function(b) {
+        const plan   = planData[curr]    ? (planData[curr][b.id]    ?? null) : null;
+        const actual = purchaseData[curr] ? (purchaseData[curr][b.id] ?? null) : null;
+        const diff   = plan != null && actual != null ? actual - plan : null;
+
+        if (plan   != null) totalPlan   += plan;
+        if (actual != null) totalActual += actual;
+
+        let badge = '—', cls = 'badge-null';
+        if (diff !== null) {
+          if      (diff > 0)  { badge = 'Lebih';  cls = 'badge-over';  countOver++; }
+          else if (diff < 0)  { badge = 'Kurang'; cls = 'badge-under'; countUnder++; }
+          else                { badge = 'Sesuai'; cls = 'badge-ok';    countOk++; }
+        }
+        const diffHtml = diff == null ? '—'
+          : diff > 0 ? '<span style="color:var(--danger)">+' + fmt(diff) + '</span>'
+          : diff < 0 ? '<span style="color:var(--accent3)">'  + fmt(diff) + '</span>'
+          : '<span style="color:var(--accent2)">0</span>';
+
+        rows += '<tr>'
+          + '<td><div class="item-name">' + b.nama + '</div></td>'
+          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
+          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (plan   != null ? fmt(plan)   : '<span style="color:var(--muted)">Belum ada</span>') + '</td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + (actual != null ? fmt(actual) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="text-align:right;font-family:var(--mono)">' + diffHtml + '</td>'
+          + '<td style="text-align:center"><span class="badge ' + cls + '">' + badge + '</span></td>'
+          + '</tr>';
+      });
+    });
+
+    tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
+
+    const pctReal = totalPlan > 0 ? Math.round(totalActual / totalPlan * 100) : null;
+    document.getElementById('statGridRealisasi').innerHTML =
+      '<div class="stat-card"><div class="stat-label">Total Plan</div><div class="stat-val blue">' + fmt(totalPlan) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Pembelian Aktual</div><div class="stat-val green">' + fmt(totalActual) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Realisasi</div><div class="stat-val ' + (pctReal==null ? '' : (pctReal>=90&&pctReal<=110 ? 'green' : 'orange')) + '">' + (pctReal != null ? pctReal + '%' : '—') + '</div><div class="stat-sub">dari purchase plan</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Sesuai / Lebih / Kurang</div><div class="stat-val">' + countOk + ' / <span style="color:var(--danger)">' + countOver + '</span> / <span style="color:var(--accent3)">' + countUnder + '</span></div><div class="stat-sub">barang</div></div>';
+
+    const hasPlan = list.some(function(b) { return planData[curr] && planData[curr][b.id] != null; });
+    const notice  = document.getElementById('noticeRealisasi');
+    if (!hasPlan) {
+      notice.style.display = 'flex';
+      notice.innerHTML = '⚠️ Belum ada purchase plan untuk bulan ini. Buat di tab <strong>Purchase Plan</strong> terlebih dahulu.';
+    } else notice.style.display = 'none';
+  }
+
+  /* ── EXPORT ── */
+  function exportExcel() {
+    if (typeof XLSX === 'undefined') { showToast('Library Excel belum dimuat.', 'error'); return; }
+    const wb   = XLSX.utils.book_new();
+    const curr = mk(curYear, curMonth);
+    const prev = prevYM(curYear, curMonth);
+
+    const soRows = [['Nama Barang','SKU','Satuan','Brand','Stok Bulan Lalu','Stok Bulan Ini','Selisih']];
+    allBarang.forEach(function(b) {
+      const s0 = getStock(prev.y, prev.m, b.id);
+      const s1 = getStock(curYear, curMonth, b.id);
+      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
+      soRows.push([b.nama, b.sku||'', b.satuan||'', br, s0??'', s1??'', s0!=null&&s1!=null?s1-s0:'']);
+    });
+    const ws1 = XLSX.utils.aoa_to_sheet(soRows);
+    ws1['!cols'] = [28,14,10,16,14,14,10].map(function(w){return{wch:w};});
+    XLSX.utils.book_append_sheet(wb, ws1, 'Stock Opname');
+
+    const pkRows = [['Nama Barang','SKU','Satuan','Brand','Stok Awal','Pembelian','Stok Akhir','Pemakaian']];
+    allBarang.forEach(function(b) {
+      const s0 = getStock(prev.y, prev.m, b.id);
+      const pu = getPurchase(prev.y, prev.m, b.id);
+      const s1 = getStock(curYear, curMonth, b.id);
+      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
+      pkRows.push([b.nama, b.sku||'', b.satuan||'', br, s0??'', pu, s1??'', s0!=null&&s1!=null?s0+pu-s1:'']);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(pkRows);
+    ws2['!cols'] = [28,14,10,16,12,12,12,12].map(function(w){return{wch:w};});
+    XLSX.utils.book_append_sheet(wb, ws2, 'Pemakaian');
+
+    const prRows = [['Nama Barang','SKU','Satuan','Brand','Purchase Plan','Pembelian Aktual','Selisih','Status']];
+    allBarang.forEach(function(b) {
+      const plan   = planData[curr]     ? (planData[curr][b.id]     ?? '') : '';
+      const actual = purchaseData[curr] ? (purchaseData[curr][b.id] ?? '') : '';
+      const diff   = plan!==''&&actual!=='' ? actual-plan : '';
+      const status = diff==='' ? '—' : diff>0 ? 'Lebih' : diff<0 ? 'Kurang' : 'Sesuai';
+      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
+      prRows.push([b.nama, b.sku||'', b.satuan||'', br, plan, actual, diff, status]);
+    });
+    const ws3 = XLSX.utils.aoa_to_sheet(prRows);
+    ws3['!cols'] = [28,14,10,16,14,16,12,10].map(function(w){return{wch:w};});
+    XLSX.utils.book_append_sheet(wb, ws3, 'Plan & Realisasi');
+
+    XLSX.writeFile(wb, 'stock_opname_' + curr + '.xlsx');
+    showToast('✓ Export berhasil', 'success');
+  }
+
+  function onBrandChange() {
+    const val = document.getElementById('brandSelect').value;
+    localStorage.setItem('activeBrand', val);
+    // If sidebar switches to 'all', keep current filterBrandId (no "all" mode on this page)
+    if (val && val !== 'all') {
+      filterBrandId = val;
+      document.getElementById('soFilterBrand').value = val;
+    }
+    updateBrandLabel();
+    renderTab();
+  }
+
+  function onFilterChange() {
+    filterBrandId = document.getElementById('soFilterBrand').value;
+    const sbs = document.getElementById('brandSelect');
+    if (sbs && filterBrandId) sbs.value = filterBrandId;
+    localStorage.setItem('activeBrand', filterBrandId);
+    renderTab();
+  }
+
+  function updateBrandLabel() {
+    const sbf = document.getElementById('soFilterBrand');
+    const txt = sbf && sbf.options[sbf.selectedIndex] ? sbf.options[sbf.selectedIndex].text : '';
+    document.getElementById('activeBrandLabel').textContent = txt || 'Stock Opname';
+  }
+
+  /* ── UTILS ── */
+  var _toastTimer;
+  function showToast(msg, type) {
+    type = type || 'success';
+    const t = document.getElementById('toast');
+    t.className = 'toast ' + type; t.innerHTML = msg; t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3500);
+  }
+
+  async function doLogout() {
+    if (!confirm('Yakin ingin keluar?')) return;
+    await window._sb.auth.signOut();
+    window.location.href = 'index.html';
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  /* ── MONTH PICKER ── */
+  let pickerYear = new Date().getFullYear();
+
+  function toggleMonthPicker() {
+    const popup = document.getElementById('monthPickerPopup');
+    if (popup.style.display !== 'none') { closeMonthPicker(); return; }
+    pickerYear = curYear;
+    renderPickerGrid();
+    // Position popup below the month label button
+    const btn = document.getElementById('monthLabel');
+    const rect = btn.getBoundingClientRect();
+    const content = document.querySelector('.content');
+    const contentRect = content.getBoundingClientRect();
+    popup.style.top  = (rect.bottom - contentRect.top + content.scrollTop + 6) + 'px';
+    popup.style.left = (rect.left   - contentRect.left) + 'px';
+    popup.style.display = 'block';
+    // Close on outside click
+    setTimeout(() => document.addEventListener('click', pickerOutsideClick), 0);
+  }
+
+  function pickerOutsideClick(e) {
+    const popup = document.getElementById('monthPickerPopup');
+    if (!popup.contains(e.target) && e.target.id !== 'monthLabel') {
+      closeMonthPicker();
+    }
+  }
+
+  function closeMonthPicker() {
+    document.getElementById('monthPickerPopup').style.display = 'none';
+    document.removeEventListener('click', pickerOutsideClick);
+  }
+
+  function pickerChangeYear(dir) {
+    pickerYear += dir;
+    renderPickerGrid();
+  }
+
+  function renderPickerGrid() {
+    document.getElementById('pickerYear').textContent = pickerYear;
+    const grid = document.getElementById('pickerMonthGrid');
+    const now  = new Date();
+    grid.innerHTML = MONTHS_SHORT.map((m, i) => {
+      const isActive  = (i === curMonth && pickerYear === curYear);
+      const isFuture  = (pickerYear > now.getFullYear()) || (pickerYear === now.getFullYear() && i > now.getMonth());
+      return `<button class="picker-month-btn${isActive ? ' active' : ''}"
+        style="${isFuture ? 'opacity:.4;cursor:not-allowed' : ''}"
+        onclick="${isFuture ? '' : `selectMonth(${i},${pickerYear})`}">${m}</button>`;
+    }).join('');
+  }
+
+  function selectMonth(month, year) {
+    curMonth = month; curYear = year;
+    opnameDraft = {}; opnameChanged = false; planDraft = null;
+    updateMonthLabel();
+    renderTab();
+    closeMonthPicker();
+  }
+
+  window.toggleMonthPicker = toggleMonthPicker;
+  window.closeMonthPicker  = closeMonthPicker;
+  window.pickerChangeYear  = pickerChangeYear;
+  window.selectMonth       = selectMonth;
+
+  function toggleClear(inputId, btnId) {
+    const val = document.getElementById(inputId).value;
+    document.getElementById(btnId).style.display = val ? 'block' : 'none';
+  }
+  function clearSearch(inputId, btnId, renderFn) {
+    document.getElementById(inputId).value = '';
+    document.getElementById(btnId).style.display = 'none';
+    renderFn();
+  }
+  window.toggleClear = toggleClear;
+  window.clearSearch = clearSearch;
+
+
+  /* ── HIDE EMPTY TOGGLE ── */
+  function toggleHideEmpty() {
+    hideEmptyMode = !hideEmptyMode;
+    const btn = document.getElementById('btnHideEmpty');
+    if (btn) btn.textContent = hideEmptyMode ? '👁 Tampilkan semua' : '🙈 Sembunyikan kosong';
+    renderOpname();
+  }
+
+  /* ══════════════════════════════════════════
+     MODAL PILIH BARANG STOCK OPNAME
+  ══════════════════════════════════════════ */
+  let _itemSelectTemp = null; // Set sementara saat modal terbuka
+
+  function openItemSelectModal() {
+    if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
+    const overlay = document.getElementById('itemSelectOverlay');
+    /* Init temp selection dari config tersimpan, atau semua barang brand ini */
+    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+    const savedCfg = soBarangConfig[filterBrandId];
+    _itemSelectTemp = savedCfg ? new Set([...savedCfg]) : new Set(allForBrand.map(b => b.id));
+    document.getElementById('itemSelectSearch').value = '';
+    renderItemSelectList();
+    overlay.classList.add('show');
+  }
+
+  function closeItemSelectModal() {
+    document.getElementById('itemSelectOverlay').classList.remove('show');
+    _itemSelectTemp = null;
+  }
+
+  function renderItemSelectList() {
+    if (!filterBrandId) return;
+    const q = document.getElementById('itemSelectSearch').value.toLowerCase().trim();
+    const allForBrand = allBarang
+      .filter(function(b){ return (b.brand_ids || []).includes(filterBrandId); })
+      .filter(function(b){ return !q || b.nama.toLowerCase().includes(q) || (b.sku||'').toLowerCase().includes(q); });
+
+    var byKat = {}, katOrder = [];
+    allForBrand.forEach(function(b) {
+      var k = (b.kategori||'').trim() || 'Tanpa Kategori';
+      if (!byKat[k]) { byKat[k] = []; katOrder.push(k); }
+      byKat[k].push(b);
+    });
+    katOrder.sort();
+
+    var container = document.getElementById('itemSelectList');
+    container.innerHTML = '';
+
+    if (!allForBrand.length) {
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Tidak ada barang ditemukan</div>';
+    } else {
+      katOrder.forEach(function(kat) {
+        var grpDiv = document.createElement('div');
+        grpDiv.className = 'item-select-group';
+        grpDiv.textContent = kat;
+        container.appendChild(grpDiv);
+
+        byKat[kat].forEach(function(b) {
+          var chk = _itemSelectTemp && _itemSelectTemp.has(b.id);
+          var row = document.createElement('div');
+          row.className = 'item-select-row' + (chk ? ' checked' : '');
+          row.setAttribute('data-bid', b.id);
+          row.onclick = function() { toggleItemSelect(b.id); };
+
+          var cb = document.createElement('div');
+          cb.className = 'item-select-cb';
+          cb.textContent = chk ? '✓' : '';
+
+          var info = document.createElement('div');
+          info.style.flex = '1';
+
+          var nama = document.createElement('div');
+          nama.className = 'item-select-nama';
+          nama.textContent = b.nama;
+
+          var meta = document.createElement('div');
+          meta.className = 'item-select-meta';
+          meta.textContent = (b.sku || '—') + ' · ' + (b.satuan || '—');
+
+          info.appendChild(nama);
+          info.appendChild(meta);
+          row.appendChild(cb);
+          row.appendChild(info);
+          container.appendChild(row);
+        });
+      });
+    }
+
+    var total    = allBarang.filter(function(b){ return (b.brand_ids||[]).includes(filterBrandId); }).length;
+    var selCount = _itemSelectTemp ? _itemSelectTemp.size : 0;
+    document.getElementById('itemSelectSelected').textContent = selCount + ' dari ' + total + ' barang dipilih';
+    document.getElementById('itemSelectCountInfo').textContent = q ? ('Menampilkan ' + allForBrand.length + ' hasil pencarian') : '';
+  }
+
+  function toggleItemSelect(barangId) {
+    if (!_itemSelectTemp) return;
+    if (_itemSelectTemp.has(barangId)) _itemSelectTemp.delete(barangId);
+    else _itemSelectTemp.add(barangId);
+    renderItemSelectList();
+  }
+
+  function itemSelectAll() {
+    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+    const q = document.getElementById('itemSelectSearch').value.toLowerCase().trim();
+    const filtered = allForBrand.filter(b => !q || b.nama.toLowerCase().includes(q) || (b.sku || '').toLowerCase().includes(q));
+    filtered.forEach(b => _itemSelectTemp.add(b.id));
+    renderItemSelectList();
+  }
+
+  function itemSelectNone() {
+    const q = document.getElementById('itemSelectSearch').value.toLowerCase().trim();
+    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+    const filtered = allForBrand.filter(b => !q || b.nama.toLowerCase().includes(q) || (b.sku || '').toLowerCase().includes(q));
+    filtered.forEach(b => _itemSelectTemp.delete(b.id));
+    renderItemSelectList();
+  }
+
+  function saveItemSelection() {
+    if (!_itemSelectTemp || !filterBrandId) return;
+    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+    /* Jika semua dipilih → hapus config (default = semua) */
+    if (_itemSelectTemp.size === allForBrand.length) {
+      delete soBarangConfig[filterBrandId];
+    } else {
+      soBarangConfig[filterBrandId] = new Set([..._itemSelectTemp]);
+    }
+    saveSoConfig();
+    closeItemSelectModal();
+    renderTab();
+    const cnt = _itemSelectTemp ? _itemSelectTemp.size : allForBrand.length;
+    showToast('✓ Daftar stock opname diperbarui: ' + cnt + ' barang', 'success');
+  }
+
+  window.onFilterChange=onFilterChange; window.goMonth=goMonth;
+  window.toggleHideEmpty=toggleHideEmpty;
+  window.openItemSelectModal=openItemSelectModal; window.closeItemSelectModal=closeItemSelectModal;
+  window.renderItemSelectList=renderItemSelectList; window.toggleItemSelect=toggleItemSelect;
+  window.itemSelectAll=itemSelectAll; window.itemSelectNone=itemSelectNone;
+  window.saveItemSelection=saveItemSelection;
+  window.onBrandChange=onBrandChange; window.updateBrandLabel=updateBrandLabel;
+  window.onOpnameInput=onOpnameInput; window.saveOpname=saveOpname; window.discardOpname=discardOpname;
+  window.generatePlan=generatePlan; window.onPlanInput=onPlanInput; window.savePlan=savePlan; window.discardPlan=discardPlan;
+  window.exportExcel=exportExcel; window.doLogout=doLogout;
+  window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
