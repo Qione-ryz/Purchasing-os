@@ -48,7 +48,7 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
             animation:badgePulse 2s infinite;
           ">0</span>`
       : '';
-    html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}" style="display:flex;align-items:center;gap:0">
+    html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}" style="display:flex;align-items:center;gap:10px">
       <span class="nav-icon">${item.icon}</span>
       <span style="flex:1">${item.label}</span>
       ${badgeHTML}
