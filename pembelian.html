@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
+  <script src="datefilter.js"></script>
   <style>
     /* TAB */
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:24px; width:fit-content; }
@@ -23,6 +24,7 @@
     .card-body { padding:20px; }
 
     .field { margin-bottom:14px; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .field-hint { font-size:11px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
 
     /* ITEM LIST */
@@ -112,6 +114,7 @@
     input[type="date"] { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:12px; padding:9px 12px; cursor:pointer; outline:none; }
     input[type="date"]:focus { border-color:var(--accent); }
 
+
     .expand-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px; transition:transform .2s,color .2s; }
     .expand-btn:hover { color:var(--accent); }
     .expand-btn.open { transform:rotate(90deg); color:var(--accent); }
@@ -164,6 +167,25 @@
     .date-quick-btn:hover { border-color:var(--accent); color:var(--accent); }
     .date-quick-btn.active { background:rgba(79,142,247,0.12); border-color:var(--accent); color:var(--accent); }
     th:hover { color:var(--text); }
+    th.sorted { color:var(--accent); }
+
+    /* Global :active press feedback for all .btn variants */
+    .btn:active        { transform: scale(0.96); }
+    .btn-primary:active { filter: brightness(0.9); }
+    .btn-danger:active  { filter: brightness(0.9); }
+
+    /* Detail overlay entrance animation */
+    #detailOverlay .modal {
+      transition: transform .2s cubic-bezier(.34,1.3,.7,1), opacity .2s ease;
+    }
+    #detailOverlay:not(.show) .modal {
+      transform: translateY(12px) scale(0.98);
+      opacity: 0;
+    }
+    #detailOverlay.show .modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
 
     @media (max-width:1100px) { .form-layout { grid-template-columns:1fr; } .summary-card { position:static; } }
     @media (max-width:768px) {
@@ -188,12 +210,13 @@
       <div class="page-title">Pembelian</div>
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
-    <div style="margin-left:auto">
-      <button id="btnRefreshData" onclick="refreshMasterData()"
-        style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;font-weight:500"
-        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.background='rgba(79,142,247,0.08)'"
-        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)';this.style.background='var(--surface2)'"
-        title="Paksa reload data barang & vendor dari server">⟳ Refresh Data</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="btnRefreshData" class="btn btn-ghost" onclick="refreshMasterData()"
+        style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px"
+        title="Paksa reload data barang & vendor dari server">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+        Refresh Data
+      </button>
     </div>
   </div>
 
@@ -424,15 +447,17 @@
             </div>
             <div class="summary-divider"></div>
 
-            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:15px;margin-top:8px" id="btnSimpan" onclick="simpanPembelian()">
-              💾 Simpan Pembelian
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:15px;margin-top:8px;gap:9px" id="btnSimpan" onclick="simpanPembelian()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Simpan Pembelian
             </button>
             <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;font-family:var(--mono)">
               Harga akan otomatis tersimpan ke riwayat harga
             </div>
 
-            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="resetForm()">
-              🔄 Reset Form
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;gap:7px" onclick="resetForm()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+              Reset Form
             </button>
           </div>
         </div>
@@ -490,42 +515,45 @@
         <input type="date" id="rDateFrom" onchange="renderRiwayat()" style="display:none"/>
         <input type="date" id="rDateTo"   onchange="renderRiwayat()" style="display:none"/>
         <div style="position:relative">
-          <button class="btn btn-ghost btn-sm" id="btnDateFilter" onclick="toggleDatePicker()" style="white-space:nowrap;min-width:120px">
+          <button class="btn btn-ghost btn-sm" id="btnDateFilter" onclick="rDf.toggle()" style="white-space:nowrap;min-width:120px">
             📅 <span id="dateFilterLabel">Semua Tanggal</span>
           </button>
           <div id="datePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
             <div style="margin-bottom:6px">
-              <button class="date-quick-btn" id="rBtnAll" onclick="setQuickDate('all')" style="width:100%">🗂 Semua Waktu</button>
+              <button class="date-quick-btn" id="rBtnAll" onclick="rDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-              <button class="date-quick-btn" id="rBtnToday"     onclick="setQuickDate('today')">Hari Ini</button>
-              <button class="date-quick-btn" id="rBtnYesterday" onclick="setQuickDate('yesterday')">Kemarin</button>
-              <button class="date-quick-btn" id="rBtn7"         onclick="setQuickDate(7)">7 Hari</button>
-              <button class="date-quick-btn" id="rBtn30"        onclick="setQuickDate(30)">30 Hari</button>
-              <button class="date-quick-btn" id="rBtnThisMonth" onclick="setQuickDate('thismonth')">Bulan Ini</button>
-              <button class="date-quick-btn" id="rBtnLastMonth" onclick="setQuickDate('lastmonth')">Bulan Lalu</button>
-              <button class="date-quick-btn" id="rBtn3Month"    onclick="setQuickDate(90)">3 Bulan</button>
-              <button class="date-quick-btn" id="rBtn6Month"    onclick="setQuickDate(180)">6 Bulan</button>
-              <button class="date-quick-btn" id="rBtnThisYear"  onclick="setQuickDate('thisyear')">Tahun Ini</button>
-              <button class="date-quick-btn" id="rBtnLastYear"  onclick="setQuickDate('lastyear')">Tahun Lalu</button>
+              <button class="date-quick-btn" id="rBtnToday"     onclick="rDf.setQuick('today')">Hari Ini</button>
+              <button class="date-quick-btn" id="rBtnYesterday" onclick="rDf.setQuick('yesterday')">Kemarin</button>
+              <button class="date-quick-btn" id="rBtn7"         onclick="rDf.setQuick(7)">7 Hari</button>
+              <button class="date-quick-btn" id="rBtn30"        onclick="rDf.setQuick(30)">30 Hari</button>
+              <button class="date-quick-btn" id="rBtnThisMonth" onclick="rDf.setQuick('thismonth')">Bulan Ini</button>
+              <button class="date-quick-btn" id="rBtnLastMonth" onclick="rDf.setQuick('lastmonth')">Bulan Lalu</button>
+              <button class="date-quick-btn" id="rBtn3Month"    onclick="rDf.setQuick(90)">3 Bulan</button>
+              <button class="date-quick-btn" id="rBtn6Month"    onclick="rDf.setQuick(180)">6 Bulan</button>
+              <button class="date-quick-btn" id="rBtnThisYear"  onclick="rDf.setQuick('thisyear')">Tahun Ini</button>
+              <button class="date-quick-btn" id="rBtnLastYear"  onclick="rDf.setQuick('lastyear')">Tahun Lalu</button>
             </div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-                <input type="date" id="rDateFromVis" onchange="onCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+                <input type="date" id="rDateFromVis" onchange="rDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-                <input type="date" id="rDateToVis" onchange="onCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+                <input type="date" id="rDateToVis" onchange="rDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
               </div>
             </div>
-            <button onclick="clearDateFilter()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
+            <button onclick="rDf.clear()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="clearDateFilter()" style="display:none" id="btnClearDate">✕</button>
-        <button class="btn btn-ghost btn-sm" onclick="exportRiwayat()" style="margin-left:auto;border-color:rgba(56,217,169,0.3);color:var(--accent2)">⬇ Export Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="rDf.clear()" style="display:none" id="btnClearDate">✕</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportRiwayat()" style="margin-left:auto;display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
       </div>
       <div id="rSearchResultInfo" style="display:none;font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 2px 10px;margin-top:-8px"></div>
 
@@ -603,45 +631,48 @@
 
         <!-- Date picker dropdown -->
         <div style="position:relative">
-          <button class="btn btn-ghost btn-sm" id="cbBtnDateFilter" onclick="cbToggleDatePicker()" style="white-space:nowrap;min-width:140px">
+          <button class="btn btn-ghost btn-sm" id="cbBtnDateFilter" onclick="cbDf.toggle()" style="white-space:nowrap;min-width:140px">
             📅 <span id="cbDateFilterLabel">3 Bulan Terakhir</span>
           </button>
           <div id="cbDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:200;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
             <div style="margin-bottom:6px">
-              <button class="date-quick-btn" id="cbQAll" onclick="cbSetQuick('all')" style="width:100%">🗂 Semua Waktu</button>
+              <button class="date-quick-btn" id="cbQAll" onclick="cbDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-              <button class="date-quick-btn" id="cbQToday"     onclick="cbSetQuick('today')">Hari Ini</button>
-              <button class="date-quick-btn" id="cbQYesterday" onclick="cbSetQuick('yesterday')">Kemarin</button>
-              <button class="date-quick-btn" id="cbQ7"         onclick="cbSetQuick(7)">7 Hari</button>
-              <button class="date-quick-btn" id="cbQ30"        onclick="cbSetQuick(30)">30 Hari</button>
-              <button class="date-quick-btn" id="cbQThisMonth" onclick="cbSetQuick('thismonth')">Bulan Ini</button>
-              <button class="date-quick-btn" id="cbQLastMonth" onclick="cbSetQuick('lastmonth')">Bulan Lalu</button>
-              <button class="date-quick-btn" id="cbQ3Month"    onclick="cbSetQuick(90)">3 Bulan</button>
-              <button class="date-quick-btn" id="cbQ6Month"    onclick="cbSetQuick(180)">6 Bulan</button>
-              <button class="date-quick-btn" id="cbQThisYear"  onclick="cbSetQuick('thisyear')">Tahun Ini</button>
-              <button class="date-quick-btn" id="cbQLastYear"  onclick="cbSetQuick('lastyear')">Tahun Lalu</button>
+              <button class="date-quick-btn" id="cbQToday"     onclick="cbDf.setQuick('today')">Hari Ini</button>
+              <button class="date-quick-btn" id="cbQYesterday" onclick="cbDf.setQuick('yesterday')">Kemarin</button>
+              <button class="date-quick-btn" id="cbQ7"         onclick="cbDf.setQuick(7)">7 Hari</button>
+              <button class="date-quick-btn" id="cbQ30"        onclick="cbDf.setQuick(30)">30 Hari</button>
+              <button class="date-quick-btn" id="cbQThisMonth" onclick="cbDf.setQuick('thismonth')">Bulan Ini</button>
+              <button class="date-quick-btn" id="cbQLastMonth" onclick="cbDf.setQuick('lastmonth')">Bulan Lalu</button>
+              <button class="date-quick-btn" id="cbQ3Month"    onclick="cbDf.setQuick(90)">3 Bulan</button>
+              <button class="date-quick-btn" id="cbQ6Month"    onclick="cbDf.setQuick(180)">6 Bulan</button>
+              <button class="date-quick-btn" id="cbQThisYear"  onclick="cbDf.setQuick('thisyear')">Tahun Ini</button>
+              <button class="date-quick-btn" id="cbQLastYear"  onclick="cbDf.setQuick('lastyear')">Tahun Lalu</button>
             </div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-                <input type="date" id="cbDateFromVis" onchange="cbOnCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+                <input type="date" id="cbDateFromVis" onchange="cbDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-                <input type="date" id="cbDateToVis" onchange="cbOnCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+                <input type="date" id="cbDateToVis" onchange="cbDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
               </div>
             </div>
-            <button onclick="cbClearDateFilter()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
+            <button onclick="cbDf.clear()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
           </div>
         </div>
 
         <!-- Group by toggle -->
 
 
-        <button class="btn btn-ghost btn-sm" onclick="cbExport()" style="margin-left:auto;border-color:rgba(56,217,169,0.3);color:var(--accent2)">⬇ Export Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="cbExport()" style="margin-left:auto;display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
       </div>
 
       <!-- Info hasil -->
@@ -693,12 +724,19 @@
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-footer" style="justify-content:space-between">
       <button class="btn btn-danger btn-sm admin-only" id="btnDetailDel"
-        style="background:none;border-color:rgba(248,113,113,0.3);color:var(--danger);font-size:12px"
-        onmouseover="this.style.background='rgba(248,113,113,0.1)'"
-        onmouseout="this.style.background='none'">🗑 Hapus</button>
+        style="display:flex;align-items:center;gap:7px;background:none;border-color:rgba(248,113,113,0.3);color:var(--danger);font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Hapus
+      </button>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeDetail()">Tutup</button>
-        <button class="btn btn-primary btn-sm admin-only" id="btnDetailEdit">✏ Edit</button>
+        <button class="btn btn-ghost" onclick="closeDetail()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Tutup
+        </button>
+        <button class="btn btn-primary btn-sm admin-only" id="btnDetailEdit" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
       </div>
     </div>
   </div>
@@ -723,7 +761,7 @@
 <div class="modal-overlay" id="editOverlay">
   <div class="modal" style="max-width:680px">
     <div class="modal-header">
-      <span class="modal-title">✏ Edit Pembelian</span>
+      <span class="modal-title">Edit Pembelian</span>
       <button class="modal-close" onclick="closeEdit()">✕</button>
     </div>
     <div class="modal-body" id="editBody">
@@ -789,8 +827,14 @@
       <input type="hidden" id="eRiwayatId"/>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEdit()">Batal</button>
-      <button class="btn btn-primary" id="btnSaveEdit" onclick="saveEdit()">💾 Simpan Perubahan</button>
+      <button class="btn btn-ghost" onclick="closeEdit()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Batal
+      </button>
+      <button class="btn btn-primary" id="btnSaveEdit" onclick="saveEdit()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Simpan Perubahan
+      </button>
     </div>
   </div>
 </div>
@@ -863,6 +907,62 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   };
 
   /* ── AUTH CHECK ── */
+  /* ══════════════════════════════════════════
+     DATE FILTER INSTANCES
+  ══════════════════════════════════════════ */
+  const rDf = DateFilter.create({
+    pickerEl   : 'datePicker',
+    triggerBtn : 'btnDateFilter',
+    labelEl    : 'dateFilterLabel',
+    inputFrom  : 'rDateFrom',
+    inputTo    : 'rDateTo',
+    visFrom    : 'rDateFromVis',
+    visTo      : 'rDateToVis',
+    quickBtnMap: {
+      'rBtnAll'      : 'all',
+      'rBtnToday'    : 'today',
+      'rBtnYesterday': 'yesterday',
+      'rBtn7'        : 7,
+      'rBtn30'       : 30,
+      'rBtnThisMonth': 'thismonth',
+      'rBtnLastMonth': 'lastmonth',
+      'rBtn3Month'   : 90,
+      'rBtn6Month'   : 180,
+      'rBtnThisYear' : 'thisyear',
+      'rBtnLastYear' : 'lastyear',
+    },
+    default    : 'none', /* init dilakukan di dalam init() setelah URL param dicek */
+    onChange   : (from, to) => { rPage = 1; fetchRiwayatPage(); },
+  });
+
+  const cbDf = DateFilter.create({
+    pickerEl   : 'cbDatePicker',
+    triggerBtn : 'cbBtnDateFilter',
+    labelEl    : 'cbDateFilterLabel',
+    inputFrom  : 'cbDateFrom',
+    inputTo    : 'cbDateTo',
+    visFrom    : 'cbDateFromVis',
+    visTo      : 'cbDateToVis',
+    quickBtnMap: {
+      'cbQAll'      : 'all',
+      'cbQToday'    : 'today',
+      'cbQYesterday': 'yesterday',
+      'cbQ7'        : 7,
+      'cbQ30'       : 30,
+      'cbQThisMonth': 'thismonth',
+      'cbQLastMonth': 'lastmonth',
+      'cbQ3Month'   : 90,
+      'cbQ6Month'   : 180,
+      'cbQThisYear' : 'thisyear',
+      'cbQLastYear' : 'lastyear',
+    },
+    default    : 'none', /* init dilakukan di cbInit() */
+    onChange   : () => cbFetch(),
+  });
+
+  window.rDf = rDf;
+  window.cbDf = cbDf;
+
   (async function init() {
     const { data: { session } } = await window._sb.auth.getSession();
     if (!session) { window.location.href = 'index.html'; return; }
@@ -901,10 +1001,9 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     if (paramDateFrom || paramDateTo) {
       const from  = paramDateFrom || '';
       const to    = paramDateTo   || '';
-      const label = (from && to) ? `${from.slice(5)} – ${to.slice(5)}` : from ? `≥ ${from.slice(5)}` : `≤ ${to.slice(5)}`;
-      _applyDateFilter(from, to, label);
+      rDf.setCustom(from, to);
     } else {
-      setQuickDate('thismonth'); // default Bulan Ini (hanya jika tidak ada filter dari URL)
+      rDf.setQuick('thismonth'); // default Bulan Ini — loadRiwayat() yang fetch
     }
 
     await loadRiwayat();
@@ -1516,34 +1615,8 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     (window.allVendors || []).forEach(v => { ghostCache[v.id] = v.nama; });
     window._riwayatGhostCache = ghostCache;
 
-    /* Default filter: 1 bulan terakhir — skip jika sudah ada filter dari URL params */
-    const hasUrlFilter = new URLSearchParams(location.search).get('dateFrom') ||
-                         new URLSearchParams(location.search).get('dateTo');
-    if (!hasUrlFilter) {
-      const now  = new Date();
-      const fromD = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-      const from = `${fromD.getFullYear()}-${String(fromD.getMonth()+1).padStart(2,'0')}-${String(fromD.getDate()).padStart(2,'0')}`;
-      const to   = (typeof todayLocal === 'function') ? todayLocal() : `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-      _applyDateFilter(from, to, '1 Bulan Terakhir');
-    }
-
     await loadRiwayatStats();
     await fetchRiwayatPage();
-  }
-
-  /* ── Set date filter values + UI ── */
-  function _applyDateFilter(from, to, label) {
-    document.getElementById('rDateFrom').value    = from;
-    document.getElementById('rDateTo').value      = to;
-    document.getElementById('rDateFromVis').value = from;
-    document.getElementById('rDateToVis').value   = to;
-    document.getElementById('dateFilterLabel').textContent = label;
-    document.getElementById('btnDateFilter').style.borderColor = 'var(--accent)';
-    document.getElementById('btnDateFilter').style.color = 'var(--accent)';
-    document.querySelectorAll('.date-quick-btn').forEach(b => {
-      b.classList.toggle('active', b.textContent.trim() === label);
-    });
   }
 
   /* ── Fetch satu halaman data ── */
@@ -2455,8 +2528,8 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
             <div class="action-more-wrap">
               <button class="action-more-btn" onclick="toggleActionMenu(event,'rmenu-${r.id}')" title="Aksi lain">⋯</button>
               <div class="action-more-menu" id="rmenu-${r.id}">
-                <button class="action-more-item" onclick="closeAllMenus();openEdit('${r.id}')">✏ Edit</button>
-                <button class="action-more-item danger" onclick="closeAllMenus();hapusRiwayatById('${r.id}')">🗑 Hapus</button>
+                <button class="action-more-item" onclick="closeAllMenus();openEdit('${r.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</button>
+                <button class="action-more-item danger" onclick="closeAllMenus();hapusRiwayatById('${r.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Hapus</button>
               </div>
             </div>
             `:''}
@@ -2566,128 +2639,6 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     }, 400);
   }
 
-  function clearDateFilter() {
-    document.getElementById('rDateFrom').value    = '';
-    document.getElementById('rDateTo').value      = '';
-    document.getElementById('rDateFromVis').value = '';
-    document.getElementById('rDateToVis').value   = '';
-    document.getElementById('dateFilterLabel').textContent = 'Semua Tanggal';
-    document.getElementById('btnDateFilter').style.borderColor = '';
-    document.getElementById('btnDateFilter').style.color = '';
-    document.querySelectorAll('.date-quick-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('datePicker').style.display = 'none';
-    rPage = 1; fetchRiwayatPage();
-  }
-
-  function setAllTime() {
-    document.getElementById('rDateFrom').value    = '';
-    document.getElementById('rDateTo').value      = '';
-    document.getElementById('rDateFromVis').value = '';
-    document.getElementById('rDateToVis').value   = '';
-    document.getElementById('dateFilterLabel').textContent = 'Semua Waktu';
-    document.getElementById('btnDateFilter').style.borderColor = 'var(--accent)';
-    document.getElementById('btnDateFilter').style.color = 'var(--accent)';
-    document.querySelectorAll('.date-quick-btn').forEach(b => b.classList.remove('active'));
-    const btnAll = document.getElementById('btnSemuaWaktu');
-    if (btnAll) btnAll.classList.add('active');
-    document.getElementById('datePicker').style.display = 'none';
-    rPage = 1; fetchRiwayatPage();
-  }
-  window.setAllTime = setAllTime;
-
-  function toggleDatePicker() {
-    const dp = document.getElementById('datePicker');
-    dp.style.display = dp.style.display === 'none' ? '' : 'none';
-  }
-
-  function setQuickDate(range) {
-    const now   = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const fmt   = d => d.toISOString().split('T')[0];
-    let from, to = fmt(today), label;
-
-    if (range === 'today')     { from = fmt(today); label = 'Hari Ini'; }
-    else if (range === 'yesterday') {
-      const y = new Date(today); y.setDate(today.getDate()-1);
-      from = fmt(y); to = fmt(y); label = 'Kemarin';
-    }
-    else if (range === 'thismonth') {
-      from  = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
-      label = 'Bulan Ini';
-    }
-    else if (range === 'lastmonth') {
-      from  = fmt(new Date(today.getFullYear(), today.getMonth()-1, 1));
-      to    = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
-      label = 'Bulan Lalu';
-    }
-    else if (range === 'thisyear') {
-      from = fmt(new Date(today.getFullYear(), 0, 1)); label = 'Tahun Ini';
-    }
-    else if (range === 'lastyear') {
-      from = fmt(new Date(today.getFullYear()-1, 0, 1));
-      to   = fmt(new Date(today.getFullYear()-1, 11, 31));
-      label = 'Tahun Lalu';
-    }
-    else if (range === 'all') {
-      from = ''; to = ''; label = 'Semua Waktu';
-    }
-    else {
-      from  = fmt(new Date(now - range * 86400000));
-      label = range < 90 ? `${range} Hari` : range === 90 ? '3 Bulan' : '6 Bulan';
-    }
-
-    // Highlight active button
-    ['rBtnAll','rBtnToday','rBtnYesterday','rBtn7','rBtn30',
-     'rBtnThisMonth','rBtnLastMonth','rBtn3Month','rBtn6Month','rBtnThisYear','rBtnLastYear']
-      .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-    const activeMap = {
-      'all':'rBtnAll','today':'rBtnToday','yesterday':'rBtnYesterday',
-      7:'rBtn7',30:'rBtn30','thismonth':'rBtnThisMonth','lastmonth':'rBtnLastMonth',
-      90:'rBtn3Month',180:'rBtn6Month','thisyear':'rBtnThisYear','lastyear':'rBtnLastYear'
-    };
-    const activeId = activeMap[range];
-    if (activeId) { const b=document.getElementById(activeId); if(b) b.classList.add('active'); }
-
-    if (range === 'all') {
-      document.getElementById('rDateFrom').value    = '';
-      document.getElementById('rDateTo').value      = '';
-      document.getElementById('rDateFromVis').value = '';
-      document.getElementById('rDateToVis').value   = '';
-    } else {
-      document.getElementById('rDateFrom').value    = from;
-      document.getElementById('rDateTo').value      = to;
-      document.getElementById('rDateFromVis').value = from;
-      document.getElementById('rDateToVis').value   = to;
-    }
-    _applyDateFilter(from, to, label);
-    document.getElementById('datePicker').style.display = 'none';
-    rPage = 1; fetchRiwayatPage();
-  }
-
-  function onCustomDate() {
-    const from = document.getElementById('rDateFromVis').value;
-    const to   = document.getElementById('rDateToVis').value;
-    document.getElementById('rDateFrom').value = from;
-    document.getElementById('rDateTo').value   = to;
-    document.querySelectorAll('.date-quick-btn').forEach(b=>b.classList.remove('active'));
-    if (from || to) {
-      const label = (from && to) ? `${from.slice(5)} – ${to.slice(5)}` : from ? `≥ ${from.slice(5)}` : `≤ ${to.slice(5)}`;
-      document.getElementById('dateFilterLabel').textContent = label;
-      document.getElementById('btnDateFilter').style.borderColor = 'var(--accent)';
-      document.getElementById('btnDateFilter').style.color = 'var(--accent)';
-    }
-    rPage = 1; fetchRiwayatPage();
-  }
-
-  /* Close date picker when clicking outside (mousedown agar tidak konflik dengan native date picker) */
-  document.addEventListener('mousedown', e => {
-    const dp  = document.getElementById('datePicker');
-    const btn = document.getElementById('btnDateFilter');
-    if (dp && dp.style.display !== 'none' && !dp.contains(e.target) && !btn.contains(e.target)) {
-      dp.style.display = 'none';
-    }
-  });
-
   /* ── DETAIL MODAL ── */
   function openDetail(id) {
     const r = (window.riwayatData || []).find(x => x.id === id);
@@ -2784,7 +2735,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     showConfirmModal({
       title: 'Hapus Pembelian',
       body: `Yakin ingin menghapus <strong>${label}</strong>?<br><br>Riwayat harga dari transaksi ini juga akan ikut dihapus. Data tidak bisa dikembalikan.`,
-      confirmLabel: '🗑 Hapus',
+      confirmLabel: 'Hapus',
       onConfirm: async () => {
         try {
           await window._sb.from('riwayat_harga').delete().eq('beli_id', id);
@@ -3148,7 +3099,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   window.updateSummary=updateSummary; window.simpanPembelian=simpanPembelian;
   window.resetForm=resetForm; window.renderRiwayat=renderRiwayat;
   window.rSortBy=rSortBy; window.onRSearch=onRSearch;
-  window.clearDateFilter=clearDateFilter; window.toggleExpand=toggleExpand;
+  window.clearDateFilter=()=>rDf.clear(); window.toggleExpand=toggleExpand;
   window.openDetail=openDetail; window.closeDetail=closeDetail;
   window.openEdit=openEdit; window.closeEdit=closeEdit; window.setEditPPN=setEditPPN; window.onEditHargaInput=onEditHargaInput;
   window.renderEditItems=renderEditItems; window.updateEditSummary=updateEditSummary; window.saveEdit=saveEdit;
@@ -3277,8 +3228,8 @@ function cbInit() {
     katSel.appendChild(opt);
   });
 
-  // Default: 3 bulan terakhir — set state tapi jangan tutup picker (belum dibuka)
-  cbSetQuick('thismonth'); // default Bulan Ini
+  // Default: Bulan Ini — set state tapi jangan tutup picker (belum dibuka)
+  cbDf.setQuick('thismonth'); // default Bulan Ini
   // Langsung fetch data awal
   cbFetch();
 }
@@ -3335,113 +3286,6 @@ function _cbSortFn() {
     if (va > vb) return _cbSortDir === 'asc' ? 1 : -1;
     return 0;
   };
-}
-
-/* ─── Date Picker ─── */
-function cbToggleDatePicker() {
-  const dp = document.getElementById('cbDatePicker');
-  if (dp.style.display !== 'none') {
-    dp.style.display = 'none';
-    document.removeEventListener('click', _cbDatePickerOutside);
-  } else {
-    dp.style.display = '';
-    setTimeout(() => document.addEventListener('mousedown', _cbDatePickerOutside), 0);
-  }
-}
-function _cbDatePickerOutside(e) {
-  const dp = document.getElementById('cbDatePicker');
-  const btn = document.getElementById('cbBtnDateFilter');
-  if (!dp.contains(e.target) && !btn.contains(e.target)) {
-    dp.style.display = 'none';
-    document.removeEventListener('mousedown', _cbDatePickerOutside);
-  }
-}
-
-function cbSetQuick(preset) {
-  const now   = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const fmt   = d => d.toISOString().split('T')[0];
-  let from, to = fmt(today), label;
-
-  if (preset === 'today')         { from = fmt(today); label = 'Hari Ini'; }
-  else if (preset === 'yesterday') {
-    const y = new Date(today); y.setDate(today.getDate()-1);
-    from = fmt(y); to = fmt(y); label = 'Kemarin';
-  }
-  else if (preset === 'thismonth') {
-    from = fmt(new Date(today.getFullYear(), today.getMonth(), 1)); label = 'Bulan Ini';
-  }
-  else if (preset === 'lastmonth') {
-    from = fmt(new Date(today.getFullYear(), today.getMonth()-1, 1));
-    to   = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
-    label = 'Bulan Lalu';
-  }
-  else if (preset === 'thisyear') {
-    from = fmt(new Date(today.getFullYear(), 0, 1)); label = 'Tahun Ini';
-  }
-  else if (preset === 'lastyear') {
-    from = fmt(new Date(today.getFullYear()-1, 0, 1));
-    to   = fmt(new Date(today.getFullYear()-1, 11, 31));
-    label = 'Tahun Lalu';
-  }
-  else if (preset === 'all')      { from = ''; to = ''; label = 'Semua Waktu'; }
-  else /* angka = hari */ {
-    from  = fmt(new Date(now - preset * 86400000));
-    label = preset < 90 ? `${preset} Hari` : preset === 90 ? '3 Bulan' : '6 Bulan';
-  }
-
-  // Highlight active button
-  ['cbQAll','cbQToday','cbQYesterday','cbQ7','cbQ30',
-   'cbQThisMonth','cbQLastMonth','cbQ3Month','cbQ6Month','cbQThisYear','cbQLastYear']
-    .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-  const activeMap = {
-    'all':'cbQAll','today':'cbQToday','yesterday':'cbQYesterday',
-    7:'cbQ7',30:'cbQ30','thismonth':'cbQThisMonth','lastmonth':'cbQLastMonth',
-    90:'cbQ3Month',180:'cbQ6Month','thisyear':'cbQThisYear','lastyear':'cbQLastYear'
-  };
-  const activeId = activeMap[preset];
-  if (activeId) { const b=document.getElementById(activeId); if(b) b.classList.add('active'); }
-
-  document.getElementById('cbDateFrom').value    = from;
-  document.getElementById('cbDateTo').value      = to;
-  document.getElementById('cbDateFromVis').value = from;
-  document.getElementById('cbDateToVis').value   = to;
-  document.getElementById('cbDateFilterLabel').textContent = label;
-  document.getElementById('cbBtnDateFilter').style.borderColor = from ? 'var(--accent)' : '';
-  document.getElementById('cbBtnDateFilter').style.color       = from ? 'var(--accent)' : '';
-  document.getElementById('cbDatePicker').style.display = 'none';
-  cbFetch();
-}
-
-function cbOnCustomDate() {
-  const from = document.getElementById('cbDateFromVis').value;
-  const to   = document.getElementById('cbDateToVis').value;
-  document.getElementById('cbDateFrom').value = from;
-  document.getElementById('cbDateTo').value   = to;
-  ['cbQAll','cbQToday','cbQYesterday','cbQ7','cbQ30',
-   'cbQThisMonth','cbQLastMonth','cbQ3Month','cbQ6Month','cbQThisYear','cbQLastYear']
-    .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-  const label = (from && to) ? `${from.slice(5)} – ${to.slice(5)}`
-              : from ? `≥ ${from.slice(5)}` : to ? `≤ ${to.slice(5)}` : 'Semua Tanggal';
-  document.getElementById('cbDateFilterLabel').textContent = label;
-  document.getElementById('cbBtnDateFilter').style.borderColor = (from||to) ? 'var(--accent)' : '';
-  document.getElementById('cbBtnDateFilter').style.color       = (from||to) ? 'var(--accent)' : '';
-  cbFetch();
-}
-
-function cbClearDateFilter() {
-  document.getElementById('cbDateFrom').value    = '';
-  document.getElementById('cbDateTo').value      = '';
-  document.getElementById('cbDateFromVis').value = '';
-  document.getElementById('cbDateToVis').value   = '';
-  document.getElementById('cbDateFilterLabel').textContent = 'Semua Tanggal';
-  document.getElementById('cbBtnDateFilter').style.borderColor = '';
-  document.getElementById('cbBtnDateFilter').style.color       = '';
-  ['cbQAll','cbQToday','cbQYesterday','cbQ7','cbQ30',
-   'cbQThisMonth','cbQLastMonth','cbQ3Month','cbQ6Month','cbQThisYear','cbQLastYear']
-    .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-  document.getElementById('cbDatePicker').style.display = 'none';
-  cbFetch();
 }
 
 /* ─── Fetch & Aggregate ─── */
@@ -3648,9 +3492,6 @@ window.cbToggleClear     = cbToggleClear;
 window.cbClearSearch     = cbClearSearch;
 window.cbApplySearch     = cbApplySearch;
 window.cbSortBy          = cbSortBy;
-window.cbToggleDatePicker= cbToggleDatePicker;
-window.cbSetQuick        = cbSetQuick;
-window.cbApplyDateRange  = cbOnCustomDate;
 window.cbGoPage          = cbGoPage;
 window.cbExport          = cbExport;
 </script>

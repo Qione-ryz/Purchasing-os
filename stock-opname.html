@@ -101,9 +101,14 @@
     .item-select-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
     .item-select-group { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; padding:12px 12px 4px; }
 
-    /* ── Tombol kelola barang ── */
+    /* ── Tombol kelola barang — digantikan btn btn-ghost btn-sm ── */
     .btn-kelola { padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap; }
     .btn-kelola:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* Button active press feedback */
+    .btn:active        { transform: scale(0.96); }
+    .btn-primary:active { filter: brightness(0.9); }
+    .btn-ghost:active   { filter: brightness(0.9); }
 
   </style>
 </head>
@@ -122,10 +127,10 @@
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <button onclick="exportExcel()"
-        style="padding:7px 14px;background:var(--surface);border:1px solid rgba(56,217,169,0.3);border-radius:8px;color:var(--accent2);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s"
-        onmouseover="this.style.background='rgba(56,217,169,0.08)'"
-        onmouseout="this.style.background='var(--surface)'">⬇ Export</button>
+      <button class="btn btn-ghost" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
     </div>
   </div>
 
@@ -160,7 +165,10 @@
       </div>
       <div id="pickerMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
       <div style="margin-top:12px;text-align:right;">
-        <button class="btn btn-ghost btn-sm" onclick="closeMonthPicker()">Tutup</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeMonthPicker()" style="display:inline-flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Tutup
+        </button>
       </div>
     </div>
 
@@ -187,8 +195,14 @@
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
-        <button class="btn-kelola" id="btnHideEmpty" onclick="toggleHideEmpty()" title="Sembunyikan baris yang belum diisi">👁 Tampilkan semua</button>
-        <button class="btn-kelola" onclick="openItemSelectModal()">⚙ Kelola Barang</button>
+        <button class="btn btn-ghost btn-sm" id="btnHideEmpty" onclick="toggleHideEmpty()" title="Sembunyikan baris yang belum diisi" style="display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Tampilkan semua
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="openItemSelectModal()" style="display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Kelola Barang
+        </button>
         <span id="opnameSaveStatus" style="font-family:var(--mono);font-size:11px;color:var(--accent2);margin-left:auto"></span>
       </div>
       <div class="table-card anim">
@@ -215,8 +229,14 @@
       </div>
       <div class="save-bar admin-only" id="opnameSaveBar" style="display:none">
         <span class="unsaved-label">⚠ Ada perubahan yang belum disimpan</span>
-        <button class="btn btn-primary" onclick="saveOpname()">💾 Simpan Stock Opname</button>
-        <button class="btn btn-ghost"   onclick="discardOpname()">Batal</button>
+        <button class="btn btn-primary" onclick="saveOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Stock Opname
+        </button>
+        <button class="btn btn-ghost" onclick="discardOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Batal
+        </button>
       </div>
     </div>
 
@@ -274,7 +294,10 @@
             oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
           <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">% buffer dari rata-rata pakai</span>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="generatePlan()">⚡ Generate</button>
+        <button class="btn btn-primary btn-sm" onclick="generatePlan()" style="display:inline-flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Generate
+        </button>
       </div>
       <div class="notice-box info" id="noticePlan" style="display:none"></div>
       <div class="toolbar">
@@ -316,8 +339,14 @@
       </div>
       <div class="save-bar admin-only" id="planSaveBar" style="display:none">
         <span class="unsaved-label">⚡ Draft plan belum disimpan</span>
-        <button class="btn btn-primary" onclick="savePlan()">💾 Simpan Purchase Plan</button>
-        <button class="btn btn-ghost"   onclick="discardPlan()">Buang Draft</button>
+        <button class="btn btn-primary" onclick="savePlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Purchase Plan
+        </button>
+        <button class="btn btn-ghost" onclick="discardPlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Buang Draft
+        </button>
       </div>
     </div>
 
@@ -379,8 +408,14 @@
           <span class="search-icon">🔍</span>
           <input class="search-input" id="itemSelectSearch" type="text" placeholder="Cari barang..." oninput="renderItemSelectList()"/>
         </div>
-        <button class="btn-kelola" onclick="itemSelectAll()">Pilih Semua</button>
-        <button class="btn-kelola" onclick="itemSelectNone()">Hapus Semua</button>
+        <button class="btn btn-ghost btn-sm" onclick="itemSelectAll()" style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Pilih Semua
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="itemSelectNone()" style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Hapus Semua
+        </button>
       </div>
       <div id="itemSelectCountInfo" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px"></div>
       <div class="item-select-list" id="itemSelectList"></div>
@@ -388,8 +423,14 @@
     <div class="item-select-footer">
       <span id="itemSelectSelected" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeItemSelectModal()">Batal</button>
-        <button class="btn btn-primary" onclick="saveItemSelection()">💾 Simpan Pilihan</button>
+        <button class="btn btn-ghost" onclick="closeItemSelectModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Batal
+        </button>
+        <button class="btn btn-primary" onclick="saveItemSelection()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Pilihan
+        </button>
       </div>
     </div>
   </div>
@@ -1254,7 +1295,9 @@
   function toggleHideEmpty() {
     hideEmptyMode = !hideEmptyMode;
     const btn = document.getElementById('btnHideEmpty');
-    if (btn) btn.textContent = hideEmptyMode ? '👁 Tampilkan semua' : '🙈 Sembunyikan kosong';
+    if (btn) btn.innerHTML = hideEmptyMode
+      ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Tampilkan semua`
+      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Tampilkan semua`;
     renderOpname();
   }
 
