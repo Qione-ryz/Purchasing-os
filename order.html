@@ -2,7 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Order Internal — PurchaseOS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -162,7 +164,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 
 /* TWO-COLUMN ORDER LAYOUT */
-.order-two-col{display:grid;grid-template-columns:1fr 1.4fr;gap:0;height:calc(100vh - 113px);overflow:hidden}
+/* iOS Safari: gunakan --vh custom variable untuk menghindari address-bar bug */
+.order-two-col{display:grid;grid-template-columns:1fr 1.4fr;gap:0;height:calc(var(--vh, 1vh) * 100 - 113px);overflow:hidden}
 .order-col{display:flex;flex-direction:column;overflow:hidden}
 .order-col-left{border-right:1px solid var(--border);background:var(--surface)}
 .order-col-right{background:var(--bg)}
@@ -280,10 +283,15 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     z-index:30;
     box-shadow:0 -4px 20px rgba(0,0,0,0.35);
     padding:10px 14px;
+    /* iOS safe area for home indicator */
+    padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    /* Prevent iOS from clipping fixed elements */
+    -webkit-transform:translateZ(0);
+    transform:translateZ(0);
   }
   /* Tambah padding bawah di scroll area supaya konten tidak ketutupan footer */
   .order-col-right .order-col-scroll{
-    padding-bottom:130px !important;
+    padding-bottom:160px !important;
   }
 }
 
@@ -298,6 +306,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     display:block;
     height:auto;
     overflow:visible;
+    /* iOS: pastikan tidak overflow dari layar */
+    max-width:100vw;
+    width:100%;
+    box-sizing:border-box;
   }
   /* Kolom kiri (list barang) disembunyikan di mobile — jadi drawer */
   .order-col-left{ display:none !important; }
@@ -306,6 +318,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     display:flex;
     flex-direction:column;
     width:100%;
+    max-width:100vw;
     height:auto;
     overflow:visible;
   }
@@ -1372,7 +1385,9 @@ function renderItems() {
       </td>
       <td style="text-align:left;padding-left:16px">
         <div class="qty-satuan-wrap">
-          <input type="number" value="${it.qty}" min="0.1" step="0.1" onchange="updateQty(${i}, this.value)"/>
+          <input type="number" value="${it.qty}" min="0.1" step="0.1"
+            oninput="debouncedUpdateQty(${i}, this.value)"
+            onchange="debouncedUpdateQty(${i}, this.value)"/>
           ${satuanOptions}
         </div>
       </td>
@@ -1414,7 +1429,9 @@ function renderItems() {
         ${konversiTag ? `<div style="margin-top:5px">${konversiTag}</div>` : ''}
         <div class="item-card-mobile-controls">
           <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">Qty:</span>
-          <input type="number" value="${it.qty}" min="0.1" step="0.1" onchange="updateQty(${i}, this.value)"/>
+          <input type="number" value="${it.qty}" min="0.1" step="0.1"
+            oninput="debouncedUpdateQty(${i}, this.value)"
+            onchange="debouncedUpdateQty(${i}, this.value)"/>
           ${satuanControl}
         </div>
       </div>`;
@@ -1529,8 +1546,11 @@ function addCustomItem() {
 // ═══════════════════════════════════════════════
 // SUBMIT ORDER
 // ═══════════════════════════════════════════════
+let _isSubmitting = false; // Guard double-submit (terutama di iOS)
 async function submitOrder() {
+  if (_isSubmitting) return; // Cegah double submit
   if (!orderItems.length) { showToast('error','✕ Tambahkan barang dulu'); return; }
+  _isSubmitting = true;
   const btn = document.getElementById('btnSubmit');
   btn.innerHTML = '<span class="spinner"></span> Mengirim...';
   btn.disabled = true;
@@ -1656,6 +1676,7 @@ async function submitOrder() {
   } catch(e) {
     showToast('error', '✕ Gagal kirim order. Cek koneksi.');
   }
+  _isSubmitting = false;
   btn.innerHTML = '<span>Kirim Order</span>';
   btn.disabled = false;
 }
@@ -2109,6 +2130,9 @@ async function editOrder(orderId, bodyId) {
     // Simpan ID order lama — akan dihapus SETELAH submit baru berhasil
     _editingOrderId = orderId;
 
+    // Bersihkan semua timer debounce qty yang mungkin masih pending (bug iOS double input)
+    Object.keys(_qtyUpdateTimers).forEach(k => { clearTimeout(_qtyUpdateTimers[k]); delete _qtyUpdateTimers[k]; });
+
     // Pre-fill orderItems dari data lama
     orderItems = items.map(it => ({
       barang_id: it.barang_id || null,
@@ -2238,6 +2262,32 @@ function showToast(type, msg) {
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════
+// IOS VIEWPORT HEIGHT FIX
+// Mengatasi masalah 100vh di iOS Safari (address bar menyebabkan layout keluar layar)
+// ═══════════════════════════════════════════════
+function _setVhVar() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+_setVhVar();
+window.addEventListener('resize', _setVhVar);
+window.addEventListener('orientationchange', () => setTimeout(_setVhVar, 100));
+
+// ═══════════════════════════════════════════════
+// DEBOUNCED QTY UPDATE — Fix double-input bug di iOS Safari
+// iOS kadang men-trigger onchange dua kali berturutan saat input number,
+// terutama saat keyboard muncul/turun. Debounce memastikan hanya 1 update yang terjadi.
+// ═══════════════════════════════════════════════
+const _qtyUpdateTimers = {};
+function debouncedUpdateQty(i, val) {
+  if (_qtyUpdateTimers[i]) clearTimeout(_qtyUpdateTimers[i]);
+  _qtyUpdateTimers[i] = setTimeout(() => {
+    delete _qtyUpdateTimers[i];
+    updateQty(i, val);
+  }, 80);
 }
 
 init();

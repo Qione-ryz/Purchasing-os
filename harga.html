@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="datefilter.js"></script>
   <script src="sidebar.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -230,7 +231,7 @@
         <input type="hidden" id="hargaDateFrom" value=""/>
         <input type="hidden" id="hargaDateTo"   value=""/>
         <div style="position:relative">
-          <button class="btn btn-ghost" id="btnHargaDate" onclick="toggleHargaDatePicker()"
+          <button class="btn btn-ghost" id="btnHargaDate" onclick="toggleHargaDate()"
             style="width:100%;justify-content:flex-start;font-family:var(--mono);font-size:11px;min-width:160px">
             📅 <span id="hargaDateLabel">Semua Waktu</span>
           </button>
@@ -564,7 +565,7 @@
     await loadPPNRate();
     window._sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') window.location.href = 'index.html'; });
     await loadMaster();
-    setHargaQuick('thismonth'); // Default periode: Bulan Ini
+    hargaDf.setQuick('thismonth'); // Default periode: Bulan Ini
     await loadDariPembelian();
   })();
 
@@ -745,111 +746,52 @@
      FILTERS
   ══════════════════════════════════════════ */
   /* ══════════════════════════════════════════
-     PERIODE DATE PICKER
+     PERIODE DATE PICKER — menggunakan DateFilter module
   ══════════════════════════════════════════ */
-  function toggleHargaDatePicker() {
-    const dp  = document.getElementById('hargaDatePicker');
-    const btn = document.getElementById('btnHargaDate');
-    if (dp.style.display !== 'none') {
-      dp.style.display = 'none';
-      document.removeEventListener('mousedown', _hargaPickerOutside);
-    } else {
-      // Posisi dihitung dari button — portal di body tidak terpengaruh overflow parent
-      const rect = btn.getBoundingClientRect();
+  const hargaDf = DateFilter.create({
+    pickerEl    : 'hargaDatePicker',
+    triggerBtn  : 'btnHargaDate',
+    labelEl     : 'hargaDateLabel',
+    inputFrom   : 'hargaDateFrom',
+    inputTo     : 'hargaDateTo',
+    visFrom     : 'hargaDateFromVis',
+    visTo       : 'hargaDateToVis',
+    quickBtnMap : {
+      'hBtnAll'       : 'all',
+      'hBtnToday'     : 'today',
+      'hBtnYesterday' : 'yesterday',
+      'hBtn7'         : 7,
+      'hBtn30'        : 30,
+      'hBtnThisMonth' : 'thismonth',
+      'hBtnLastMonth' : 'lastmonth',
+      'hBtn3Month'    : 90,
+      'hBtn6Month'    : 180,
+      'hBtnThisYear'  : 'thisyear',
+      'hBtnLastYear'  : 'lastyear',
+    },
+    default     : 'none', // diset manual setelah loadMaster() selesai
+    onChange    : (from, to, label) => {
+      applyFilters();
+    },
+  });
+
+  /* Wrapper toggle: hitung posisi portal dulu sebelum buka picker */
+  function toggleHargaDate() {
+    const btn  = document.getElementById('btnHargaDate');
+    const dp   = document.getElementById('hargaDatePicker');
+    if (dp && dp.style.display === 'none' || dp.style.display === '') {
+      const rect    = btn.getBoundingClientRect();
       const pickerW = 260;
       const spaceRight = window.innerWidth - rect.left;
       const left = spaceRight >= pickerW ? rect.left : rect.right - pickerW;
-      const top  = rect.bottom + 6;
       dp.style.left = Math.max(8, left) + 'px';
-      dp.style.top  = top + 'px';
-      dp.style.display = '';
-      setTimeout(() => document.addEventListener('mousedown', _hargaPickerOutside), 0);
+      dp.style.top  = (rect.bottom + 6) + 'px';
     }
+    hargaDf.toggle();
   }
 
-  function _hargaPickerOutside(e) {
-    const dp  = document.getElementById('hargaDatePicker');
-    const btn = document.getElementById('btnHargaDate');
-    if (dp && !dp.contains(e.target) && btn && !btn.contains(e.target)) {
-      dp.style.display = 'none';
-      document.removeEventListener('mousedown', _hargaPickerOutside);
-    }
-  }
-
-  function setHargaQuick(preset) {
-    const now   = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const fmt   = d => d.toISOString().split('T')[0];
-    let from = '', to = '', label;
-
-    if (preset === 'all')           { from = ''; to = ''; label = 'Semua Waktu'; }
-    else if (preset === 'today')    { from = fmt(today); to = fmt(today); label = 'Hari Ini'; }
-    else if (preset === 'yesterday') {
-      const y = new Date(today); y.setDate(today.getDate()-1);
-      from = fmt(y); to = fmt(y); label = 'Kemarin';
-    }
-    else if (preset === 'thismonth') {
-      from = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
-      to   = fmt(today); label = 'Bulan Ini';
-    }
-    else if (preset === 'lastmonth') {
-      from = fmt(new Date(today.getFullYear(), today.getMonth()-1, 1));
-      to   = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
-      label = 'Bulan Lalu';
-    }
-    else if (preset === 'thisyear') {
-      from = fmt(new Date(today.getFullYear(), 0, 1)); to = fmt(today); label = 'Tahun Ini';
-    }
-    else if (preset === 'lastyear') {
-      from = fmt(new Date(today.getFullYear()-1, 0, 1));
-      to   = fmt(new Date(today.getFullYear()-1, 11, 31));
-      label = 'Tahun Lalu';
-    }
-    else { // angka = hari
-      from = fmt(new Date(now - preset*86400000)); to = fmt(today);
-      label = preset === 7 ? '7 Hari' : preset === 30 ? '30 Hari' : preset === 90 ? '3 Bulan' : '6 Bulan';
-    }
-
-    // Highlight active btn
-    ['hBtnAll','hBtnToday','hBtnYesterday','hBtn7','hBtn30',
-     'hBtnThisMonth','hBtnLastMonth','hBtn3Month','hBtn6Month','hBtnThisYear','hBtnLastYear']
-      .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-    const activeMap = { 'all':'hBtnAll','today':'hBtnToday','yesterday':'hBtnYesterday',
-      7:'hBtn7',30:'hBtn30','thismonth':'hBtnThisMonth','lastmonth':'hBtnLastMonth',
-      90:'hBtn3Month',180:'hBtn6Month','thisyear':'hBtnThisYear','lastyear':'hBtnLastYear' };
-    const aId = activeMap[preset]; if (aId) { const b=document.getElementById(aId); if(b) b.classList.add('active'); }
-
-    // Update state
-    document.getElementById('hargaDateFrom').value    = from;
-    document.getElementById('hargaDateTo').value      = to;
-    document.getElementById('hargaDateFromVis').value = from;
-    document.getElementById('hargaDateToVis').value   = to;
-    document.getElementById('hargaDateLabel').textContent = label;
-    const btn = document.getElementById('btnHargaDate');
-    if (btn) { btn.style.borderColor = from ? 'var(--accent)' : ''; btn.style.color = from ? 'var(--accent)' : ''; }
-    document.getElementById('hargaDatePicker').style.display = 'none';
-    document.removeEventListener('mousedown', _hargaPickerOutside);
-    applyFilters();
-  }
-
-  function hargaOnCustomDate() {
-    const from = document.getElementById('hargaDateFromVis').value;
-    const to   = document.getElementById('hargaDateToVis').value;
-    document.getElementById('hargaDateFrom').value = from;
-    document.getElementById('hargaDateTo').value   = to;
-    ['hBtnAll','hBtnToday','hBtnYesterday','hBtn7','hBtn30',
-     'hBtnThisMonth','hBtnLastMonth','hBtn3Month','hBtn6Month','hBtnThisYear','hBtnLastYear']
-      .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-    const label = (from && to) ? `${from.slice(5)} – ${to.slice(5)}`
-                : from ? `≥ ${from.slice(5)}` : to ? `≤ ${to.slice(5)}` : 'Semua Waktu';
-    document.getElementById('hargaDateLabel').textContent = label;
-    const btn = document.getElementById('btnHargaDate');
-    if (btn) { btn.style.borderColor = (from||to) ? 'var(--accent)' : ''; btn.style.color = (from||to) ? 'var(--accent)' : ''; }
-    applyFilters();
-  }
-  window.toggleHargaDatePicker = toggleHargaDatePicker;
-  window.setHargaQuick         = setHargaQuick;
-  window.hargaOnCustomDate     = hargaOnCustomDate;
+  window.hargaDf        = hargaDf;
+  window.toggleHargaDate = toggleHargaDate;
 
   function applyFilters() {
     const selBarangs = window._selectedBarangs || [];
@@ -893,7 +835,7 @@
     window._selectedBrands = [];
     updateBrandFilterUI();
     selectedBarangId = '';
-    setHargaQuick('all'); // reset periode ke Semua Waktu
+    hargaDf.setQuick('all'); // reset periode ke Semua Waktu
   }
 
   function onBrandChange() {
@@ -3076,34 +3018,34 @@
 <div id="hargaDatePicker" style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
   <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
   <div style="margin-bottom:6px">
-    <button class="date-quick-btn" id="hBtnAll" onclick="setHargaQuick('all')" style="width:100%">🗂 Semua Waktu</button>
+    <button class="date-quick-btn" id="hBtnAll" onclick="hargaDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-    <button class="date-quick-btn" id="hBtnToday"     onclick="setHargaQuick('today')">Hari Ini</button>
-    <button class="date-quick-btn" id="hBtnYesterday" onclick="setHargaQuick('yesterday')">Kemarin</button>
-    <button class="date-quick-btn" id="hBtn7"         onclick="setHargaQuick(7)">7 Hari</button>
-    <button class="date-quick-btn" id="hBtn30"        onclick="setHargaQuick(30)">30 Hari</button>
-    <button class="date-quick-btn" id="hBtnThisMonth" onclick="setHargaQuick('thismonth')">Bulan Ini</button>
-    <button class="date-quick-btn" id="hBtnLastMonth" onclick="setHargaQuick('lastmonth')">Bulan Lalu</button>
-    <button class="date-quick-btn" id="hBtn3Month"    onclick="setHargaQuick(90)">3 Bulan</button>
-    <button class="date-quick-btn" id="hBtn6Month"    onclick="setHargaQuick(180)">6 Bulan</button>
-    <button class="date-quick-btn" id="hBtnThisYear"  onclick="setHargaQuick('thisyear')">Tahun Ini</button>
-    <button class="date-quick-btn" id="hBtnLastYear"  onclick="setHargaQuick('lastyear')">Tahun Lalu</button>
+    <button class="date-quick-btn" id="hBtnToday"     onclick="hargaDf.setQuick('today')">Hari Ini</button>
+    <button class="date-quick-btn" id="hBtnYesterday" onclick="hargaDf.setQuick('yesterday')">Kemarin</button>
+    <button class="date-quick-btn" id="hBtn7"         onclick="hargaDf.setQuick(7)">7 Hari</button>
+    <button class="date-quick-btn" id="hBtn30"        onclick="hargaDf.setQuick(30)">30 Hari</button>
+    <button class="date-quick-btn" id="hBtnThisMonth" onclick="hargaDf.setQuick('thismonth')">Bulan Ini</button>
+    <button class="date-quick-btn" id="hBtnLastMonth" onclick="hargaDf.setQuick('lastmonth')">Bulan Lalu</button>
+    <button class="date-quick-btn" id="hBtn3Month"    onclick="hargaDf.setQuick(90)">3 Bulan</button>
+    <button class="date-quick-btn" id="hBtn6Month"    onclick="hargaDf.setQuick(180)">6 Bulan</button>
+    <button class="date-quick-btn" id="hBtnThisYear"  onclick="hargaDf.setQuick('thisyear')">Tahun Ini</button>
+    <button class="date-quick-btn" id="hBtnLastYear"  onclick="hargaDf.setQuick('lastyear')">Tahun Lalu</button>
   </div>
   <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
   <div style="display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-      <input type="date" id="hargaDateFromVis" onchange="hargaOnCustomDate()"
+      <input type="date" id="hargaDateFromVis" onchange="hargaDf.onVisibleInputChange()"
         style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-      <input type="date" id="hargaDateToVis" onchange="hargaOnCustomDate()"
+      <input type="date" id="hargaDateToVis" onchange="hargaDf.onVisibleInputChange()"
         style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
     </div>
   </div>
-  <button onclick="setHargaQuick('all')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
+  <button onclick="hargaDf.setQuick('all')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
 </div>
 </body>
 </html>

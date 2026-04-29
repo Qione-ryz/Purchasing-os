@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="datefilter.js"></script>
   <style>
     /* ── DASHBOARD-SPECIFIC STYLES ── */
 
@@ -305,41 +306,41 @@
       </div>
       <div class="date-chip" id="dateChip">—</div>
       <!-- Date filter -->
-      <input type="date" id="dashDateFrom" onchange="onDashDateChange()" style="display:none"/>
-      <input type="date" id="dashDateTo"   onchange="onDashDateChange()" style="display:none"/>
+      <input type="date" id="dashDateFrom" style="display:none"/>
+      <input type="date" id="dashDateTo"   style="display:none"/>
       <div style="position:relative">
-        <button class="btn btn-ghost btn-sm" id="btnDashDate" onclick="toggleDashDatePicker()" style="white-space:nowrap;min-width:130px;font-family:var(--mono);font-size:11px">
+        <button class="btn btn-ghost btn-sm" id="btnDashDate" onclick="dashDf.toggle()" style="white-space:nowrap;min-width:130px;font-family:var(--mono);font-size:11px">
           📅 <span id="dashDateLabel">Bulan Ini</span>
         </button>
         <div id="dashDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
           <div style="margin-bottom:6px">
-            <button class="date-quick-btn" id="dashBtnAll" onclick="setDashQuick('all')" style="width:100%">🗂 Semua Waktu</button>
+            <button class="date-quick-btn" id="dashBtnAll" onclick="dashDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-            <button class="date-quick-btn" id="dashBtnToday"     onclick="setDashQuick('today')">Hari Ini</button>
-            <button class="date-quick-btn" id="dashBtnYesterday" onclick="setDashQuick('yesterday')">Kemarin</button>
-            <button class="date-quick-btn" id="dashBtn7"         onclick="setDashQuick(7)">7 Hari</button>
-            <button class="date-quick-btn" id="dashBtn30"        onclick="setDashQuick(30)">30 Hari</button>
-            <button class="date-quick-btn" id="dashBtnThisMonth" onclick="setDashQuick('thismonth')">Bulan Ini</button>
-            <button class="date-quick-btn" id="dashBtnLastMonth" onclick="setDashQuick('lastmonth')">Bulan Lalu</button>
-            <button class="date-quick-btn" id="dashBtn3Month"    onclick="setDashQuick(90)">3 Bulan</button>
-            <button class="date-quick-btn" id="dashBtn6Month"    onclick="setDashQuick(180)">6 Bulan</button>
-            <button class="date-quick-btn" id="dashBtnThisYear"  onclick="setDashQuick('thisyear')">Tahun Ini</button>
-            <button class="date-quick-btn" id="dashBtnLastYear"  onclick="setDashQuick('lastyear')">Tahun Lalu</button>
+            <button class="date-quick-btn" id="dashBtnToday"     onclick="dashDf.setQuick('today')">Hari Ini</button>
+            <button class="date-quick-btn" id="dashBtnYesterday" onclick="dashDf.setQuick('yesterday')">Kemarin</button>
+            <button class="date-quick-btn" id="dashBtn7"         onclick="dashDf.setQuick(7)">7 Hari</button>
+            <button class="date-quick-btn" id="dashBtn30"        onclick="dashDf.setQuick(30)">30 Hari</button>
+            <button class="date-quick-btn" id="dashBtnThisMonth" onclick="dashDf.setQuick('thismonth')">Bulan Ini</button>
+            <button class="date-quick-btn" id="dashBtnLastMonth" onclick="dashDf.setQuick('lastmonth')">Bulan Lalu</button>
+            <button class="date-quick-btn" id="dashBtn3Month"    onclick="dashDf.setQuick(90)">3 Bulan</button>
+            <button class="date-quick-btn" id="dashBtn6Month"    onclick="dashDf.setQuick(180)">6 Bulan</button>
+            <button class="date-quick-btn" id="dashBtnThisYear"  onclick="dashDf.setQuick('thisyear')">Tahun Ini</button>
+            <button class="date-quick-btn" id="dashBtnLastYear"  onclick="dashDf.setQuick('lastyear')">Tahun Lalu</button>
           </div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-              <input type="date" id="dashDateFromVis" onchange="onDashCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+              <input type="date" id="dashDateFromVis" onchange="dashDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-              <input type="date" id="dashDateToVis" onchange="onDashCustomDate()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+              <input type="date" id="dashDateToVis" onchange="dashDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
             </div>
           </div>
-          <button onclick="resetDashDate()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
+          <button onclick="dashDf.setQuick('thismonth')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
         </div>
       </div>
     </div>
@@ -1396,8 +1397,7 @@ async function loadVendorKasta(selectedBrands) {
   /* ── Build URL ke pembelian.html dengan filter aktif ── */
   function buildPembelianUrl(extraParams = {}) {
     const brands   = getCurrentBrand();
-    const dateFrom = document.getElementById('dashDateFrom').value;
-    const dateTo   = document.getElementById('dashDateTo').value;
+    const { from: dateFrom, to: dateTo } = dashDf.getRange();
     const params   = new URLSearchParams({ tab: 'riwayat' });
     if (brands.length === 1) params.set('brand', brands[0]);
     if (dateFrom) params.set('dateFrom', dateFrom);
@@ -1442,126 +1442,33 @@ async function loadVendorKasta(selectedBrands) {
     document.getElementById('overlay').classList.remove('show');
   }
 
-  /* ── DATE FILTER ── */
-  function toggleDashDatePicker() {
-    const dp = document.getElementById('dashDatePicker');
-    if (dp.style.display !== 'none') {
-      dp.style.display = 'none';
-      document.removeEventListener('mousedown', _dashPickerOutside);
-    } else {
-      dp.style.display = '';
-      setTimeout(() => document.addEventListener('mousedown', _dashPickerOutside), 0);
-    }
-  }
-
-  function _dashPickerOutside(e) {
-    const dp  = document.getElementById('dashDatePicker');
-    const btn = document.getElementById('btnDashDate');
-    // Jangan tutup jika klik di dalam picker atau di tombol toggle
-    if (dp && !dp.contains(e.target) && !btn.contains(e.target)) {
-      dp.style.display = 'none';
-      document.removeEventListener('mousedown', _dashPickerOutside);
-    }
-  }
-
-  function setDashQuick(range) {
-    const now   = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const fmt   = d => d.toISOString().split('T')[0];
-    let from, to = fmt(today), label;
-
-    if (range === 'today')          { from = fmt(today); label = 'Hari Ini'; }
-    else if (range === 'yesterday') {
-      const y = new Date(today); y.setDate(today.getDate()-1);
-      from = fmt(y); to = fmt(y); label = 'Kemarin';
-    }
-    else if (range === 'thismonth') {
-      from = fmt(new Date(today.getFullYear(), today.getMonth(), 1)); label = 'Bulan Ini';
-    }
-    else if (range === 'lastmonth') {
-      from = fmt(new Date(today.getFullYear(), today.getMonth()-1, 1));
-      to   = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
-      label = 'Bulan Lalu';
-    }
-    else if (range === 'thisyear')  {
-      from = fmt(new Date(today.getFullYear(), 0, 1)); label = 'Tahun Ini';
-    }
-    else if (range === 'lastyear')  {
-      from = fmt(new Date(today.getFullYear()-1, 0, 1));
-      to   = fmt(new Date(today.getFullYear()-1, 11, 31));
-      label = 'Tahun Lalu';
-    }
-    else if (range === 'all')       { from = ''; to = ''; label = 'Semua Waktu'; }
-    else {
-      from  = fmt(new Date(now - range*86400000));
-      label = range === 7 ? '7 Hari' : range === 30 ? '30 Hari' : range === 90 ? '3 Bulan' : '6 Bulan';
-    }
-
-    // Highlight active button
-    const activeMap = {
-      'all':'dashBtnAll','today':'dashBtnToday','yesterday':'dashBtnYesterday',
-      7:'dashBtn7',30:'dashBtn30','thismonth':'dashBtnThisMonth','lastmonth':'dashBtnLastMonth',
-      90:'dashBtn3Month',180:'dashBtn6Month','thisyear':'dashBtnThisYear','lastyear':'dashBtnLastYear'
-    };
-    ['dashBtnAll','dashBtnToday','dashBtnYesterday','dashBtn7','dashBtn30',
-     'dashBtnThisMonth','dashBtnLastMonth','dashBtn3Month','dashBtn6Month',
-     'dashBtnThisYear','dashBtnLastYear']
-      .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-    const aId = activeMap[range];
-    if (aId) { const b=document.getElementById(aId); if(b) b.classList.add('active'); }
-
-    applyDashDate(from, to, label, true); // true = tutup picker
-  }
-
-  function onDashCustomDate() {
-    const from = document.getElementById('dashDateFromVis').value;
-    const to   = document.getElementById('dashDateToVis').value;
-    if (!from && !to) return;
-    const label = (from && to) ? `${from.slice(5)} – ${to.slice(5)}` : from ? `≥ ${from.slice(5)}` : `≤ ${to.slice(5)}`;
-    ['dashBtnAll','dashBtnToday','dashBtnYesterday','dashBtn7','dashBtn30',
-     'dashBtnThisMonth','dashBtnLastMonth','dashBtn3Month','dashBtn6Month',
-     'dashBtnThisYear','dashBtnLastYear']
-      .forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-    applyDashDate(from, to, label, false); // false = jangan tutup picker saat isi kustom
-  }
-
-  function applyDashDate(from, to, label, closePicker = true) {
-    document.getElementById('dashDateFrom').value    = from;
-    document.getElementById('dashDateTo').value      = to;
-    document.getElementById('dashDateFromVis').value = from;
-    document.getElementById('dashDateToVis').value   = to;
-    document.getElementById('dashDateLabel').textContent = label;
-    const btn = document.getElementById('btnDashDate');
-    btn.style.borderColor = from ? 'var(--accent)' : '';
-    btn.style.color       = from ? 'var(--accent)' : '';
-    if (closePicker) {
-      document.getElementById('dashDatePicker').style.display = 'none';
-      document.removeEventListener('mousedown', _dashPickerOutside);
-    }
-    if (window._loadDashboard) window._loadDashboard();
-  }
-
-  function resetDashDate() {
-    setDashQuick('thismonth');
-  }
-
-  function onDashDateChange() {
-    if (window._loadDashboard) window._loadDashboard();
-  }
-
-  /* Init default: bulan ini */
-  (function() {
-    const now  = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const to   = now.toISOString().split('T')[0];
-    document.getElementById('dashDateFrom').value    = from;
-    document.getElementById('dashDateTo').value      = to;
-    document.getElementById('dashDateFromVis').value = from;
-    document.getElementById('dashDateToVis').value   = to;
-    // Highlight Bulan Ini
-    const b = document.getElementById('dashBtnThisMonth');
-    if (b) b.classList.add('active');
-  })();
+  /* ── DATE FILTER — menggunakan DateFilter module ── */
+  const dashDf = DateFilter.create({
+    pickerEl    : 'dashDatePicker',
+    triggerBtn  : 'btnDashDate',
+    labelEl     : 'dashDateLabel',
+    inputFrom   : 'dashDateFrom',
+    inputTo     : 'dashDateTo',
+    visFrom     : 'dashDateFromVis',
+    visTo       : 'dashDateToVis',
+    quickBtnMap : {
+      'dashBtnAll'       : 'all',
+      'dashBtnToday'     : 'today',
+      'dashBtnYesterday' : 'yesterday',
+      'dashBtn7'         : 7,
+      'dashBtn30'        : 30,
+      'dashBtnThisMonth' : 'thismonth',
+      'dashBtnLastMonth' : 'lastmonth',
+      'dashBtn3Month'    : 90,
+      'dashBtn6Month'    : 180,
+      'dashBtnThisYear'  : 'thisyear',
+      'dashBtnLastYear'  : 'lastyear',
+    },
+    default     : 'thismonth',
+    onChange    : (from, to, label) => {
+      if (window._loadDashboard) window._loadDashboard();
+    },
+  });
 
   /* Expose */
   window.getCurrentBrand      = getCurrentBrand;
@@ -1572,11 +1479,7 @@ async function loadVendorKasta(selectedBrands) {
   window.doLogout             = doLogout;
   window.toggleSidebar        = toggleSidebar;
   window.closeSidebar         = closeSidebar;
-  window.toggleDashDatePicker = toggleDashDatePicker;
-  window.setDashQuick         = setDashQuick;
-  window.onDashCustomDate     = onDashCustomDate;
-  window.resetDashDate        = resetDashDate;
-  window.onDashDateChange     = onDashDateChange;
+  window.dashDf               = dashDf;
   window.setBarRange          = setBarRange;
   window.onTopBarangPeriodChange = onTopBarangPeriodChange;
   window.onTopSpendChange     = onTopSpendChange;
