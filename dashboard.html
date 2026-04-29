@@ -9,288 +9,100 @@
   <link rel="stylesheet" href="theme.css"/>
   <script src="datefilter.js"></script>
   <style>
-    /* ── DASHBOARD-SPECIFIC STYLES ── */
+    .topbar-right { display:flex; align-items:center; gap:var(--sp-md); }
+    .date-chip { font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px var(--sp-md); }
 
-    .topbar-right { display: flex; align-items: center; gap: var(--sp-md); }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-lg); margin-bottom:calc(var(--sp-3xl) + 8px); }
+    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:calc(var(--sp-xl) + 6px) var(--sp-xl); position:relative; overflow:hidden; transition:border-color .2s,transform .15s; animation:fadeUp .4s ease both; }
+    .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .stat-card.blue::before  { background:var(--accent); }
+    .stat-card.green::before { background:var(--accent2); }
+    .stat-card.orange::before{ background:var(--accent3); }
+    .stat-card.purple::before{ background:#a78bfa; }
+    .stat-label { font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:calc(var(--sp-sm) + 2px); }
+    .stat-value { font-size:34px; font-weight:600; font-family:var(--mono); line-height:1; margin-bottom:8px; }
+    .stat-value.blue   { color:var(--accent); }
+    .stat-value.green  { color:var(--accent2); }
+    .stat-value.orange { color:var(--accent3); }
+    .stat-value.purple { color:#a78bfa; }
+    .stat-sub  { font-size:12px; color:var(--muted); }
+    .stat-icon { position:absolute; top:var(--sp-lg); right:var(--sp-lg); font-size:28px; opacity:.15; }
 
-    .date-chip {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px var(--sp-md);
-    }
+    .row { display:grid; gap:var(--sp-xl); margin-bottom:var(--sp-xl); }
+    .row-2 { grid-template-columns:1fr 1fr; }
+    .row-3 { grid-template-columns:2fr 1fr; }
 
-    /* Stat cards grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--sp-lg);
-      margin-bottom: calc(var(--sp-3xl) + 8px);
-    }
+    .card-header { padding:var(--sp-lg) var(--sp-xl); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .card-title  { font-size:14px; font-weight:600; }
+    .card-action { font-size:12px; color:var(--accent); text-decoration:none; font-family:var(--mono); cursor:pointer; }
+    .card-action:hover { text-decoration:underline; }
 
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: calc(var(--sp-xl) + 6px) var(--sp-xl);
-      position: relative;
-      overflow: hidden;
-      transition: border-color .2s, transform .15s;
-      animation: fadeUp .4s ease both;
-    }
-    .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .bar-chart  { padding:var(--sp-lg) var(--sp-xl); }
+    .bar-group  { display:flex; align-items:flex-end; gap:var(--sp-sm); height:100px; margin-bottom:var(--sp-sm); position:relative; }
+    .bar-col    { flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; }
+    .bar        { width:100%; border-radius:4px 4px 0 0; transition:height .6s cubic-bezier(.4,0,.2,1),opacity .2s; min-height:4px; background:var(--accent); opacity:.7; }
+    .bar:hover  { opacity:1; }
+    .bar.current{ background:var(--accent2); opacity:1; }
+    .bar-labels { display:flex; gap:var(--sp-sm); }
+    .bar-label  { flex:1; text-align:center; font-family:var(--mono); font-size:10px; color:var(--muted); }
 
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-    }
+    .quick-actions { display:grid; grid-template-columns:1fr 1fr; gap:calc(var(--sp-sm) + 2px); padding:var(--sp-lg); }
+    .qa-btn  { display:flex; align-items:center; gap:calc(var(--sp-sm) + 2px); padding:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; cursor:pointer; text-decoration:none; color:var(--text); transition:border-color .2s,background .2s; }
+    .qa-btn:hover { border-color:var(--accent); background:rgba(79,142,247,.06); }
+    .qa-icon  { font-size:22px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:8px; flex-shrink:0; }
+    .qa-label { font-size:13px; font-weight:600; }
+    .qa-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); }
 
-    .stat-card.blue::before  { background: var(--accent); }
-    .stat-card.green::before { background: var(--accent2); }
-    .stat-card.orange::before{ background: var(--accent3); }
-    .stat-card.purple::before{ background: #a78bfa; }
+    .activity-list { padding:0 var(--sp-xl); }
+    .activity-item { display:flex; gap:var(--sp-md); padding:14px 0; border-bottom:1px solid rgba(37,40,48,.6); }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-dot  { width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+    .activity-body { flex:1; }
+    .activity-text { font-size:13px; line-height:1.5; }
+    .activity-text strong { color:var(--accent); font-weight:600; }
+    .activity-time { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
 
-    .stat-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: calc(var(--sp-sm) + 2px);
-    }
+    .skeleton { background:linear-gradient(90deg,var(--border) 0%,var(--surface2) 50%,var(--border) 100%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
 
-    .stat-value {
-      font-size: 34px;
-      font-weight: 600;
-      font-family: var(--mono);
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .stat-value.blue   { color: var(--accent); }
-    .stat-value.green  { color: var(--accent2); }
-    .stat-value.orange { color: var(--accent3); }
-    .stat-value.purple { color: #a78bfa; }
-
-    .stat-sub { font-size: 12px; color: var(--muted); }
-
-    .stat-icon {
-      position: absolute;
-      top: var(--sp-lg); right: var(--sp-lg);
-      font-size: 28px;
-      opacity: 0.15;
-    }
-
-    /* Row layout */
-    .row { display: grid; gap: var(--sp-xl); margin-bottom: var(--sp-xl); }
-    .row-2 { grid-template-columns: 1fr 1fr; }
-    .row-3 { grid-template-columns: 2fr 1fr; }
-
-    /* Card header / title */
-    .card-header {
-      padding: var(--sp-lg) var(--sp-xl);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-title { font-size: 14px; font-weight: 600; }
-
-    .card-action {
-      font-size: 12px;
-      color: var(--accent);
-      text-decoration: none;
-      font-family: var(--mono);
-      cursor: pointer;
-    }
-    .card-action:hover { text-decoration: underline; }
-
-    /* Trend bar chart */
-    .bar-chart { padding: var(--sp-lg) var(--sp-xl); }
-
-    .bar-group {
-      display: flex;
-      align-items: flex-end;
-      gap: var(--sp-sm);
-      height: 100px;
-      margin-bottom: var(--sp-sm);
-    }
-
-    .bar-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100%;
-      justify-content: flex-end;
-    }
-
-    .bar {
-      width: 100%;
-      border-radius: 4px 4px 0 0;
-      transition: height .6s cubic-bezier(.4,0,.2,1), opacity .2s;
-      min-height: 4px;
-      background: var(--accent);
-      opacity: 0.7;
-    }
-    .bar:hover { opacity: 1; }
-    .bar.current { background: var(--accent2); opacity: 1; }
-
-    .bar-labels { display: flex; gap: var(--sp-sm); }
-
-    .bar-label {
-      flex: 1;
-      text-align: center;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    /* Quick actions */
-    .quick-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: calc(var(--sp-sm) + 2px);
-      padding: var(--sp-lg);
-    }
-
-    .qa-btn {
-      display: flex;
-      align-items: center;
-      gap: calc(var(--sp-sm) + 2px);
-      padding: 14px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-      text-decoration: none;
-      color: var(--text);
-      transition: border-color .2s, background .2s;
-    }
-    .qa-btn:hover { border-color: var(--accent); background: rgba(79,142,247,0.06); }
-
-    .qa-icon {
-      font-size: 22px;
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg);
-      border-radius: 8px;
-      flex-shrink: 0;
-    }
-
-    .qa-label { font-size: 13px; font-weight: 600; }
-    .qa-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
-
-    /* Activity feed */
-    .activity-list { padding: 0 var(--sp-xl); }
-
-    .activity-item {
-      display: flex;
-      gap: var(--sp-md);
-      padding: 14px 0;
-      border-bottom: 1px solid rgba(37,40,48,0.6);
-    }
-    .activity-item:last-child { border-bottom: none; }
-
-    .activity-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      margin-top: 6px;
-      flex-shrink: 0;
-    }
-
-    .activity-body { flex: 1; }
-    .activity-text { font-size: 13px; line-height: 1.5; }
-    .activity-text strong { color: var(--accent); font-weight: 600; }
-    .activity-time { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
-
-    /* Loading skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, var(--border) 0%, var(--surface2) 50%, var(--border) 100%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 4px;
-    }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    /* Nav badge (dashboard-specific) */
-    .nav-badge {
-      margin-left: auto;
-      background: var(--accent);
-      color: #fff;
-      font-size: 10px;
-      font-family: var(--mono);
-      padding: 2px 6px;
-      border-radius: 10px;
-      min-width: 20px;
-      text-align: center;
-    }
+    .nav-badge { margin-left:auto; background:var(--accent); color:#fff; font-size:10px; font-family:var(--mono); padding:2px 6px; border-radius:10px; min-width:20px; text-align:center; }
 
     .date-quick-btn { padding:6px 8px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-    .date-quick-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .date-quick-btn.active { background:rgba(79,142,247,0.12); border-color:var(--accent); color:var(--accent); }
+    .date-quick-btn:hover  { border-color:var(--accent); color:var(--accent); }
+    .date-quick-btn.active { background:rgba(79,142,247,.12); border-color:var(--accent); color:var(--accent); }
 
-    /* Multi-brand filter */
     .brand-filter-wrap { position:relative; }
-    .brand-filter-btn {
-      display:flex; align-items:center; gap:8px; padding:8px 12px;
-      background:var(--surface); border:1px solid var(--border); border-radius:8px;
-      cursor:pointer; font-size:12px; color:var(--text); width:100%;
-      transition:border-color .2s; text-align:left;
-    }
-    .brand-filter-btn:hover { border-color:var(--accent); }
+    .brand-filter-btn  { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12px; color:var(--text); width:100%; transition:border-color .2s; text-align:left; }
+    .brand-filter-btn:hover         { border-color:var(--accent); }
     .brand-filter-btn.has-selection { border-color:var(--accent); color:var(--accent); }
-    .brand-filter-count {
-      background:var(--accent); color:#fff; border-radius:10px;
-      font-size:10px; font-family:var(--mono); padding:1px 6px; min-width:18px; text-align:center;
-    }
-    .brand-filter-dropdown {
-      display:none; position:fixed; z-index:9999;
-      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
-      padding:8px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
-      max-height:280px; overflow-y:auto;
-    }
+    .brand-filter-count    { background:var(--accent); color:#fff; border-radius:10px; font-size:10px; font-family:var(--mono); padding:1px 6px; min-width:18px; text-align:center; }
+    .brand-filter-dropdown { display:none; position:fixed; z-index:9999; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:8px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,.5); max-height:280px; overflow-y:auto; }
     .brand-filter-dropdown.open { display:block; }
-    .brand-filter-option {
-      display:flex; align-items:center; gap:10px; padding:8px 10px;
-      border-radius:6px; cursor:pointer; font-size:13px; transition:background .15s;
-      user-select:none;
-    }
-    .brand-filter-option:hover { background:rgba(79,142,247,0.08); }
-    .brand-filter-option.selected { background:rgba(79,142,247,0.12); color:var(--accent); }
+    .brand-filter-option   { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; cursor:pointer; font-size:13px; transition:background .15s; user-select:none; }
+    .brand-filter-option:hover    { background:rgba(79,142,247,.08); }
+    .brand-filter-option.selected { background:rgba(79,142,247,.12); color:var(--accent); }
     .brand-filter-option input[type=checkbox] { accent-color:var(--accent); width:15px; height:15px; flex-shrink:0; pointer-events:none; }
     .brand-filter-sep { height:1px; background:var(--border); margin:6px 0; }
     .brand-filter-all { font-weight:600; }
-    .brand-dot-sm { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .brand-dot-sm     { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
     .bar-range-btn { padding:3px 10px; font-family:var(--mono); font-size:10px; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all .15s; }
-    .bar-range-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .bar-range-btn.active { border-color:var(--accent); background:rgba(79,142,247,0.15); color:var(--accent); }
+    .bar-range-btn:hover  { border-color:var(--accent); color:var(--accent); }
+    .bar-range-btn.active { border-color:var(--accent); background:rgba(79,142,247,.15); color:var(--accent); }
 
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .row-2, .row-3 { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 768px) {
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
+    /* period badge reusable */
+    .period-badge { font-family:var(--mono); font-size:10px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:2px 8px; }
+
+    @media (max-width:1024px) { .stats-grid{grid-template-columns:repeat(2,1fr)} .row-2,.row-3{grid-template-columns:1fr} }
+    @media (max-width:768px)  { .stats-grid{grid-template-columns:1fr 1fr} }
   </style>
 </head>
 <body>
 
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
-
-<!-- ── SIDEBAR ── -->
 <aside class="sidebar" id="sidebar"></aside>
 
-<!-- ── MAIN ── -->
 <main class="main">
   <div class="topbar" id="mainTopbar">
     <div>
@@ -299,20 +111,18 @@
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
     <div class="topbar-right">
-      <!-- Multi-Brand Filter -->
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;letter-spacing:0.5px">🏷 Brand:</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">🏷 Brand:</span>
         <div id="brandFilterWrap" class="brand-filter-wrap" style="min-width:160px;max-width:220px"></div>
       </div>
       <div class="date-chip" id="dateChip">—</div>
-      <!-- Date filter -->
       <input type="date" id="dashDateFrom" style="display:none"/>
       <input type="date" id="dashDateTo"   style="display:none"/>
       <div style="position:relative">
         <button class="btn btn-ghost btn-sm" id="btnDashDate" onclick="dashDf.toggle()" style="white-space:nowrap;min-width:130px;font-family:var(--mono);font-size:11px">
           📅 <span id="dashDateLabel">Bulan Ini</span>
         </button>
-        <div id="dashDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
+        <div id="dashDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
           <div style="margin-bottom:6px">
             <button class="date-quick-btn" id="dashBtnAll" onclick="dashDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
@@ -364,7 +174,7 @@
       </div>
       <div class="stat-card orange" style="animation-delay:.15s">
         <div class="stat-icon">🛒</div>
-        <div class="stat-label">Pembelian Bulan Ini</div>
+        <div class="stat-label" id="statBeliLabel">Pembelian Bulan Ini</div>
         <div class="stat-value orange" id="statBeli">—</div>
         <div class="stat-sub" id="statBeliSub">transaksi</div>
       </div>
@@ -383,7 +193,7 @@
           <span class="card-title" id="barChartTitle">Pengeluaran 6 Bulan Terakhir</span>
           <div style="display:flex;align-items:center;gap:10px">
             <div style="display:flex;gap:4px">
-              <button id="btnBar6" onclick="setBarRange(6)" class="bar-range-btn active">6 Bln</button>
+              <button id="btnBar6"  onclick="setBarRange(6)"  class="bar-range-btn active">6 Bln</button>
               <button id="btnBar12" onclick="setBarRange(12)" class="bar-range-btn">1 Thn</button>
             </div>
             <a class="card-action" href="#" onclick="event.preventDefault();location.href=buildPembelianUrlBarRange()">Lihat semua →</a>
@@ -391,52 +201,36 @@
         </div>
         <div class="bar-chart">
           <div id="barYAxisLabel" style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;padding-left:2px"></div>
-          <div class="bar-group" id="barGroup" style="position:relative">
-            <!-- Diisi JS -->
-          </div>
+          <div class="bar-group" id="barGroup"></div>
           <div class="bar-labels" id="barLabels"></div>
-          <div id="barTooltip" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--text);pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.4)"></div>
+          <div id="barTooltip" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--text);pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.4)"></div>
         </div>
       </div>
 
       <div class="card" style="animation-delay:.3s">
-        <div class="card-header">
-          <span class="card-title">Aksi Cepat</span>
-        </div>
+        <div class="card-header"><span class="card-title">Aksi Cepat</span></div>
         <div class="quick-actions">
           <a class="qa-btn" id="qa-pembelian" href="pembelian.html?new=1">
             <div class="qa-icon" id="qa-pembelian-icon">🛒</div>
-            <div class="qa-text">
-              <div class="qa-label" id="qa-pembelian-label">Catat Pembelian</div>
-              <div class="qa-sub" id="qa-pembelian-sub">Transaksi baru</div>
-            </div>
+            <div><div class="qa-label" id="qa-pembelian-label">Catat Pembelian</div><div class="qa-sub" id="qa-pembelian-sub">Transaksi baru</div></div>
           </a>
           <a class="qa-btn" id="qa-barang" href="barang.html?new=1">
             <div class="qa-icon">📦</div>
-            <div class="qa-text">
-              <div class="qa-label" id="qa-barang-label">Tambah Barang</div>
-              <div class="qa-sub" id="qa-barang-sub">Daftar SKU baru</div>
-            </div>
+            <div><div class="qa-label" id="qa-barang-label">Tambah Barang</div><div class="qa-sub" id="qa-barang-sub">Daftar SKU baru</div></div>
           </a>
           <a class="qa-btn" id="qa-vendor" href="vendor.html?new=1">
             <div class="qa-icon">🏢</div>
-            <div class="qa-text">
-              <div class="qa-label" id="qa-vendor-label">Tambah Vendor</div>
-              <div class="qa-sub" id="qa-vendor-sub">Supplier baru</div>
-            </div>
+            <div><div class="qa-label" id="qa-vendor-label">Tambah Vendor</div><div class="qa-sub" id="qa-vendor-sub">Supplier baru</div></div>
           </a>
           <a class="qa-btn" href="harga.html">
             <div class="qa-icon">📈</div>
-            <div class="qa-text">
-              <div class="qa-label">Cek Harga</div>
-              <div class="qa-sub">Tren & riwayat</div>
-            </div>
+            <div><div class="qa-label">Cek Harga</div><div class="qa-sub">Tren & riwayat</div></div>
           </a>
         </div>
       </div>
     </div>
 
-    <!-- ROW 2: Transaksi Terbaru + Aktivitas -->
+    <!-- ROW 2: Pembelian Terbaru + Aktivitas -->
     <div class="row row-2">
       <div class="card" style="animation-delay:.35s">
         <div class="card-header">
@@ -445,15 +239,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Vendor</th>
-                <th>Brand</th>
-                <th>Total</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Tanggal</th><th>Vendor</th><th>Brand</th><th>Total</th><th>Status</th></tr></thead>
             <tbody id="tabelPembelian">
               <tr><td colspan="5"><div style="display:flex;gap:8px;padding:4px 0">
                 <div class="skeleton" style="height:14px;flex:1"></div>
@@ -467,85 +253,59 @@
       <div class="card" id="activityCard" style="animation-delay:.4s">
         <div class="card-header">
           <span class="card-title">Aktivitas Terbaru</span>
-          <span id="activityEmptyBadge" style="display:none;font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:2px 8px">Belum ada data</span>
+          <span id="activityEmptyBadge" class="period-badge" style="display:none">Belum ada data</span>
         </div>
         <div class="activity-list" id="activityList">
           <div class="activity-item">
             <div class="activity-dot skeleton" style="width:8px;height:8px;border-radius:50%"></div>
-            <div class="activity-body">
-              <div class="skeleton" style="height:12px;width:80%"></div>
-            </div>
+            <div class="activity-body"><div class="skeleton" style="height:12px;width:80%"></div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ROW 3: Top barang dibeli -->
+    <!-- ROW 3: Top Barang -->
     <div class="row">
       <div class="card" style="animation-delay:.45s">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="card-title" id="titleTopBarang">Barang Paling Sering Dibeli</span>
-            <span id="topBarangPeriodBadge" style="font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:2px 8px"></span>
+            <span id="topBarangPeriodBadge" class="period-badge"></span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-          <select id="topBarangSort" onchange="onTopBarangPeriodChange()" class="filter-select" style="font-size:11px;padding:4px 8px">
-            <option value="freq">Frekuensi</option>
-            <option value="spend">Total Belanja</option>
-          </select>
-          <a class="card-action" href="#" onclick="event.preventDefault();location.href=buildPembelianUrl()">Riwayat →</a>
-        </div>
+            <select id="topBarangSort" onchange="onTopBarangPeriodChange()" class="filter-select" style="font-size:11px;padding:4px 8px">
+              <option value="freq">Frekuensi</option>
+              <option value="spend">Total Belanja</option>
+            </select>
+            <a class="card-action" href="#" onclick="event.preventDefault();location.href=buildPembelianUrl()">Riwayat →</a>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Nama Barang</th>
-                <th>Brand</th>
-                <th>Frekuensi Beli</th>
-                <th>Total Qty</th>
-                <th>Harga Total Belanja</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Nama Barang</th><th>Brand</th><th>Frekuensi Beli</th><th>Total Qty</th><th>Harga Total Belanja</th></tr></thead>
             <tbody id="tabelTopBarang">
-              <tr><td colspan="5" class="empty-state">
-                <div class="empty-icon">📊</div>
-                <div class="empty-text">Memuat data...</div>
-              </td></tr>
+              <tr><td colspan="5" class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Memuat data...</div></td></tr>
             </tbody>
           </table>
         </div>
         <div id="topBarangShowMore" style="display:none;padding:10px var(--sp-xl);border-top:1px solid var(--border);text-align:center">
-          <button onclick="toggleTopBarangRows()" id="btnTopBarangToggle" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:12px;font-family:var(--mono);padding:6px 16px;cursor:pointer;transition:all .15s">
-            ↓ Lihat semua (10 baris)
-          </button>
+          <button onclick="toggleTopBarangRows()" id="btnTopBarangToggle" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:12px;font-family:var(--mono);padding:6px 16px;cursor:pointer;transition:all .15s">↓ Lihat semua (10 baris)</button>
         </div>
       </div>
     </div>
 
-    <!-- ROW 4: Top Spend Barang + Kasta Vendor -->
+    <!-- ROW 4: Top Spend + Ranking Vendor -->
     <div class="row row-2" style="margin-bottom:20px">
-
-      <!-- Barang dengan Total Belanja Terbanyak -->
       <div class="card" style="animation-delay:.5s">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="card-title" id="titleTopSpend">Barang — Total Belanja Terbesar</span>
-            <span id="topSpendPeriodBadge" style="font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:2px 8px"></span>
+            <span id="topSpendPeriodBadge" class="period-badge"></span>
           </div>
-          <div></div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Nama Barang</th>
-                <th>Brand</th>
-                <th>Total Qty</th>
-                <th>Total Belanja</th>
-              </tr>
-            </thead>
+            <thead><tr><th>#</th><th>Nama Barang</th><th>Brand</th><th>Total Qty</th><th>Total Belanja</th></tr></thead>
             <tbody id="tabelTopSpend">
               <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Memuat...</td></tr>
             </tbody>
@@ -553,26 +313,16 @@
         </div>
       </div>
 
-      <!-- Kasta Vendor -->
       <div class="card" style="animation-delay:.55s">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="card-title">Ranking Vendor</span>
-            <span id="vendorKastaPeriodBadge" style="font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:2px 8px"></span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
+            <span id="vendorKastaPeriodBadge" class="period-badge"></span>
           </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Vendor</th>
-                <th>Transaksi</th>
-                <th>Total Belanja</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Rank</th><th>Vendor</th><th>Transaksi</th><th>Total Belanja</th></tr></thead>
             <tbody id="tabelVendorKasta">
               <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Memuat...</td></tr>
             </tbody>
@@ -581,12 +331,9 @@
       </div>
     </div>
 
-  </div><!-- /content -->
+  </div>
 </main>
 
-<!-- ============================================================
-     SUPABASE
-============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
@@ -601,44 +348,39 @@
     const { data: { session } } = await window._sb.auth.getSession();
     if (!session) { window.location.href = 'index.html'; return; }
 
-    renderSidebar('dashboard.html', 'Brand aktif', 'onBrandChange()')
+    renderSidebar('dashboard.html', 'Brand aktif', 'onBrandChange()');
 
     const user = session.user;
     const name = user.user_metadata?.full_name || user.email.split('@')[0];
     document.getElementById('userName').textContent = name;
     document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+
     const role = await getUserRole(); applyRoleUI(role);
     if (role !== 'admin') {
-      const qa = document.getElementById('qa-pembelian');
-      if (qa) qa.href = 'pembelian.html';
-      document.getElementById('qa-pembelian-icon').textContent  = '🛒';
-      document.getElementById('qa-pembelian-label').textContent = 'Lihat Pembelian';
-      document.getElementById('qa-pembelian-sub').textContent   = 'Riwayat transaksi';
-
-      const qab = document.getElementById('qa-barang');
-      if (qab) qab.href = 'barang.html';
-      document.getElementById('qa-barang-label').textContent = 'Lihat Barang';
-      document.getElementById('qa-barang-sub').textContent   = 'Daftar SKU';
-
-      const qav = document.getElementById('qa-vendor');
-      if (qav) qav.href = 'vendor.html';
-      document.getElementById('qa-vendor-label').textContent = 'Lihat Vendor';
-      document.getElementById('qa-vendor-sub').textContent   = 'Daftar supplier';
+      const setEl = (id, prop, val) => { const el = document.getElementById(id); if (el) el[prop] = val; };
+      document.getElementById('qa-pembelian').href = 'pembelian.html';
+      setEl('qa-pembelian-icon',  'textContent', '🛒');
+      setEl('qa-pembelian-label', 'textContent', 'Lihat Pembelian');
+      setEl('qa-pembelian-sub',   'textContent', 'Riwayat transaksi');
+      document.getElementById('qa-barang').href = 'barang.html';
+      setEl('qa-barang-label', 'textContent', 'Lihat Barang');
+      setEl('qa-barang-sub',   'textContent', 'Daftar SKU');
+      document.getElementById('qa-vendor').href = 'vendor.html';
+      setEl('qa-vendor-label', 'textContent', 'Lihat Vendor');
+      setEl('qa-vendor-sub',   'textContent', 'Daftar supplier');
     }
+
     await loadPPNRate();
     window._sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') window.location.href = 'index.html'; });
-
     await loadBrands();
     await loadDashboard();
   })();
 
-  /* ────────────────────────────────────────────────────
-     LOAD BRANDS — Multi-select dropdown
-  ──────────────────────────────────────────────────── */
+  /* ── BRANDS ── */
   async function loadBrands() {
-    window.brandMap = {};
-    window._selectedBrands = []; // kosong = semua brand
     const COLORS = ['#4f8ef7','#38d9a9','#f7924f','#a78bfa','#f472b6','#facc15','#34d399','#fb923c'];
+    window.brandMap = {};
+    window._selectedBrands = [];
     try {
       const { data: brands } = await window._sb.from('brands').select('*').order('nama');
       (brands || []).forEach((b, i) => {
@@ -646,18 +388,13 @@
         b._color = b.warna || COLORS[i % COLORS.length];
       });
       window._allBrandsData = brands || [];
-
-      // Coba restore saved multi-brand
       try {
         const saved = JSON.parse(localStorage.getItem('activeBrands') || '[]');
         if (Array.isArray(saved) && saved.length) window._selectedBrands = saved;
       } catch(e) {}
-
       buildBrandDropdown(brands || []);
       updateBrandFilterUI();
-    } catch(e) {
-      console.warn('Gagal load brands:', e);
-    }
+    } catch(e) { console.warn('Gagal load brands:', e); }
   }
 
   function buildBrandDropdown(brands) {
@@ -671,8 +408,7 @@
       </button>
       <div class="brand-filter-dropdown" id="brandFilterDropdown">
         <div class="brand-filter-option brand-filter-all" onclick="selectAllBrands()">
-          <input type="checkbox" id="chkAllBrands" checked/>
-          <span>Semua Brand</span>
+          <input type="checkbox" id="chkAllBrands" checked/><span>Semua Brand</span>
         </div>
         <div class="brand-filter-sep"></div>
         ${brands.map(b => `
@@ -681,7 +417,7 @@
             <div class="brand-dot-sm" style="background:${b._color}"></div>
             <span>${b.nama}</span>
           </div>`).join('')}
-        ${brands.length === 0 ? '<div style="font-size:12px;color:var(--muted);padding:4px 10px">Belum ada brand</div>' : ''}
+        ${!brands.length ? '<div style="font-size:12px;color:var(--muted);padding:4px 10px">Belum ada brand</div>' : ''}
       </div>`;
   }
 
@@ -692,20 +428,12 @@
     const rect = btn.getBoundingClientRect();
     if (!dd.classList.contains('open')) {
       const ddW = Math.max(rect.width, 200);
-      /* Posisi horizontal: right-align ke tepi kanan tombol */
-      const rightEdge = window.innerWidth - rect.right;
-      dd.style.right  = rightEdge + 'px';
+      dd.style.right  = (window.innerWidth - rect.right) + 'px';
       dd.style.left   = 'auto';
       dd.style.width  = ddW + 'px';
-      /* Posisi vertikal: di bawah tombol, flip ke atas jika tidak cukup ruang */
       const spaceBelow = window.innerHeight - rect.bottom - 8;
-      if (spaceBelow < 200) {
-        dd.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
-        dd.style.top    = 'auto';
-      } else {
-        dd.style.top    = (rect.bottom + 6) + 'px';
-        dd.style.bottom = 'auto';
-      }
+      if (spaceBelow < 200) { dd.style.bottom = (window.innerHeight - rect.top + 6) + 'px'; dd.style.top = 'auto'; }
+      else                  { dd.style.top = (rect.bottom + 6) + 'px'; dd.style.bottom = 'auto'; }
     }
     dd.classList.toggle('open');
   }
@@ -715,635 +443,39 @@
     const idx = window._selectedBrands.indexOf(brandId);
     if (idx === -1) window._selectedBrands.push(brandId);
     else window._selectedBrands.splice(idx, 1);
-    updateBrandFilterUI();
-    onBrandChange();
+    updateBrandFilterUI(); onBrandChange();
   }
 
-  function selectAllBrands() {
-    window._selectedBrands = [];
-    updateBrandFilterUI();
-    onBrandChange();
-  }
+  function selectAllBrands() { window._selectedBrands = []; updateBrandFilterUI(); onBrandChange(); }
 
   function updateBrandFilterUI() {
-    const sel   = window._selectedBrands;
-    const isAll = sel.length === 0;
-    const allChk  = document.getElementById('chkAllBrands');
+    const sel = window._selectedBrands, isAll = sel.length === 0;
+    const allChk = document.getElementById('chkAllBrands');
     const filterBtn = document.getElementById('brandFilterBtn');
-    const label   = document.getElementById('brandFilterLabel');
+    const label = document.getElementById('brandFilterLabel');
     const countEl = document.getElementById('brandFilterCount');
 
-    // Update checkboxes
-    document.querySelectorAll('.chk-brand').forEach(c => {
-      c.checked = !isAll && sel.includes(c.dataset.id);
-    });
+    document.querySelectorAll('.chk-brand').forEach(c => { c.checked = !isAll && sel.includes(c.dataset.id); });
     document.querySelectorAll('.brand-filter-option[data-brand-id]').forEach(el => {
       el.classList.toggle('selected', sel.includes(el.dataset.brandId));
     });
     if (allChk) allChk.checked = isAll;
 
-    // Update button label
     if (isAll) {
-      label.textContent = 'Semua Brand';
-      countEl.style.display = 'none';
-      filterBtn.classList.remove('has-selection');
+      label.textContent = 'Semua Brand'; countEl.style.display = 'none'; filterBtn.classList.remove('has-selection');
     } else if (sel.length === 1) {
-      label.textContent = window.brandMap[sel[0]] || sel[0];
-      countEl.style.display = 'none';
-      filterBtn.classList.add('has-selection');
+      label.textContent = window.brandMap[sel[0]] || sel[0]; countEl.style.display = 'none'; filterBtn.classList.add('has-selection');
     } else {
-      label.textContent = `${sel.length} Brand dipilih`;
-      countEl.textContent = sel.length;
-      countEl.style.display = '';
-      filterBtn.classList.add('has-selection');
+      label.textContent = `${sel.length} Brand dipilih`; countEl.textContent = sel.length; countEl.style.display = ''; filterBtn.classList.add('has-selection');
     }
-
-    // Persist
     localStorage.setItem('activeBrands', JSON.stringify(sel));
-    // Backward compat untuk halaman lain
-    if (sel.length === 1) localStorage.setItem('activeBrand', sel[0]);
-    else localStorage.setItem('activeBrand', 'all');
+    localStorage.setItem('activeBrand', sel.length === 1 ? sel[0] : 'all');
   }
 
-  // Close dropdown on outside click
   document.addEventListener('mousedown', e => {
-    const dd = document.getElementById('brandFilterDropdown');
-    const btn = document.getElementById('brandFilterBtn');
-    if (dd && dd.classList.contains('open') && !dd.contains(e.target) && btn && !btn.contains(e.target)) {
-      dd.classList.remove('open');
-    }
+    const dd = document.getElementById('brandFilterDropdown'), btn = document.getElementById('brandFilterBtn');
+    if (dd?.classList.contains('open') && !dd.contains(e.target) && !btn?.contains(e.target)) dd.classList.remove('open');
   });
-
-  /* ────────────────────────────────────────────────────
-     LOAD DASHBOARD DATA
-  ──────────────────────────────────────────────────── */
-  async function loadDashboard() {
-    const selectedBrands = getCurrentBrand(); // array, kosong = semua
-    const isAll = selectedBrands.length === 0;
-    const now       = new Date();
-    /* Use custom date range if set, otherwise default to this month */
-    const fromVal = document.getElementById('dashDateFrom').value;
-    const toVal   = document.getElementById('dashDateTo').value;
-    const thisMonthStr = fromVal || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const nextMonthStr = toVal
-      ? new Date(new Date(toVal).getTime() + 86400000).toISOString().split('T')[0]
-      : new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
-
-    /* Update stat card label */
-    const dateLabel = document.getElementById('dashDateLabel').textContent;
-    document.getElementById('statBeliSub').textContent = dateLabel;
-    document.getElementById('statBeli').closest('.stat-card').querySelector('.stat-label').textContent =
-      `Pembelian · ${dateLabel}`;
-
-    /* Label brand di page-sub */
-    let brandLabel;
-    if (isAll) brandLabel = 'Semua Brand';
-    else if (selectedBrands.length === 1) brandLabel = window.brandMap[selectedBrands[0]] || selectedBrands[0];
-    else brandLabel = `${selectedBrands.length} Brand dipilih`;
-    document.getElementById('activeBrandLabel').textContent = brandLabel;
-
-    /* Load vendor map once for the whole dashboard */
-    try {
-      const { data: vRows } = await window._sb.from('vendor').select('id, nama');
-      window.vendorMap = {};
-      (vRows || []).forEach(v => { window.vendorMap[v.id] = v.nama; });
-    } catch(e) { window.vendorMap = {}; }
-
-    /* Load satuan barang once */
-    try {
-      const { data: bRows } = await window._sb.from('barang').select('id, satuan');
-      window.barangSatuanMap = {};
-      (bRows || []).forEach(b => { if (b.satuan) window.barangSatuanMap[b.id] = b.satuan; });
-    } catch(e) { window.barangSatuanMap = {}; }
-
-    /* Helper filter row berdasarkan multi-brand */
-    const matchBrand = (rowBrandId) => isAll || selectedBrands.includes(rowBrandId);
-
-    /* ── 1. Hitung total barang ── */
-    try {
-      let barangCount;
-      if (!isAll) {
-        // Ambil barang_ids yang terdaftar di brand-brand yang dipilih (distinct)
-        const { data: bb } = await window._sb
-          .from('barang_brands')
-          .select('barang_id')
-          .in('brand_id', selectedBrands);
-        const uniqueIds = new Set((bb || []).map(r => r.barang_id));
-        barangCount = uniqueIds.size;
-      } else {
-        const { count } = await window._sb
-          .from('barang')
-          .select('*', { count: 'exact', head: true });
-        barangCount = count;
-      }
-      animateCount('statBarang', barangCount || 0);
-    } catch(e) { document.getElementById('statBarang').textContent = '—'; }
-
-    /* ── 2. Hitung total vendor aktif ── */
-    try {
-      let vendorCount;
-      if (!isAll) {
-        const { data: vb } = await window._sb
-          .from('vendor_brands')
-          .select('vendor_id')
-          .in('brand_id', selectedBrands);
-        const uniqueIds = new Set((vb || []).map(r => r.vendor_id));
-        vendorCount = uniqueIds.size;
-      } else {
-        const { count } = await window._sb
-          .from('vendor')
-          .select('*', { count: 'exact', head: true })
-          .eq('aktif', true);
-        vendorCount = count;
-      }
-      animateCount('statVendor', vendorCount || 0);
-    } catch(e) { document.getElementById('statVendor').textContent = '—'; }
-
-    /* ── 3. Pembelian bulan ini ── */
-    try {
-      const { data: beliRows } = await window._sb
-        .from('riwayat_beli')
-        .select('brand_id, total')
-        .gte('tanggal', thisMonthStr)
-        .lt('tanggal', nextMonthStr);
-
-      const filtered = (beliRows || []).filter(r => matchBrand(r.brand_id));
-      const totalNilai = filtered.reduce((s, r) => s + (r.total || 0), 0);
-
-      animateCount('statBeli', filtered.length);
-      document.getElementById('statTotal').textContent = formatRp(totalNilai);
-    } catch(e) {
-      document.getElementById('statBeli').textContent = '—';
-      document.getElementById('statTotal').textContent = '—';
-    }
-
-    /* ── 4. Bar chart 6 bulan ── */
-    loadBarChart(selectedBrands);
-
-    /* ── 5. Tabel pembelian terbaru ── */
-    loadRecentPurchases(selectedBrands);
-
-    /* ── 6. Top barang ── */
-    loadTopBarang(selectedBrands);
-
-    /* ── 7. Top spend barang ── */
-    loadTopSpend(selectedBrands);
-
-    /* ── 8. Kasta vendor ── */
-    loadVendorKasta(selectedBrands);
-
-    /* ── 9. Aktivitas ── */
-    loadActivity(selectedBrands);
-  }
-
-  /* ── BAR CHART ── */
-  window._barRange = 6;
-
-  function setBarRange(n) {
-    window._barRange = n;
-    document.getElementById('barChartTitle').textContent = `Pengeluaran ${n === 6 ? '6 Bulan' : '1 Tahun'} Terakhir`;
-    document.getElementById('btnBar6').classList.toggle('active', n === 6);
-    document.getElementById('btnBar12').classList.toggle('active', n === 12);
-    loadBarChart(getCurrentBrand());
-  }
-
-  async function loadBarChart(selectedBrands) {
-    const isAll = !selectedBrands || selectedBrands.length === 0;
-    const n      = window._barRange || 6;
-    const months = [];
-    const values = [];
-    const now    = new Date();
-
-    for (let i = n - 1; i >= 0; i--) {
-      const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-      const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString().split('T')[0];
-      months.push(d.toLocaleDateString('id-ID', { month: 'short', year: n > 6 ? '2-digit' : undefined }));
-      try {
-        const { data: rows } = await window._sb
-          .from('riwayat_beli')
-          .select('brand_id, total')
-          .gte('tanggal', start)
-          .lt('tanggal', end);
-        let total = 0;
-        (rows || []).forEach(r => {
-          if (!isAll && !selectedBrands.includes(r.brand_id)) return;
-          total += (r.total || 0);
-        });
-        values.push(total);
-      } catch { values.push(0); }
-    }
-
-    const maxVal  = Math.max(...values, 1);
-    const barGroup  = document.getElementById('barGroup');
-    const barLabels = document.getElementById('barLabels');
-    const tooltip   = document.getElementById('barTooltip');
-    barGroup.innerHTML  = '';
-    barLabels.innerHTML = '';
-
-    // Y-axis hint
-    const yLabel = document.getElementById('barYAxisLabel');
-    if (yLabel) yLabel.textContent = 'max: ' + formatRp(maxVal);
-
-    values.forEach((v, i) => {
-      // skala: min 3% untuk nilai > 0 agar tetap visible, 0 jika memang 0
-      const pct   = v === 0 ? 0 : Math.max(3, Math.round((v / maxVal) * 100));
-      const isCur = i === n - 1;
-
-      const col = document.createElement('div');
-      col.className = 'bar-col';
-
-      const bar = document.createElement('div');
-      bar.className = 'bar' + (isCur ? ' current' : '');
-      bar.style.height = '0px';
-
-      // Tooltip on hover
-      bar.addEventListener('mouseenter', (e) => {
-        tooltip.style.display = 'block';
-        tooltip.textContent   = `${months[i]}: ${formatRp(v)}`;
-      });
-      bar.addEventListener('mousemove', (e) => {
-        tooltip.style.left = (e.clientX + 12) + 'px';
-        tooltip.style.top  = (e.clientY - 30) + 'px';
-      });
-      bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-
-      col.appendChild(bar);
-      barGroup.appendChild(col);
-
-      setTimeout(() => { bar.style.height = pct + '%'; }, 80 + i * 40);
-
-      const lbl = document.createElement('div');
-      lbl.className = 'bar-label';
-      lbl.textContent = months[i];
-      barLabels.appendChild(lbl);
-    });
-  }
-
-  /* ── PEMBELIAN TERBARU ── */
-  async function loadRecentPurchases(selectedBrands) {
-    const isAll = !selectedBrands || selectedBrands.length === 0;
-    const tbody   = document.getElementById('tabelPembelian');
-    const fromVal = document.getElementById('dashDateFrom').value;
-    const toVal   = document.getElementById('dashDateTo').value;
-    try {
-      let q = window._sb
-        .from('riwayat_beli')
-        .select('id, tanggal, vendor_id, brand_id, total, status')
-        .order('tanggal', { ascending: false })
-        .limit(50);
-      if (fromVal) q = q.gte('tanggal', fromVal);
-      if (toVal)   q = q.lte('tanggal', toVal);
-      const { data: rows } = await q;
-
-      const filtered = (rows || [])
-        .filter(r => isAll || selectedBrands.includes(r.brand_id))
-        .slice(0, 6);
-
-      if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="5">
-          <div class="empty-state"><div class="empty-icon">🛒</div>
-          <div class="empty-text">Belum ada data pembelian</div></div></td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(r => {
-        const tgl    = r.tanggal ? new Date(r.tanggal + 'T00:00:00').toLocaleDateString('id-ID') : '—';
-        const vendor = window.vendorMap?.[r.vendor_id] || r.vendor_id || '—';
-        const status = r.status || 'selesai';
-        const badgeClass = { selesai:'badge-green', pending:'badge-orange', batal:'badge-gray' }[status] || 'badge-blue';
-        const isSingle = !isAll && selectedBrands.length === 1;
-        return `<tr>
-          <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
-          <td>${vendor}</td>
-          <td style="display:${isSingle?'none':''}"><span class="badge badge-blue">${window.brandMap?.[r.brand_id] || r.brand_id || '—'}</span></td>
-          <td style="font-family:var(--mono)">${formatRp(r.total || 0)}</td>
-          <td><span class="badge ${badgeClass}">${status}</span></td>
-        </tr>`;
-      }).join('');
-      // Hide/show brand column header
-      const table = tbody.closest('table');
-      const brandTh = table?.querySelector('thead tr th:nth-child(3)');
-      if (brandTh) brandTh.style.display = (!isAll && selectedBrands.length === 1) ? 'none' : '';
-    } catch(e) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);font-size:12px;padding:16px">Gagal memuat data.</td></tr>`;
-    }
-  }
-
-  /* ── TOP BARANG (Frekuensi / Spend) ── */
-  function getPeriodDates(periodVal) {
-    const now = new Date();
-    let start, end;
-    if (periodVal === 'thismonth') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      end   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
-    } else if (periodVal === 'lastmonth') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-      end   = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    } else {
-      const months = parseInt(periodVal);
-      start = new Date(now.getFullYear(), now.getMonth() - months, 1).toISOString().split('T')[0];
-      end   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
-    }
-    return { start, end };
-  }
-
-  function periodLabel(v) {
-    return { thismonth:'Bulan Ini', lastmonth:'Bulan Lalu', '3':'3 Bulan Terakhir', '6':'6 Bulan Terakhir', '12':'1 Tahun Terakhir' }[v] || v;
-  }
-
-  window._topBarangAllRows = [];
-  window._topBarangExpanded = false;
-
-  function toggleTopBarangRows() {
-    window._topBarangExpanded = !window._topBarangExpanded;
-    renderTopBarangRows(getCurrentBrand());
-  }
-
-  function renderTopBarangRows(selectedBrands) {
-    const isAll    = !selectedBrands || selectedBrands.length === 0;
-    const isSingle = !isAll && selectedBrands.length === 1;
-    const tbody    = document.getElementById('tabelTopBarang');
-    const showMoreDiv = document.getElementById('topBarangShowMore');
-    const btnToggle   = document.getElementById('btnTopBarangToggle');
-    const all = window._topBarangAllRows;
-    const expanded = window._topBarangExpanded;
-    const display  = expanded ? all : all.slice(0, 5);
-
-    // Show/hide brand column header
-    const thead = tbody.closest('table').querySelector('thead tr');
-    if (thead) {
-      const brandTh = thead.querySelectorAll('th')[1];
-      if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
-    }
-
-    tbody.innerHTML = display.map(([id, d]) => {
-      const satuan = window.barangSatuanMap?.[id] || '';
-      const qty    = Number.isInteger(d.qty) ? d.qty : parseFloat(d.qty.toFixed(3));
-      return `<tr>
-        <td>${d.nama}</td>
-        <td style="display:${isSingle ? 'none' : ''}"><span class="badge badge-blue">${window.brandMap?.[d.brand] || d.brand || '—'}</span></td>
-        <td><span style="font-family:var(--mono)">${d.freq}×</span></td>
-        <td><span style="font-family:var(--mono)">${qty}${satuan ? ' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>' : ''}</span></td>
-        <td><span style="font-family:var(--mono)">${formatRp(d.totalBelanja)}</span></td>
-      </tr>`;
-    }).join('');
-
-    if (all.length > 5) {
-      showMoreDiv.style.display = '';
-      if (expanded) {
-        btnToggle.textContent = '↑ Tampilkan lebih sedikit';
-      } else {
-        btnToggle.textContent = `↓ Lihat semua (${all.length} baris)`;
-      }
-    } else {
-      showMoreDiv.style.display = 'none';
-    }
-  }
-
-  function onTopBarangPeriodChange() {
-    loadTopBarang(getCurrentBrand());
-  }
-
-  async function loadTopBarang(selectedBrands) {
-  const isAll    = !selectedBrands || selectedBrands.length === 0;
-  const tbody    = document.getElementById('tabelTopBarang');
-  const sortBy   = document.getElementById('topBarangSort')?.value || 'freq';
-  const fromVal  = document.getElementById('dashDateFrom').value;
-  const toVal    = document.getElementById('dashDateTo').value;
-  const label    = document.getElementById('dashDateLabel').textContent;
-  const sortLabel = sortBy === 'freq' ? 'Sering Dibeli' : 'Total Belanja Terbesar';
-  document.getElementById('titleTopBarang').textContent = `Barang Paling ${sortLabel}`;
-  const periodBadge = document.getElementById('topBarangPeriodBadge');
-  if (periodBadge) periodBadge.textContent = label;
-
-  try {
-    let q = window._sb
-      .from('riwayat_beli')
-      .select('brand_id, riwayat_beli_items(barang_id, nama, qty, harga_satuan, brand_id)');
-    if (fromVal) q = q.gte('tanggal', fromVal);
-    if (toVal)   q = q.lte('tanggal', toVal);
-    const { data: beliData } = await q;
-
-      const agg = {};
-      (beliData || []).forEach(tx => {
-        if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
-        (tx.riwayat_beli_items || []).forEach(item => {
-          const bid = item.barang_id;
-          if (!bid) return;
-          if (!agg[bid]) agg[bid] = { freq: 0, qty: 0, totalBelanja: 0, nama: item.nama || bid, brand: item.brand_id || tx.brand_id };
-          agg[bid].freq++;
-          agg[bid].qty += (item.qty || 0);
-          agg[bid].totalBelanja += (item.qty || 0) * (item.harga_satuan || 0);
-        });
-      });
-
-      const sorted = Object.entries(agg)
-        .sort((a, b) => sortBy === 'freq' ? b[1].freq - a[1].freq : b[1].totalBelanja - a[1].totalBelanja)
-        .slice(0, 10);
-
-      if (!sorted.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Belum ada pembelian di periode ini</div></div></td></tr>`;
-        document.getElementById('topBarangShowMore').style.display = 'none';
-        return;
-      }
-
-      window._topBarangAllRows = sorted;
-      window._topBarangExpanded = false;
-      renderTopBarangRows(selectedBrands);
-    } catch(e) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Belum ada data.</td></tr>`;
-    }
-  }
-
-  function onTopSpendChange() {
-    loadTopSpend(getCurrentBrand());
-  }
-
-  async function loadTopSpend(selectedBrands) {
-  const isAll   = !selectedBrands || selectedBrands.length === 0;
-  const isSingle = !isAll && selectedBrands.length === 1;
-  const tbody   = document.getElementById('tabelTopSpend');
-  const fromVal = document.getElementById('dashDateFrom').value;
-  const toVal   = document.getElementById('dashDateTo').value;
-  const label   = document.getElementById('dashDateLabel').textContent;
-  document.getElementById('titleTopSpend').textContent = `Barang — Total Belanja Terbesar`;
-  const periodBadge = document.getElementById('topSpendPeriodBadge');
-  if (periodBadge) periodBadge.textContent = label;
-
-  try {
-    let q = window._sb
-      .from('riwayat_beli')
-      .select('brand_id, riwayat_beli_items(barang_id, nama, qty, harga_satuan, brand_id)');
-    if (fromVal) q = q.gte('tanggal', fromVal);
-    if (toVal)   q = q.lte('tanggal', toVal);
-    const { data: beliData } = await q;
- 
-      const agg = {};
-      (beliData || []).forEach(tx => {
-        if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
-        (tx.riwayat_beli_items || []).forEach(item => {
-          const bid = item.barang_id;
-          if (!bid) return;
-          if (!agg[bid]) agg[bid] = { qty: 0, totalBelanja: 0, nama: item.nama || bid, brand: item.brand_id || tx.brand_id };
-          agg[bid].qty          += (item.qty || 0);
-          agg[bid].totalBelanja += (item.qty || 0) * (item.harga_satuan || 0);
-        });
-      });
-
-      const sorted = Object.entries(agg).sort((a, b) => b[1].totalBelanja - a[1].totalBelanja).slice(0, 10);
-
-      // Hide/show brand column header
-      const table = tbody.closest('table');
-      const brandTh = table?.querySelector('thead tr th:nth-child(3)');
-      if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
-
-      if (!sorted.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Belum ada data</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = sorted.map(([id, d], idx) => {
-        const satuan = window.barangSatuanMap?.[id] || '';
-        const qty    = Number.isInteger(d.qty) ? d.qty : parseFloat(d.qty.toFixed(3));
-        return `<tr>
-          <td><span style="font-family:var(--mono);color:var(--muted)">${idx + 1}</span></td>
-          <td>${d.nama}</td>
-          <td style="display:${isSingle?'none':''}"><span class="badge badge-blue">${window.brandMap?.[d.brand] || d.brand || '—'}</span></td>
-          <td><span style="font-family:var(--mono)">${qty}${satuan ? ' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>' : ''}</span></td>
-          <td><span style="font-family:var(--mono);font-weight:600;color:var(--accent2)">${formatRp(d.totalBelanja)}</span></td>
-        </tr>`;
-      }).join('');
-    } catch(e) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`;
-    }
-  }
-
-  /* ── TOP SPEND BARANG ── */
-
-  /* ── KASTA VENDOR ── */
-  function onVendorKastaChange() {
-    loadVendorKasta(getCurrentBrand());
-  }
-
-async function loadVendorKasta(selectedBrands) {
-  const isAll   = !selectedBrands || selectedBrands.length === 0;
-  const tbody   = document.getElementById('tabelVendorKasta');
-  const fromVal = document.getElementById('dashDateFrom').value;
-  const toVal   = document.getElementById('dashDateTo').value;
-  const label   = document.getElementById('dashDateLabel').textContent;
-  const periodBadge = document.getElementById('vendorKastaPeriodBadge');
-  if (periodBadge) periodBadge.textContent = label;
-
-  try {
-    let q = window._sb
-      .from('riwayat_beli')
-      .select('vendor_id, brand_id, total');
-    if (fromVal) q = q.gte('tanggal', fromVal);
-    if (toVal)   q = q.lte('tanggal', toVal);
-    const { data: rows } = await q;
-
-    const agg = {};
-    (rows || []).forEach(r => {
-      if (!isAll && !selectedBrands.includes(r.brand_id)) return;
-      const vid = r.vendor_id;
-      if (!vid) return;
-      if (!agg[vid]) agg[vid] = { transaksi: 0, total: 0 };
-      agg[vid].transaksi++;
-      agg[vid].total += (r.total || 0);
-    });
-
-    const sorted = Object.entries(agg).sort((a, b) => b[1].total - a[1].total);
-
-    if (!sorted.length) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Belum ada data</td></tr>`;
-      return;
-    }
-
-    const ranks = [
-      { label: '🥇 Utama',    color: '#fbbf24' },
-      { label: '🥈 Menengah', color: 'var(--accent)' },
-      { label: '🥉 Kecil',    color: 'var(--muted)' },
-    ];
-    const n      = sorted.length;
-    const top    = Math.max(1, Math.ceil(n * 0.25));
-    const bottom = Math.max(1, Math.ceil(n * 0.25));
-
-    const rankOf = (i) => {
-      if (i < top)         return ranks[0];
-      if (i >= n - bottom) return ranks[2];
-      return ranks[1];
-    };
-
-    // Ambil 5 teratas per rank
-    const perRank = { 0: [], 1: [], 2: [] };
-    sorted.forEach(([vid, d], i) => {
-      const rIdx = i < top ? 0 : i >= n - bottom ? 2 : 1;
-      if (perRank[rIdx].length < 5) perRank[rIdx].push([vid, d, rIdx]);
-    });
-
-    const display = [...perRank[0], ...perRank[1], ...perRank[2]];
-
-    tbody.innerHTML = display.map(([vid, d, rIdx]) => {
-      const rank = ranks[rIdx];
-      const nama = window.vendorMap?.[vid] || vid;
-      return `<tr>
-        <td><span style="font-size:12px;color:${rank.color};font-weight:600">${rank.label}</span></td>
-        <td>${nama}</td>
-        <td><span style="font-family:var(--mono)">${d.transaksi}×</span></td>
-        <td><span style="font-family:var(--mono);font-weight:600">${formatRp(d.total)}</span></td>
-      </tr>`;
-    }).join('');
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`;
-  }
-}
-  /* ── AKTIVITAS TERBARU ── */
-  async function loadActivity(selectedBrands) {
-    const isAll = !selectedBrands || selectedBrands.length === 0;
-    const list = document.getElementById('activityList');
-    const card = document.getElementById('activityCard');
-    const emptyBadge = document.getElementById('activityEmptyBadge');
-    try {
-      const { data: rows } = await window._sb
-        .from('riwayat_beli')
-        .select('id, tanggal, created_at, vendor_id, brand_id, total, riwayat_beli_items(id)')
-        .order('created_at', { ascending: false })
-        .limit(30);
-
-      const filtered = (rows || [])
-        .filter(r => isAll || selectedBrands.includes(r.brand_id))
-        .slice(0, 5);
-
-      if (!filtered.length) {
-        list.innerHTML = '';
-        list.style.display = 'none';
-        if (emptyBadge) emptyBadge.style.display = '';
-        // Collapse card to minimal height
-        if (card) card.style.minHeight = '0';
-        return;
-      }
-
-      if (emptyBadge) emptyBadge.style.display = 'none';
-      list.style.display = '';
-      if (card) card.style.minHeight = '';
-
-      list.innerHTML = filtered.map(r => {
-        const tgl   = r.tanggal ? new Date(r.tanggal + 'T00:00:00') : new Date();
-        const rel   = relativeTime(r.created_at ? new Date(r.created_at) : tgl);
-        const items = (r.riwayat_beli_items || []).length;
-        const vendorName = window.vendorMap?.[r.vendor_id] || r.vendor_id || 'Vendor';
-        return `<div class="activity-item">
-          <div class="activity-dot" style="background:var(--accent2)"></div>
-          <div class="activity-body">
-            <div class="activity-text">Pembelian dari <strong>${vendorName}</strong> — ${items} item${items>1?'s':''} · ${formatRp(r.total||0)}</div>
-            <div class="activity-time">${rel}</div>
-          </div>
-        </div>`;
-      }).join('');
-    } catch(e) {
-      list.innerHTML = '';
-    }
-  }
 
   /* ── HELPERS ── */
   function formatRp(n) {
@@ -1361,130 +493,336 @@ async function loadVendorKasta(selectedBrands) {
   }
 
   function animateCount(id, target) {
-    const el   = document.getElementById(id);
-    const dur  = 600;
-    const step = 16;
-    const steps = dur / step;
-    let current = 0;
-    const inc = target / steps;
+    const el = document.getElementById(id), steps = 600/16;
+    let current = 0; const inc = target / steps;
     const timer = setInterval(() => {
       current = Math.min(current + inc, target);
       el.textContent = Math.round(current).toLocaleString('id-ID');
       if (current >= target) clearInterval(timer);
-    }, step);
+    }, 16);
+  }
+
+  function getDateRange() {
+    return { fromVal: document.getElementById('dashDateFrom').value, toVal: document.getElementById('dashDateTo').value };
+  }
+
+  function getCurrentBrand()   { return window._selectedBrands || []; }
+  function matchesBrand(bid)   { const s = window._selectedBrands || []; return !s.length || s.includes(bid); }
+
+  function buildPembelianUrl(extra = {}) {
+    const brands = getCurrentBrand(), { from: df, to: dt } = dashDf.getRange();
+    const p = new URLSearchParams({ tab:'riwayat' });
+    if (brands.length === 1) p.set('brand', brands[0]);
+    if (df) p.set('dateFrom', df); if (dt) p.set('dateTo', dt);
+    Object.entries(extra).forEach(([k,v]) => { if (v) p.set(k, v); });
+    return 'pembelian.html?' + p;
+  }
+
+  function buildPembelianUrlBarRange() {
+    const n = window._barRange || 6, brands = getCurrentBrand(), now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - (n-1), 1);
+    const p = new URLSearchParams({ tab:'riwayat', dateFrom: from.toISOString().split('T')[0], dateTo: new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0] });
+    if (brands.length === 1) p.set('brand', brands[0]);
+    return 'pembelian.html?' + p;
+  }
+
+  async function onBrandChange() { if (window._loadDashboard) await window._loadDashboard(); }
+
+  /* ── DASHBOARD LOAD ── */
+  async function loadDashboard() {
+    const selectedBrands = getCurrentBrand(), isAll = !selectedBrands.length;
+    const now = new Date(), { fromVal, toVal } = getDateRange();
+    const thisMonthStr = fromVal || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const nextMonthStr = toVal ? new Date(new Date(toVal).getTime()+86400000).toISOString().split('T')[0]
+                               : new Date(now.getFullYear(), now.getMonth()+1, 1).toISOString().split('T')[0];
+    const dateLabel = document.getElementById('dashDateLabel').textContent;
+
+    document.getElementById('statBeliSub').textContent  = dateLabel;
+    document.getElementById('statBeliLabel').textContent = `Pembelian · ${dateLabel}`;
+    document.getElementById('activeBrandLabel').textContent = isAll ? 'Semua Brand'
+      : selectedBrands.length === 1 ? (window.brandMap[selectedBrands[0]] || selectedBrands[0])
+      : `${selectedBrands.length} Brand dipilih`;
+
+    try { const { data: vRows } = await window._sb.from('vendor').select('id,nama'); window.vendorMap = {}; (vRows||[]).forEach(v => window.vendorMap[v.id]=v.nama); } catch(e) { window.vendorMap={}; }
+    try { const { data: bRows } = await window._sb.from('barang').select('id,satuan'); window.barangSatuanMap = {}; (bRows||[]).forEach(b => { if (b.satuan) window.barangSatuanMap[b.id]=b.satuan; }); } catch(e) { window.barangSatuanMap={}; }
+
+    // Stat: barang
+    try {
+      let count;
+      if (!isAll) { const { data: bb } = await window._sb.from('barang_brands').select('barang_id').in('brand_id', selectedBrands); count = new Set((bb||[]).map(r=>r.barang_id)).size; }
+      else        { const { count: c } = await window._sb.from('barang').select('*',{count:'exact',head:true}); count = c; }
+      animateCount('statBarang', count||0);
+    } catch(e) { document.getElementById('statBarang').textContent='—'; }
+
+    // Stat: vendor
+    try {
+      let count;
+      if (!isAll) { const { data: vb } = await window._sb.from('vendor_brands').select('vendor_id').in('brand_id', selectedBrands); count = new Set((vb||[]).map(r=>r.vendor_id)).size; }
+      else        { const { count: c } = await window._sb.from('vendor').select('*',{count:'exact',head:true}).eq('aktif',true); count = c; }
+      animateCount('statVendor', count||0);
+    } catch(e) { document.getElementById('statVendor').textContent='—'; }
+
+    // Stat: pembelian & nilai
+    try {
+      const { data: beliRows } = await window._sb.from('riwayat_beli').select('brand_id,total').gte('tanggal',thisMonthStr).lt('tanggal',nextMonthStr);
+      const filtered = (beliRows||[]).filter(r => isAll || selectedBrands.includes(r.brand_id));
+      animateCount('statBeli', filtered.length);
+      document.getElementById('statTotal').textContent = formatRp(filtered.reduce((s,r)=>s+(r.total||0),0));
+    } catch(e) { document.getElementById('statBeli').textContent='—'; document.getElementById('statTotal').textContent='—'; }
+
+    loadBarChart(selectedBrands);
+    loadRecentPurchases(selectedBrands);
+    loadTopBarang(selectedBrands);
+    loadTopSpend(selectedBrands);
+    loadVendorKasta(selectedBrands);
+    loadActivity(selectedBrands);
+  }
+
+  /* ── BAR CHART ── */
+  window._barRange = 6;
+
+  function setBarRange(n) {
+    window._barRange = n;
+    document.getElementById('barChartTitle').textContent = `Pengeluaran ${n===6?'6 Bulan':'1 Tahun'} Terakhir`;
+    document.getElementById('btnBar6').classList.toggle('active', n===6);
+    document.getElementById('btnBar12').classList.toggle('active', n===12);
+    loadBarChart(getCurrentBrand());
+  }
+
+  async function loadBarChart(selectedBrands) {
+    const isAll = !selectedBrands?.length, n = window._barRange||6, now = new Date();
+    const months=[], values=[];
+    for (let i=n-1; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      months.push(d.toLocaleDateString('id-ID', { month:'short', year: n>6?'2-digit':undefined }));
+      try {
+        const { data: rows } = await window._sb.from('riwayat_beli').select('brand_id,total')
+          .gte('tanggal', new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0])
+          .lt('tanggal',  new Date(d.getFullYear(),d.getMonth()+1,1).toISOString().split('T')[0]);
+        values.push((rows||[]).reduce((s,r)=>{ return (!isAll && !selectedBrands.includes(r.brand_id)) ? s : s+(r.total||0); }, 0));
+      } catch { values.push(0); }
+    }
+    const maxVal = Math.max(...values, 1);
+    const barGroup = document.getElementById('barGroup'), barLabels = document.getElementById('barLabels'), tooltip = document.getElementById('barTooltip');
+    barGroup.innerHTML = barLabels.innerHTML = '';
+    const yLabel = document.getElementById('barYAxisLabel'); if (yLabel) yLabel.textContent = 'max: ' + formatRp(maxVal);
+
+    values.forEach((v, i) => {
+      const pct = v===0 ? 0 : Math.max(3, Math.round((v/maxVal)*100));
+      const col = document.createElement('div'); col.className = 'bar-col';
+      const bar = document.createElement('div'); bar.className = 'bar' + (i===n-1?' current':''); bar.style.height='0px';
+      bar.addEventListener('mouseenter', () => { tooltip.style.display='block'; tooltip.textContent=`${months[i]}: ${formatRp(v)}`; });
+      bar.addEventListener('mousemove',  e  => { tooltip.style.left=(e.clientX+12)+'px'; tooltip.style.top=(e.clientY-30)+'px'; });
+      bar.addEventListener('mouseleave', () => { tooltip.style.display='none'; });
+      col.appendChild(bar); barGroup.appendChild(col);
+      setTimeout(() => { bar.style.height = pct+'%'; }, 80+i*40);
+      const lbl = document.createElement('div'); lbl.className='bar-label'; lbl.textContent=months[i];
+      barLabels.appendChild(lbl);
+    });
+  }
+
+  /* ── PEMBELIAN TERBARU ── */
+  async function loadRecentPurchases(selectedBrands) {
+    const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelPembelian');
+    const { fromVal, toVal } = getDateRange();
+    try {
+      let q = window._sb.from('riwayat_beli').select('id,tanggal,vendor_id,brand_id,total,status').order('tanggal',{ascending:false}).limit(50);
+      if (fromVal) q = q.gte('tanggal', fromVal); if (toVal) q = q.lte('tanggal', toVal);
+      const { data: rows } = await q;
+      const filtered = (rows||[]).filter(r => isAll || selectedBrands.includes(r.brand_id)).slice(0,6);
+      if (!filtered.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-text">Belum ada data pembelian</div></div></td></tr>`; return; }
+      const isSingle = !isAll && selectedBrands.length===1;
+      tbody.innerHTML = filtered.map(r => {
+        const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID') : '—';
+        const status = r.status||'selesai', badgeClass = ({selesai:'badge-green',pending:'badge-orange',batal:'badge-gray'}[status])||'badge-blue';
+        return `<tr>
+          <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
+          <td>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'—'}</td>
+          <td style="display:${isSingle?'none':''}"><span class="badge badge-blue">${window.brandMap?.[r.brand_id]||r.brand_id||'—'}</span></td>
+          <td style="font-family:var(--mono)">${formatRp(r.total||0)}</td>
+          <td><span class="badge ${badgeClass}">${status}</span></td>
+        </tr>`;
+      }).join('');
+      const brandTh = tbody.closest('table')?.querySelector('thead tr th:nth-child(3)');
+      if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--danger);font-size:12px;padding:16px">Gagal memuat data.</td></tr>`; }
+  }
+
+  /* ── TOP BARANG ── */
+  window._topBarangAllRows = []; window._topBarangExpanded = false;
+
+  function toggleTopBarangRows() { window._topBarangExpanded = !window._topBarangExpanded; renderTopBarangRows(getCurrentBrand()); }
+  function onTopBarangPeriodChange() { loadTopBarang(getCurrentBrand()); }
+
+  function renderTopBarangRows(selectedBrands) {
+    const isSingle = selectedBrands?.length === 1;
+    const tbody = document.getElementById('tabelTopBarang'), showMoreDiv = document.getElementById('topBarangShowMore'), btnToggle = document.getElementById('btnTopBarangToggle');
+    const all = window._topBarangAllRows, expanded = window._topBarangExpanded;
+    const display = expanded ? all : all.slice(0,5);
+    const brandTh = tbody.closest('table').querySelector('thead tr th:nth-child(2)');
+    if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
+    tbody.innerHTML = display.map(([id,d]) => {
+      const satuan = window.barangSatuanMap?.[id]||'', qty = Number.isInteger(d.qty) ? d.qty : parseFloat(d.qty.toFixed(3));
+      return `<tr>
+        <td>${d.nama}</td>
+        <td style="display:${isSingle?'none':''}"><span class="badge badge-blue">${window.brandMap?.[d.brand]||d.brand||'—'}</span></td>
+        <td><span style="font-family:var(--mono)">${d.freq}×</span></td>
+        <td><span style="font-family:var(--mono)">${qty}${satuan?' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>':''}</span></td>
+        <td><span style="font-family:var(--mono)">${formatRp(d.totalBelanja)}</span></td>
+      </tr>`;
+    }).join('');
+    if (all.length > 5) { showMoreDiv.style.display=''; btnToggle.textContent = expanded ? '↑ Tampilkan lebih sedikit' : `↓ Lihat semua (${all.length} baris)`; }
+    else showMoreDiv.style.display='none';
+  }
+
+  async function loadTopBarang(selectedBrands) {
+    const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelTopBarang');
+    const { fromVal, toVal } = getDateRange(), sortBy = document.getElementById('topBarangSort')?.value||'freq';
+    const label = document.getElementById('dashDateLabel').textContent;
+    document.getElementById('titleTopBarang').textContent = `Barang Paling ${sortBy==='freq'?'Sering Dibeli':'Total Belanja Terbesar'}`;
+    document.getElementById('topBarangPeriodBadge').textContent = label;
+    try {
+      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)');
+      if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
+      const { data: beliData } = await q;
+      const agg = {};
+      (beliData||[]).forEach(tx => {
+        if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
+        (tx.riwayat_beli_items||[]).forEach(item => {
+          const bid = item.barang_id; if (!bid) return;
+          if (!agg[bid]) agg[bid] = { freq:0, qty:0, totalBelanja:0, nama:item.nama||bid, brand:item.brand_id||tx.brand_id };
+          agg[bid].freq++; agg[bid].qty += item.qty||0; agg[bid].totalBelanja += (item.qty||0)*(item.harga_satuan||0);
+        });
+      });
+      const sorted = Object.entries(agg).sort((a,b) => sortBy==='freq' ? b[1].freq-a[1].freq : b[1].totalBelanja-a[1].totalBelanja).slice(0,10);
+      if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Belum ada pembelian di periode ini</div></div></td></tr>`; document.getElementById('topBarangShowMore').style.display='none'; return; }
+      window._topBarangAllRows = sorted; window._topBarangExpanded = false;
+      renderTopBarangRows(selectedBrands);
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Belum ada data.</td></tr>`; }
+  }
+
+  /* ── TOP SPEND ── */
+  function onTopSpendChange() { loadTopSpend(getCurrentBrand()); }
+
+  async function loadTopSpend(selectedBrands) {
+    const isAll = !selectedBrands?.length, isSingle = !isAll && selectedBrands.length===1;
+    const tbody = document.getElementById('tabelTopSpend'), { fromVal, toVal } = getDateRange();
+    document.getElementById('topSpendPeriodBadge').textContent = document.getElementById('dashDateLabel').textContent;
+    try {
+      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)');
+      if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
+      const { data: beliData } = await q;
+      const agg = {};
+      (beliData||[]).forEach(tx => {
+        if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
+        (tx.riwayat_beli_items||[]).forEach(item => {
+          const bid = item.barang_id; if (!bid) return;
+          if (!agg[bid]) agg[bid] = { qty:0, totalBelanja:0, nama:item.nama||bid, brand:item.brand_id||tx.brand_id };
+          agg[bid].qty += item.qty||0; agg[bid].totalBelanja += (item.qty||0)*(item.harga_satuan||0);
+        });
+      });
+      const sorted = Object.entries(agg).sort((a,b)=>b[1].totalBelanja-a[1].totalBelanja).slice(0,10);
+      const brandTh = tbody.closest('table')?.querySelector('thead tr th:nth-child(3)');
+      if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
+      if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Belum ada data</td></tr>`; return; }
+      tbody.innerHTML = sorted.map(([id,d],idx) => {
+        const satuan=window.barangSatuanMap?.[id]||'', qty=Number.isInteger(d.qty)?d.qty:parseFloat(d.qty.toFixed(3));
+        return `<tr>
+          <td><span style="font-family:var(--mono);color:var(--muted)">${idx+1}</span></td>
+          <td>${d.nama}</td>
+          <td style="display:${isSingle?'none':''}"><span class="badge badge-blue">${window.brandMap?.[d.brand]||d.brand||'—'}</span></td>
+          <td><span style="font-family:var(--mono)">${qty}${satuan?' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>':''}</span></td>
+          <td><span style="font-family:var(--mono);font-weight:600;color:var(--accent2)">${formatRp(d.totalBelanja)}</span></td>
+        </tr>`;
+      }).join('');
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`; }
+  }
+
+  /* ── RANKING VENDOR ── */
+  function onVendorKastaChange() { loadVendorKasta(getCurrentBrand()); }
+
+  async function loadVendorKasta(selectedBrands) {
+    const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelVendorKasta'), { fromVal, toVal } = getDateRange();
+    document.getElementById('vendorKastaPeriodBadge').textContent = document.getElementById('dashDateLabel').textContent;
+    try {
+      let q = window._sb.from('riwayat_beli').select('vendor_id,brand_id,total');
+      if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
+      const { data: rows } = await q;
+      const agg = {};
+      (rows||[]).forEach(r => {
+        if (!isAll && !selectedBrands.includes(r.brand_id)) return;
+        const vid = r.vendor_id; if (!vid) return;
+        if (!agg[vid]) agg[vid]={ transaksi:0, total:0 };
+        agg[vid].transaksi++; agg[vid].total += r.total||0;
+      });
+      const sorted = Object.entries(agg).sort((a,b)=>b[1].total-a[1].total);
+      if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Belum ada data</td></tr>`; return; }
+      const ranks = [{ label:'🥇 Utama',color:'#fbbf24' },{ label:'🥈 Menengah',color:'var(--accent)' },{ label:'🥉 Kecil',color:'var(--muted)' }];
+      const n=sorted.length, top=Math.max(1,Math.ceil(n*.25)), bot=Math.max(1,Math.ceil(n*.25));
+      const perRank={0:[],1:[],2:[]};
+      sorted.forEach(([vid,d],i) => {
+        const rIdx = i<top?0:i>=n-bot?2:1;
+        if (perRank[rIdx].length<5) perRank[rIdx].push([vid,d,rIdx]);
+      });
+      tbody.innerHTML = [...perRank[0],...perRank[1],...perRank[2]].map(([vid,d,rIdx]) => {
+        const rank=ranks[rIdx];
+        return `<tr>
+          <td><span style="font-size:12px;color:${rank.color};font-weight:600">${rank.label}</span></td>
+          <td>${window.vendorMap?.[vid]||vid}</td>
+          <td><span style="font-family:var(--mono)">${d.transaksi}×</span></td>
+          <td><span style="font-family:var(--mono);font-weight:600">${formatRp(d.total)}</span></td>
+        </tr>`;
+      }).join('');
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`; }
+  }
+
+  /* ── AKTIVITAS ── */
+  async function loadActivity(selectedBrands) {
+    const isAll = !selectedBrands?.length, list = document.getElementById('activityList'), card = document.getElementById('activityCard'), emptyBadge = document.getElementById('activityEmptyBadge');
+    try {
+      const { data: rows } = await window._sb.from('riwayat_beli').select('id,tanggal,created_at,vendor_id,brand_id,total,riwayat_beli_items(id)').order('created_at',{ascending:false}).limit(30);
+      const filtered = (rows||[]).filter(r=>isAll||selectedBrands.includes(r.brand_id)).slice(0,5);
+      if (!filtered.length) {
+        list.innerHTML=''; list.style.display='none';
+        if (emptyBadge) emptyBadge.style.display=''; if (card) card.style.minHeight='0'; return;
+      }
+      if (emptyBadge) emptyBadge.style.display='none'; list.style.display=''; if (card) card.style.minHeight='';
+      list.innerHTML = filtered.map(r => {
+        const tgl=r.tanggal?new Date(r.tanggal+'T00:00:00'):new Date();
+        const rel=relativeTime(r.created_at?new Date(r.created_at):tgl), items=(r.riwayat_beli_items||[]).length;
+        return `<div class="activity-item">
+          <div class="activity-dot" style="background:var(--accent2)"></div>
+          <div class="activity-body">
+            <div class="activity-text">Pembelian dari <strong>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'Vendor'}</strong> — ${items} item${items>1?'s':''} · ${formatRp(r.total||0)}</div>
+            <div class="activity-time">${rel}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) { list.innerHTML=''; }
   }
 
   window._loadDashboard = loadDashboard;
-</script>
 
-<script>
-  /* ── DATE ── */
-  document.getElementById('dateChip').textContent =
-    new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  /* ── INIT ── */
+  document.getElementById('dateChip').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  /* ── BRAND SWITCH ── */
-  function getCurrentBrand() {
-    // Kembalikan array brand IDs; kosong = semua brand
-    return window._selectedBrands || [];
-  }
+  async function doLogout() { if (!confirm('Yakin ingin keluar?')) return; await window._sb.auth.signOut(); window.location.href='index.html'; }
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+  function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
-  // Helper: cek apakah row cocok dengan filter brand aktif
-  function matchesBrand(rowBrandId) {
-    const sel = window._selectedBrands || [];
-    return sel.length === 0 || sel.includes(rowBrandId);
-  }
-
-  /* ── Build URL ke pembelian.html dengan filter aktif ── */
-  function buildPembelianUrl(extraParams = {}) {
-    const brands   = getCurrentBrand();
-    const { from: dateFrom, to: dateTo } = dashDf.getRange();
-    const params   = new URLSearchParams({ tab: 'riwayat' });
-    if (brands.length === 1) params.set('brand', brands[0]);
-    if (dateFrom) params.set('dateFrom', dateFrom);
-    if (dateTo)   params.set('dateTo', dateTo);
-    for (const [k, v] of Object.entries(extraParams)) if (v) params.set(k, v);
-    return 'pembelian.html?' + params.toString();
-  }
-
-  /* ── Khusus bar chart: range dari _barRange bulan terakhir ── */
-  function buildPembelianUrlBarRange() {
-    const n      = window._barRange || 6;
-    const brands = getCurrentBrand();
-    const now    = new Date();
-    const from   = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
-    const dateFrom = from.toISOString().split('T')[0];
-    const dateTo   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    const params = new URLSearchParams({ tab: 'riwayat', dateFrom, dateTo });
-    if (brands.length === 1) params.set('brand', brands[0]);
-    return 'pembelian.html?' + params.toString();
-  }
-
-  async function onBrandChange() {
-    if (window._loadDashboard) {
-      await window._loadDashboard();
-    }
-  }
-
-  /* ── LOGOUT ── */
-  async function doLogout() {
-    if (!confirm('Yakin ingin keluar?')) return;
-    await window._sb.auth.signOut();
-    window.location.href = 'index.html';
-  }
-
-  /* ── SIDEBAR MOBILE ── */
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('show');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('overlay').classList.remove('show');
-  }
-
-  /* ── DATE FILTER — menggunakan DateFilter module ── */
   const dashDf = DateFilter.create({
-    pickerEl    : 'dashDatePicker',
-    triggerBtn  : 'btnDashDate',
-    labelEl     : 'dashDateLabel',
-    inputFrom   : 'dashDateFrom',
-    inputTo     : 'dashDateTo',
-    visFrom     : 'dashDateFromVis',
-    visTo       : 'dashDateToVis',
-    quickBtnMap : {
-      'dashBtnAll'       : 'all',
-      'dashBtnToday'     : 'today',
-      'dashBtnYesterday' : 'yesterday',
-      'dashBtn7'         : 7,
-      'dashBtn30'        : 30,
-      'dashBtnThisMonth' : 'thismonth',
-      'dashBtnLastMonth' : 'lastmonth',
-      'dashBtn3Month'    : 90,
-      'dashBtn6Month'    : 180,
-      'dashBtnThisYear'  : 'thisyear',
-      'dashBtnLastYear'  : 'lastyear',
+    pickerEl:'dashDatePicker', triggerBtn:'btnDashDate', labelEl:'dashDateLabel',
+    inputFrom:'dashDateFrom', inputTo:'dashDateTo', visFrom:'dashDateFromVis', visTo:'dashDateToVis',
+    quickBtnMap:{
+      'dashBtnAll':'all','dashBtnToday':'today','dashBtnYesterday':'yesterday',
+      'dashBtn7':7,'dashBtn30':30,'dashBtnThisMonth':'thismonth','dashBtnLastMonth':'lastmonth',
+      'dashBtn3Month':90,'dashBtn6Month':180,'dashBtnThisYear':'thisyear','dashBtnLastYear':'lastyear',
     },
-    default     : 'thismonth',
-    onChange    : (from, to, label) => {
-      if (window._loadDashboard) window._loadDashboard();
-    },
+    default:'thismonth',
+    onChange: () => { if (window._loadDashboard) window._loadDashboard(); },
   });
 
-  /* Expose */
-  window.getCurrentBrand      = getCurrentBrand;
-  window.onBrandChange        = onBrandChange;
-  window.toggleBrandDropdown  = toggleBrandDropdown;
-  window.toggleBrandOption    = toggleBrandOption;
-  window.selectAllBrands      = selectAllBrands;
-  window.doLogout             = doLogout;
-  window.toggleSidebar        = toggleSidebar;
-  window.closeSidebar         = closeSidebar;
-  window.dashDf               = dashDf;
-  window.setBarRange          = setBarRange;
-  window.onTopBarangPeriodChange = onTopBarangPeriodChange;
-  window.onTopSpendChange     = onTopSpendChange;
-  window.onVendorKastaChange  = onVendorKastaChange;
-  window.toggleTopBarangRows  = toggleTopBarangRows;
+  Object.assign(window, { getCurrentBrand, onBrandChange, toggleBrandDropdown, toggleBrandOption, selectAllBrands, doLogout, toggleSidebar, closeSidebar, dashDf, setBarRange, onTopBarangPeriodChange, onTopSpendChange, onVendorKastaChange, toggleTopBarangRows });
 </script>
 </body>
 </html>
