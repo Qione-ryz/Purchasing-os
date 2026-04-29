@@ -133,9 +133,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .welcome-logo p{font-size:13px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
 
 /* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:200;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .modal-overlay.show{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;margin:20px;animation:modalIn .2s ease}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:500px;max-height:85dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 20px 20px;animation:modalIn .2s ease}
 @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}}
 .modal-header{padding:20px 22px 0;display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:16px;font-weight:600}
@@ -194,9 +194,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .barang-search-hint{font-family:var(--mono);font-size:10px;color:var(--muted);padding:4px 14px 2px;flex-shrink:0;min-height:18px;background:var(--surface)}
 
 /* KELOLA BARANG MODAL */
-.item-select-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.item-select-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s}
 .item-select-overlay.show{opacity:1;pointer-events:all}
-.item-select-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(680px,95vw);max-height:82vh;display:flex;flex-direction:column;transform:translateY(16px);transition:transform .2s}
+.item-select-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(680px,95vw);max-height:82dvh;display:flex;flex-direction:column;transform:translateY(16px);transition:transform .2s;margin-bottom:20px}
 .item-select-overlay.show .item-select-modal{transform:translateY(0)}
 .item-select-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .item-select-body{flex:1;overflow-y:auto;padding:14px 22px}
@@ -416,7 +416,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="barang-search-wrap">
     <span class="barang-search-icon">🔍</span>
-    <input type="text" id="searchBarangDrawer" class="barang-search-input" placeholder="Cari nama atau satuan..." autocomplete="off"
+    <input type="text" id="searchBarangDrawer" class="barang-search-input" placeholder="Cari nama atau satuan..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="search"
       oninput="onSearchBarang()" onkeydown="onSearchKeydown(event)"/>
     <button class="barang-search-clear" id="searchClearBtnDrawer" onclick="clearSearchBarang()" title="Hapus">✕</button>
   </div>
@@ -2295,13 +2295,13 @@ async function batalEdit() {
 function openDrawer() {
   document.getElementById('barangDrawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
-  // Simpan posisi scroll sebelum lock — aman di iOS Safari
+  // Tidak auto-focus search — keyboard hanya muncul jika user tap field search sendiri
+  // Lock body scroll
   const scrollY = window.scrollY;
   document.body.dataset.scrollY = scrollY;
   document.body.style.position = 'fixed';
   document.body.style.top = `-${scrollY}px`;
   document.body.style.width = '100%';
-  setTimeout(() => document.getElementById('searchBarangDrawer')?.focus(), 200);
 }
 function closeDrawer() {
   document.getElementById('barangDrawer').classList.remove('open');
