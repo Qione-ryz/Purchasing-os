@@ -820,7 +820,7 @@
   }
 
   function onOpnameInput(el, barangId, val) {
-    opnameDraft[barangId] = val === '' ? null : Number(val);
+    opnameDraft[barangId] = (val === '' || val === null || val === undefined) ? null : Number(val);
     opnameChanged = true;
     document.getElementById('opnameSaveBar').style.display = 'flex';
     document.getElementById('opnameSaveStatus').textContent = '';
@@ -859,14 +859,38 @@
     btn.disabled = true; btn.textContent = 'Menyimpan...';
     try {
       const curr = mk(curYear, curMonth);
-      const ups  = Object.entries(opnameDraft)
-        .filter(function(e) { return e[1] !== null; })
+      const entries = Object.entries(opnameDraft);
+      const ups = entries
+        .filter(function(e) { return e[1] !== null && e[1] !== undefined; })
         .map(function(e)    { return { periode: curr, barang_id: e[0], qty: e[1] }; });
-      if (!ups.length) { showToast('Tidak ada data untuk disimpan.', 'error'); return; }
-      const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,barang_id' });
-      if (error) throw error;
-      if (!stockData[curr]) stockData[curr] = {};
-      ups.forEach(function(u) { stockData[curr][u.barang_id] = u.qty; });
+      const delIds = entries
+        .filter(function(e) { return e[1] === null || e[1] === undefined; })
+        .map(function(e)    { return e[0]; });
+
+      if (!ups.length && !delIds.length) {
+        showToast('Tidak ada data yang diubah untuk disimpan.', 'error'); return;
+      }
+
+      // Upsert nilai yang diisi
+      if (ups.length) {
+        const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,barang_id' });
+        if (error) throw error;
+        if (!stockData[curr]) stockData[curr] = {};
+        ups.forEach(function(u) { stockData[curr][u.barang_id] = u.qty; });
+      }
+
+      // Hapus baris yang dikosongkan
+      if (delIds.length) {
+        const { error: delErr } = await window._sb.from('stock_opname')
+          .delete()
+          .eq('periode', curr)
+          .in('barang_id', delIds);
+        if (delErr) throw delErr;
+        if (stockData[curr]) {
+          delIds.forEach(function(id) { delete stockData[curr][id]; });
+        }
+      }
+
       opnameDraft = {}; opnameChanged = false;
       showToast('✓ Stock opname ' + mlabel(curYear, curMonth) + ' disimpan', 'success');
       renderOpname();
