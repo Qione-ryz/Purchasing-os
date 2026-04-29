@@ -694,9 +694,10 @@ async function supaPatch(table, filterStr, body) {
 let currentBrand = null;   // {id, nama}
 let currentPemesan = null; // {id, kode, brand_id, nama}
 let allBarang = [];        // cache barang dari DB
-let orderItems = [];       // [{barang_id, nama, satuan, harga_estimasi, qty, is_custom}]
+let orderItems = [];       // [{_uid, barang_id, nama, satuan, harga_estimasi, qty, is_custom}]
 let searchTimeout = null;
 let satuanOrderMap = {};   // {barang_id: [{satuan, faktor}]}
+let _itemUidCounter = 0;   // monotonic UID untuk setiap item di keranjang
 
 
 // ═══════════════════════════════════════════════
@@ -1099,6 +1100,7 @@ function toggleBarang(barangId) {
     const defaultSatuanOrder = b.satuan || '';  // default ke satuan dasar
     const defaultFaktor = 1;
     orderItems.push({
+      _uid: ++_itemUidCounter,
       barang_id: b.id,
       nama: b.nama,
       satuan: b.satuan || '',
@@ -1292,22 +1294,36 @@ async function resetKelolaBrg() {
 // BUILD SATUAN DROPDOWN (untuk barang non-custom)
 // ═══════════════════════════════════════════════
 function buildSatuanDropdown(i, it, satuanOrder) {
+  // Versi lama — masih dipakai oleh editOrder (item dari DB belum punya _uid)
   const satuanDasar = it.satuan || '';
   const opts = (it.barang_id && satuanOrderMap[it.barang_id]) || [];
-
-  // Always include satuan dasar as first option
   const allOpts = [
     { satuan: satuanDasar, faktor: 1, isDasar: true },
     ...opts.filter(r => r.satuan !== satuanDasar)
   ];
-
   const options = allOpts.map(r =>
     `<option value="${r.satuan}" ${r.satuan === satuanOrder ? 'selected' : ''}>${r.satuan}</option>`
   ).join('');
-
   const placeholder = satuanOrder ? '' : '<option value="" disabled selected>Pilih satuan</option>';
   const altClass = (satuanOrder && satuanOrder !== satuanDasar) ? ' alt' : '';
   return `<select class="satuan-sel${altClass}" onchange="updateSatuan(${i}, this.value)">
+    ${placeholder}${options}
+  </select>`;
+}
+
+function buildSatuanDropdownByUid(uid, it, satuanOrder) {
+  const satuanDasar = it.satuan || '';
+  const opts = (it.barang_id && satuanOrderMap[it.barang_id]) || [];
+  const allOpts = [
+    { satuan: satuanDasar, faktor: 1, isDasar: true },
+    ...opts.filter(r => r.satuan !== satuanDasar)
+  ];
+  const options = allOpts.map(r =>
+    `<option value="${r.satuan}" ${r.satuan === satuanOrder ? 'selected' : ''}>${r.satuan}</option>`
+  ).join('');
+  const placeholder = satuanOrder ? '' : '<option value="" disabled selected>Pilih satuan</option>';
+  const altClass = (satuanOrder && satuanOrder !== satuanDasar) ? ' alt' : '';
+  return `<select class="satuan-sel${altClass}" onchange="updateSatuanByUid(${uid}, this.value)">
     ${placeholder}${options}
   </select>`;
 }
@@ -1320,6 +1336,7 @@ function addItem(item) {
   if (exist>=0) { orderItems[exist].qty++; }
   else {
     item.qty = item.qty || 1;
+    item._uid = item._uid || ++_itemUidCounter;
     // Auto-set faktor dari satuanOrderMap jika ada
     if (item.barang_id && item.satuan_order && satuanOrderMap[item.barang_id]) {
       const found = satuanOrderMap[item.barang_id].find(r => r.satuan.toLowerCase() === (item.satuan_order||'').toLowerCase());
@@ -1349,6 +1366,7 @@ function renderItems() {
   });
 
   tbody.innerHTML = orderItems.map((it,i) => {
+    const uid = it._uid;
     const satuanOrder = it.satuan_order || it.satuan || '';
     const satuanDb = it.satuan || '';
     const satuanBeda = !it.is_custom && satuanOrder && satuanDb && satuanOrder.toLowerCase() !== satuanDb.toLowerCase();
@@ -1370,8 +1388,8 @@ function renderItems() {
     const satuanOptions = it.is_custom
       ? `<input type="text" value="${satuanOrder}" placeholder="satuan"
            style="width:68px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 6px;outline:none;text-align:center"
-           onchange="updateSatuan(${i}, this.value)"/>`
-      : buildSatuanDropdown(i, it, satuanOrder);
+           onchange="updateSatuanByUid(${uid}, this.value)"/>`
+      : buildSatuanDropdownByUid(uid, it, satuanOrder);
 
     return `
     <tr>
@@ -1386,13 +1404,13 @@ function renderItems() {
       <td style="text-align:left;padding-left:16px">
         <div class="qty-satuan-wrap">
           <input type="number" value="${it.qty}" min="0.1" step="0.1"
-            oninput="debouncedUpdateQty(${i}, this.value)"
-            onchange="debouncedUpdateQty(${i}, this.value)"/>
+            oninput="debouncedUpdateQty(${uid}, this.value)"
+            onchange="debouncedUpdateQty(${uid}, this.value)"/>
           ${satuanOptions}
         </div>
       </td>
       <td style="text-align:right">
-        <button class="btn btn-danger btn-sm btn-icon" onclick="removeItem(${i})" title="Hapus">✕</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeItemByUid(${uid})" title="Hapus">✕</button>
       </td>
     </tr>`;
   }).join('');
@@ -1400,6 +1418,7 @@ function renderItems() {
   // Mobile cards
   if (mobileCard) {
     mobileCard.innerHTML = orderItems.map((it,i) => {
+      const uid = it._uid;
       const satuanOrder = it.satuan_order || it.satuan || '';
       const satuanDb = it.satuan || '';
       const satuanBeda = !it.is_custom && satuanOrder && satuanDb && satuanOrder.toLowerCase() !== satuanDb.toLowerCase();
@@ -1412,8 +1431,8 @@ function renderItems() {
       const satuanControl = it.is_custom
         ? `<input type="text" value="${satuanOrder}" placeholder="satuan"
              style="flex:1;max-width:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;outline:none;text-align:center"
-             onchange="updateSatuan(${i}, this.value)"/>`
-        : buildSatuanDropdown(i, it, satuanOrder);
+             onchange="updateSatuanByUid(${uid}, this.value)"/>`
+        : buildSatuanDropdownByUid(uid, it, satuanOrder);
 
       const konversiTag = satuanBeda
         ? `<span style="font-size:10px;color:var(--accent3);font-family:var(--mono);background:rgba(247,146,79,0.1);border:1px solid rgba(247,146,79,0.2);border-radius:4px;padding:2px 6px">1 ${satuanOrder} = ${faktor} ${satuanDb}</span>`
@@ -1423,15 +1442,15 @@ function renderItems() {
       <div class="item-card-mobile-row">
         <div class="item-card-mobile-name">
           <span>${it.nama}${it.is_custom?'<span class="custom-tag">lainnya</span>':''}</span>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="removeItem(${i})" style="flex-shrink:0">✕</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="removeItemByUid(${uid})" style="flex-shrink:0">✕</button>
         </div>
         <div class="item-card-mobile-harga">${hargaDisplay}${satuanOrder?' / '+satuanOrder:''}</div>
         ${konversiTag ? `<div style="margin-top:5px">${konversiTag}</div>` : ''}
         <div class="item-card-mobile-controls">
           <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">Qty:</span>
           <input type="number" value="${it.qty}" min="0.1" step="0.1"
-            oninput="debouncedUpdateQty(${i}, this.value)"
-            onchange="debouncedUpdateQty(${i}, this.value)"/>
+            oninput="debouncedUpdateQty(${uid}, this.value)"
+            onchange="debouncedUpdateQty(${uid}, this.value)"/>
           ${satuanControl}
         </div>
       </div>`;
@@ -1447,10 +1466,16 @@ function updateQty(i, val) {
   orderItems[i].qty = parseFloat(val) || 1;
   renderSummary();
 }
+// UID-based qty update — dipakai oleh debouncedUpdateQty
+function updateQtyByUid(uid, val) {
+  const it = orderItems.find(x => x._uid === uid);
+  if (!it) return;  // item sudah dihapus saat debounce berjalan — abaikan
+  it.qty = parseFloat(val) || 1;
+  renderSummary();
+}
 function updateSatuan(i, val) {
   const trimVal = val.trim();
   orderItems[i].satuan_order = trimVal;
-  // Auto-lookup faktor dari satuanOrderMap, atau 1 jika satuan dasar
   const barangId = orderItems[i].barang_id;
   const satuanDasar = orderItems[i].satuan || '';
   if (trimVal === satuanDasar) {
@@ -1463,13 +1488,49 @@ function updateSatuan(i, val) {
   }
   renderItems();
 }
+// UID-based satuan update
+function updateSatuanByUid(uid, val) {
+  const it = orderItems.find(x => x._uid === uid);
+  if (!it) return;
+  const trimVal = val.trim();
+  it.satuan_order = trimVal;
+  const satuanDasar = it.satuan || '';
+  if (trimVal === satuanDasar) {
+    it.faktor_konversi = 1;
+  } else if (it.barang_id && satuanOrderMap[it.barang_id]) {
+    const found = satuanOrderMap[it.barang_id].find(r => r.satuan.toLowerCase() === trimVal.toLowerCase());
+    it.faktor_konversi = found ? found.faktor : 1;
+  } else {
+    it.faktor_konversi = 1;
+  }
+  renderItems();
+}
 function updateFaktor(i, val) {
   const f = parseFloat(val);
   orderItems[i].faktor_konversi = (f > 0) ? f : 1;
   renderSummary();
 }
 function removeItem(i) {
+  // Cancel semua debounce timer yang pending untuk item ini
+  const uid = orderItems[i]?._uid;
+  if (uid != null && _qtyUpdateTimers[uid]) {
+    clearTimeout(_qtyUpdateTimers[uid]);
+    delete _qtyUpdateTimers[uid];
+  }
   orderItems.splice(i, 1);
+  renderItems();
+  renderBarangGrid();
+}
+// UID-based remove — dipakai oleh tombol hapus di renderItems
+function removeItemByUid(uid) {
+  // Cancel pending debounce timer untuk UID ini
+  if (_qtyUpdateTimers[uid]) {
+    clearTimeout(_qtyUpdateTimers[uid]);
+    delete _qtyUpdateTimers[uid];
+  }
+  const idx = orderItems.findIndex(x => x._uid === uid);
+  if (idx < 0) return;
+  orderItems.splice(idx, 1);
   renderItems();
   renderBarangGrid();
 }
@@ -2135,6 +2196,7 @@ async function editOrder(orderId, bodyId) {
 
     // Pre-fill orderItems dari data lama
     orderItems = items.map(it => ({
+      _uid: ++_itemUidCounter,
       barang_id: it.barang_id || null,
       nama: it.nama_barang,
       satuan: it.satuan_db || it.satuan || '',
@@ -2277,16 +2339,24 @@ window.addEventListener('resize', _setVhVar);
 window.addEventListener('orientationchange', () => setTimeout(_setVhVar, 100));
 
 // ═══════════════════════════════════════════════
-// DEBOUNCED QTY UPDATE — Fix double-input bug di iOS Safari
-// iOS kadang men-trigger onchange dua kali berturutan saat input number,
-// terutama saat keyboard muncul/turun. Debounce memastikan hanya 1 update yang terjadi.
+// DEBOUNCED QTY UPDATE — Fix stale-index + double-input bug di iOS Safari
+// ─────────────────────────────────────────────
+// Masalah lama:
+//   debouncedUpdateQty(index, val) → setelah removeItem + splice, index sudah
+//   salah (stale). Timer 80ms yang masih pending bisa mengubah item yang
+//   berbeda atau crash karena out-of-bounds.
+//
+// Fix: gunakan UID item (bukan index) sebagai key timer dan sebagai referensi
+//   saat eksekusi. updateQtyByUid() mengabaikan update jika item sudah hilang
+//   dari orderItems (misal sudah dihapus saat debounce berjalan).
+//   removeItemByUid() selalu cancel timer pending sebelum splice.
 // ═══════════════════════════════════════════════
 const _qtyUpdateTimers = {};
-function debouncedUpdateQty(i, val) {
-  if (_qtyUpdateTimers[i]) clearTimeout(_qtyUpdateTimers[i]);
-  _qtyUpdateTimers[i] = setTimeout(() => {
-    delete _qtyUpdateTimers[i];
-    updateQty(i, val);
+function debouncedUpdateQty(uid, val) {
+  if (_qtyUpdateTimers[uid]) clearTimeout(_qtyUpdateTimers[uid]);
+  _qtyUpdateTimers[uid] = setTimeout(() => {
+    delete _qtyUpdateTimers[uid];
+    updateQtyByUid(uid, val);
   }, 80);
 }
 
