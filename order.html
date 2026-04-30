@@ -665,7 +665,17 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
   CREATE POLICY "anon full access" ON pemesan_config FOR ALL USING (true) WITH CHECK (true);
   ────────────────────────────────────────────────────────────────────────
 */
-const _sb = supabase.createClient(SUPA_URL, SUPA_ANON);
+// Fix iOS/iPadOS Safari aggressive caching pada PWA:
+// Supabase JS client menggunakan fetch() secara internal untuk setiap query.
+// Safari (terutama saat mode PWA) meng-cache response GET secara agresif,
+// sehingga data yang dikembalikan bisa stale meskipun sudah di-refresh.
+// Solusi: override fetch global di client agar setiap request selalu
+// menggunakan cache: 'no-store' — memaksa browser mengambil langsung dari server.
+const _sb = supabase.createClient(SUPA_URL, SUPA_ANON, {
+  global: {
+    fetch: (url, options = {}) => fetch(url, { ...options, cache: 'no-store' })
+  }
+});
 
 async function supaGet(table, query='') {
   const params = query ? new URLSearchParams(query) : null;
@@ -682,6 +692,12 @@ async function supaGet(table, query='') {
     const limit = params.get('limit');
     if (limit) q = q.limit(parseInt(limit));
   }
+  // Lapisan kedua anti-cache untuk iOS Safari:
+  // Supabase JS menghasilkan URL REST GET — Safari bisa mencocokkan URL yang sama
+  // dan mengembalikan cached response meskipun createClient sudah di-override.
+  // Menambahkan header custom dengan timestamp memastikan setiap request
+  // dianggap unik oleh browser, sehingga tidak ada response lama yang dipakai.
+  q = q.setHeader('x-cache-bust', Date.now().toString());
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
