@@ -665,15 +665,59 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
   CREATE POLICY "anon full access" ON pemesan_config FOR ALL USING (true) WITH CHECK (true);
   ────────────────────────────────────────────────────────────────────────
 */
-// Fix iOS/iPadOS Safari aggressive caching pada PWA:
-// Supabase JS client menggunakan fetch() secara internal untuk setiap query.
-// Safari (terutama saat mode PWA) meng-cache response GET secara agresif,
-// sehingga data yang dikembalikan bisa stale meskipun sudah di-refresh.
-// Solusi: override fetch global di client agar setiap request selalu
-// menggunakan cache: 'no-store' — memaksa browser mengambil langsung dari server.
+// ── Fix A: Service Worker cleanup ──────────────────────────────────────────
+// Jika pernah ada Service Worker terdaftar dari deploy lama, iOS PWA akan
+// terus memakainya. SW yang "nyangkut" ini mencegat semua request fetch dan
+// bisa mengembalikan data lama dari cache-nya sendiri — mengabaikan semua
+// instruksi 'no-store' yang kita pasang. Cleanup dijalankan sedini mungkin,
+// sebelum Supabase client bahkan dibuat.
+// Service Worker hanya bisa diakses di https:// atau localhost, bukan file://.
+// Membuka file lokal akan menyebabkan SecurityError di konsol. Pengecekan
+// location.protocol mencegah error itu muncul saat testing lokal.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for (let registration of registrations) {
+      registration.unregister();
+      console.log('[PurchaseOS] Service Worker dihapus:', registration.scope);
+    }
+  });
+}
+
+// ── Fix B: Override fetch Supabase dengan header anti-cache lengkap ────────
+// 'cache: no-store' di Fetch API mencegah browser menyimpan response baru.
+// Namun untuk iPad 10 (WebKit entry-level), kita juga perlu mengirim trio
+// header HTTP klasik di setiap REQUEST agar server dan proxy tahu data ini
+// tidak boleh di-cache dari sisi manapun.
+//
+// KUNCI KEAMANAN: cache headers kita taruh SEBELUM spread ...options.headers,
+// sehingga headers bawaan Supabase (apikey, Authorization) yang ada di dalam
+// options.headers di-spread SETELAH milik kita — jika ada key yang sama,
+// milik Supabase yang menang. Ini mencegah error "No API key found in request"
+// yang terjadi jika urutan spread-nya terbalik.
 const _sb = supabase.createClient(SUPA_URL, SUPA_ANON, {
   global: {
-    fetch: (url, options = {}) => fetch(url, { ...options, cache: 'no-store' })
+    fetch: (url, options = {}) => {
+      // options.headers dari Supabase bisa berupa objek Headers (bukan plain object).
+      // Menyebar objek Headers dengan { ...headersObj } tidak menyalin isinya —
+      // sehingga apikey dan Authorization hilang dan Supabase mengembalikan 401.
+      // Object.fromEntries(headers.entries()) mengkonversi keduanya dengan aman.
+      const existingHeaders = options.headers instanceof Headers
+        ? Object.fromEntries(options.headers.entries())
+        : (options.headers || {});
+      return fetch(url, {
+        ...options,
+        cache: 'no-store',
+        headers: {
+          // Cache headers sebagai default (nilai terendah)...
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma':        'no-cache',
+          'Expires':       '0',
+          // ...headers Supabase (apikey, Authorization, Content-Type dll)
+          // di-spread terakhir sehingga selalu menang jika ada konflik.
+          ...existingHeaders,
+        },
+      });
+    }
   }
 });
 
@@ -2448,6 +2492,25 @@ function _setVhVar() {
 _setVhVar();
 window.addEventListener('resize', _setVhVar);
 window.addEventListener('orientationchange', () => setTimeout(_setVhVar, 100));
+
+// ── Fix C: bfcache (Back-Forward Cache) handler — kunci untuk iPad 10 ──────
+// iPad 10 (chip A14, RAM 4GB) jauh lebih agresif "membekukan" tab browser
+// yang tidak aktif dibanding iPad Pro (M-series, 8GB+ RAM). Ketika user
+// berpindah app lalu kembali, browser tidak me-reload halaman — ia me-restore
+// "foto" halaman dari memori tanpa menjalankan ulang fetch apapun. Akibatnya
+// data yang tampil bisa sudah lama (stale) meski user yakin sudah "kembali".
+//
+// Event 'pageshow' adalah satu-satunya cara standar untuk mendeteksi kondisi
+// ini. Jika event.persisted === true, artinya halaman dipulihkan dari bfcache,
+// bukan dari load segar — dan kita paksa reload data order secara manual.
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    console.log('[PurchaseOS] bfcache restore — memuat ulang data order...');
+    if (typeof loadMyOrders === 'function' && typeof currentPemesan !== 'undefined' && currentPemesan) {
+      loadMyOrders();
+    }
+  }
+});
 
 // ═══════════════════════════════════════════════
 // DEBOUNCED QTY UPDATE — Fix stale-index + double-input bug di iOS Safari
