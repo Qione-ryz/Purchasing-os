@@ -736,12 +736,6 @@ async function supaGet(table, query='') {
     const limit = params.get('limit');
     if (limit) q = q.limit(parseInt(limit));
   }
-  // Lapisan kedua anti-cache untuk iOS Safari:
-  // Supabase JS menghasilkan URL REST GET — Safari bisa mencocokkan URL yang sama
-  // dan mengembalikan cached response meskipun createClient sudah di-override.
-  // Menambahkan header custom dengan timestamp memastikan setiap request
-  // dianggap unik oleh browser, sehingga tidak ada response lama yang dipakai.
-  q = q.setHeader('x-cache-bust', Date.now().toString());
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
