@@ -1972,44 +1972,63 @@ async function toggleOrderCard(el, orderId, bodyId) {
         const barangIdsSync = [...new Set(activeItemsForSync.map(it => it.barang_id))];
 
         // Ambil semua competing order_items untuk barang-barang ini
+        // Sertakan brand_id dari orders agar FIFO dipisah per brand
         const { data: allCompetingItems } = await _sb
           .from('order_items')
-          .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, orders!inner(created_at)')
+          .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, orders!inner(created_at, brand_id)')
           .in('barang_id', barangIdsSync)
           .neq('status_item', 'cancelled')
           .eq('is_custom', false);
 
-        // Total qty pembelian (status=selesai) per barang_id
+        // Total qty pembelian (status=selesai) per barang_id + brand_id
+        // Sertakan brand_id dari riwayat_beli agar tidak cross-brand
         const { data: allBeliItems } = await _sb
           .from('riwayat_beli_items')
-          .select('barang_id, qty, riwayat_beli!inner(tanggal, status)')
+          .select('barang_id, qty, riwayat_beli!inner(tanggal, status, brand_id)')
           .in('barang_id', barangIdsSync)
           .eq('riwayat_beli.status', 'selesai');
 
-        // Earliest order per barang (batas tanggal beli minimum)
-        const earliestOrderPerBarang = {};
+        // Earliest order per barang+brand (batas tanggal beli minimum)
+        // Kunci: `${barang_id}::${brand_id}`
+        const earliestOrderPerKey = {};
         (allCompetingItems || []).forEach(ci => {
+          const brandId = ci.orders?.brand_id || '';
+          const key = ci.barang_id + '::' + brandId;
           const t = ci.orders?.created_at || '';
-          if (!earliestOrderPerBarang[ci.barang_id] || t < earliestOrderPerBarang[ci.barang_id])
-            earliestOrderPerBarang[ci.barang_id] = t;
+          if (!earliestOrderPerKey[key] || t < earliestOrderPerKey[key])
+            earliestOrderPerKey[key] = t;
         });
 
-        // Total beli per barang (hanya setelah order pertama masuk)
-        const beliTotalPerBarang = {};
+        // Total beli per barang+brand (hanya setelah order pertama masuk, hanya brand yang sama)
+        const beliTotalPerKey = {};
         (allBeliItems || []).forEach(bi => {
           if (!bi.barang_id || !bi.qty) return;
-          const earliest = earliestOrderPerBarang[bi.barang_id];
+          const brandId = bi.riwayat_beli?.brand_id || '';
+          const key = bi.barang_id + '::' + brandId;
+          const earliest = earliestOrderPerKey[key];
           const beliTgl  = bi.riwayat_beli?.tanggal;
           if (earliest && beliTgl && beliTgl < earliest.substring(0, 10)) return;
-          beliTotalPerBarang[bi.barang_id] = (beliTotalPerBarang[bi.barang_id] || 0) + bi.qty;
+          beliTotalPerKey[key] = (beliTotalPerKey[key] || 0) + bi.qty;
+        });
+
+        // Bangun beliTotalPerBarang untuk cek adaData (union semua brand)
+        const beliTotalPerBarang = {};
+        Object.entries(beliTotalPerKey).forEach(([key, qty]) => {
+          const barangId = key.split('::')[0];
+          beliTotalPerBarang[barangId] = (beliTotalPerBarang[barangId] || 0) + qty;
         });
 
         // FIFO distribution — 2 pass agar item selesai manual tidak double-count stok
+        // Dipisah per kombinasi barang+brand
         const fifoResultMap = {};
-        for (const barangId of barangIdsSync) {
-          let sisaBeli = beliTotalPerBarang[barangId] || 0;
+        const barangBrandKeys = [...new Set(
+          (allCompetingItems || []).map(ci => ci.barang_id + '::' + (ci.orders?.brand_id || ''))
+        )];
+        for (const key of barangBrandKeys) {
+          const [barangId, brandId] = key.split('::');
+          let sisaBeli = beliTotalPerKey[key] || 0;
           const competitors = (allCompetingItems || [])
-            .filter(ci => ci.barang_id === barangId)
+            .filter(ci => ci.barang_id === barangId && (ci.orders?.brand_id || '') === brandId)
             .sort((a, b) => {
               const tA = a.orders?.created_at || '', tB = b.orders?.created_at || '';
               return tA < tB ? -1 : tA > tB ? 1 : 0;
