@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="sidebar.js"></script>
+  <script src="sidebar.js" defer></script>
   <script>document.addEventListener('DOMContentLoaded',()=>{if(localStorage.getItem('appTheme')==='light')document.body.classList.add('light-mode');});</script>
 <style>
 /* ── ORDER MASUK SPECIFIC ── */
@@ -672,6 +672,7 @@ async function supaDelete(table, q) {
 let allOrders   = [];   // raw from DB
 let filtered    = [];   // after filter
 let brands      = {};   // {id: nama}
+let brandColors = {};   // {id: warna}
 let brandsArr   = [];   // [{id, nama, warna}]
 let vendors     = [];
 let currentPage = 1;
@@ -794,13 +795,8 @@ async function init() {
   window._userRole = role;
   window._lastKnownRole = role;  // dipakai sidebar.js saat renderSidebar()
 
-  // Load data & render sidebar terlebih dahulu
-  await Promise.all([loadBrands(), loadVendors()]);
-  await loadAll();
-
-  // initSidebar() memanggil renderSidebar() yang mungkin async-internal
-  // dan bisa memanggil applyRoleUI('user') sebagai default setelah kita selesai.
-  // Karena itu: render sidebar dulu, lalu apply role di akhir.
+  // Render sidebar SEGERA setelah role diketahui — sebelum loadAll()
+  // agar sidebar tidak bergantung pada keberhasilan fetch data utama.
   initSidebar();
 
   // Isi nama user di sidebar
@@ -811,7 +807,25 @@ async function init() {
   if (elName) elName.textContent = name;
   if (elAv)   elAv.textContent   = name[0].toUpperCase();
 
-  // Apply role TERAKHIR, setelah semua komponen (sidebar, table) sudah dirender.
+  // Apply role segera setelah sidebar dirender
+  applyRoleUI(role);
+
+  // Load data utama (brands, vendors, orders)
+  try {
+    await Promise.all([loadBrands(), loadVendors()]);
+    await loadAll();
+  } catch(e) {
+    console.error('[init] loadAll gagal:', e);
+  }
+
+  // Aktifkan push notification realtime order masuk
+  try {
+    await initNotifOrderMasuk();
+  } catch(e) {
+    console.warn('[init] initNotifOrderMasuk gagal:', e);
+  }
+
+  // Apply role sekali lagi untuk elemen-elemen baru yang baru dirender
   window._userRole = role;
   window._lastKnownRole = role;
   applyRoleUI(role);
@@ -821,7 +835,7 @@ async function loadBrands() {
   try {
     const data = await supaGet('brands', 'select=id,nama,warna&order=nama');
     brandsArr = Array.isArray(data) ? data : [];
-    brandsArr.forEach(b => { brands[b.id] = b.nama; });
+    brandsArr.forEach(b => { brands[b.id] = b.nama; brandColors[b.id] = b.warna || '#4f8ef7'; });
     buildBrandDropdown(brandsArr);
   } catch(e) { console.error('loadBrands:', e); }
 }
@@ -1184,6 +1198,17 @@ function applyFilters() {
   renderTable();
 }
 
+// Build brand tag dengan warna dari pengaturan brand
+function _buildBrandTag(brandId, brandNama) {
+  const color = brandColors[brandId] || '#4f8ef7';
+  // Hitung warna background (opacity 15%) dan border (opacity 30%) dari warna brand
+  const hex = color.replace('#','');
+  const r = parseInt(hex.substring(0,2),16);
+  const g = parseInt(hex.substring(2,4),16);
+  const b = parseInt(hex.substring(4,6),16);
+  return `<span class="badge" style="background:rgba(${r},${g},${b},0.15);color:${color};border:1px solid rgba(${r},${g},${b},0.35)">${brandNama}</span>`;
+}
+
 // Build HTML cell progress untuk tabel utama
 function _buildProgressCell(progress) {
   if (!progress) {
@@ -1270,7 +1295,7 @@ function renderTable() {
           <div style="font-family:var(--mono);font-size:12px;color:var(--accent)">${shortId}</div>
           ${o.catatan?`<div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)">📝 ${o.catatan.substring(0,40)}${o.catatan.length>40?'...':''}</div>`:''}
         </td>
-        <td><span class="badge badge-blue">${brandNama}</span></td>
+        <td>${_buildBrandTag(o.brand_id, brandNama)}</td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${o.pemesan?.kode||'—'}</td>
         <td style="font-size:12px;color:var(--muted)">${tgl}</td>
         <td data-prog style="min-width:110px">${progressCell}</td>
@@ -3152,6 +3177,69 @@ window.copyWAMsg           = copyWAMsg;
 window.openWA              = openWA;
 window.copyWAManualMsg     = copyWAManualMsg;
 window.openWAManual        = openWAManual;
+
+// ═══════════════════════════════════════════════
+// PUSH NOTIFICATION — Order Masuk
+// ═══════════════════════════════════════════════
+async function initNotifOrderMasuk() {
+  // Cek apakah browser mendukung notifikasi
+  if (!('Notification' in window)) {
+    console.warn('[Notif] Browser tidak mendukung notifikasi');
+    return;
+  }
+
+  // Minta izin notifikasi ke user (muncul pop-up sekali)
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      console.warn('[Notif] Izin notifikasi ditolak oleh user');
+      return;
+    }
+  }
+
+  if (Notification.permission !== 'granted') return;
+
+  // Cegah duplikat channel jika loadAll() dipanggil ulang
+  await _sb.removeChannel(_sb.channel('order-masuk-notif'));
+
+  // Subscribe ke Supabase Realtime — INSERT di tabel orders
+  _sb.channel('order-masuk-notif')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'orders' },
+      (payload) => {
+        const order  = payload.new;
+        const brand  = brands[order.brand_id] || 'Brand';
+        const pemesan= order.pemesan || order.created_by || 'Tim';
+        const orderId= (order.id || '').substring(0, 8).toUpperCase();
+
+        // Tampilkan browser / HP notification
+        const notif = new Notification('🛒 Order Baru Masuk!', {
+          body: `[${brand}] dari ${pemesan} — ID: ${orderId}`,
+          icon: 'favicon.ico',
+          badge: 'favicon.ico',
+          tag: 'order-masuk-' + order.id,   // cegah duplikat notif
+          requireInteraction: false,
+        });
+
+        // Klik notif → fokus tab browser
+        notif.onclick = () => { window.focus(); notif.close(); };
+
+        // Tampilkan juga toast di dalam aplikasi
+        showToast('success', `🛒 Order baru: [${brand}] dari ${pemesan}`);
+
+        // Reload tabel agar order baru langsung muncul
+        loadAll();
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Notif] Realtime order masuk aktif ✓');
+      } else {
+        console.warn('[Notif] Realtime status:', status);
+      }
+    });
+}
 
 init();
 </script>

@@ -1847,7 +1847,7 @@ function renderSatuanList() {
       <span style="font-size:14px;font-weight:500">${s.nama}</span>
       <div style="display:flex;gap:8px">
         <button onclick="openSatuanModal('${s.id}')" class="btn btn-ghost btn-sm">Edit</button>
-        <button onclick="deleteSatuan('${s.id}','${s.nama}')" class="btn btn-sm" style="color:var(--danger);border-color:rgba(248,113,113,0.3)">Hapus</button>
+        <button onclick="deleteSatuan('${s.id}','${s.nama}')" class="btn btn-danger btn-sm">Hapus</button>
       </div>
     </div>`).join('');
 }
@@ -1919,7 +1919,7 @@ function renderKategoriList() {
       <span style="font-size:14px;font-weight:500">${k.nama}</span>
       <div style="display:flex;gap:8px">
         <button onclick="openKategoriModal('${k.id}')" class="btn btn-ghost btn-sm">Edit</button>
-        <button onclick="deleteKategori('${k.id}','${k.nama}')" class="btn btn-sm" style="color:var(--danger);border-color:rgba(248,113,113,0.3)">Hapus</button>
+        <button onclick="deleteKategori('${k.id}','${k.nama}')" class="btn btn-danger btn-sm">Hapus</button>
       </div>
     </div>`).join('');
 }
@@ -2014,7 +2014,7 @@ async function loadKodeOrder() {
             <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${tgl}</span>
             <button class="btn btn-ghost btn-sm" onclick="copyKode('${p.kode}')" title="Salin kode">📋</button>
             <button class="btn btn-ghost btn-sm" onclick="openKodeModal('${p.id}')">Edit</button>
-            <button class="btn btn-sm" style="color:var(--danger);border-color:rgba(248,113,113,0.3)" onclick="deleteKodeOrder('${p.id}','${p.kode}')">🗑</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteKodeOrder('${p.id}','${p.kode}')">🗑</button>
           </div>
         </div>`;
     }).join('');
