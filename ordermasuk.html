@@ -1285,6 +1285,7 @@ function renderTable() {
       : '';
 
     const tgl = new Date(o.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    const jam = new Date(o.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
     const brandNama = brands[o.brand_id] || o.brand_id || '—';
     const shortId = o.id.substring(0,8).toUpperCase();
     const progressCell = _buildProgressCell(o.progress);
@@ -1297,7 +1298,7 @@ function renderTable() {
         </td>
         <td>${_buildBrandTag(o.brand_id, brandNama)}</td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${o.pemesan?.kode||'—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${tgl}</td>
+        <td style="font-size:12px;color:var(--muted)">${tgl}<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;opacity:0.7">🕐 ${jam}</div></td>
         <td data-prog style="min-width:110px">${progressCell}</td>
         <td id="status-${o.id}">${statusBadge}${cancelledIndicator}</td>
         <td id="aksi-${o.id}" style="text-align:right" onclick="event.stopPropagation()">
@@ -1743,12 +1744,13 @@ async function openDetail(orderId) {
   if (!o) { showToast('error', '✕ Order tidak ditemukan'); return; }
   const brandNama = brands[o.brand_id]||'—';
   const tgl = new Date(o.created_at).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const jam = new Date(o.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 
   _waOrderId = orderId;
   _waBrandId = o.brand_id;
   buildDetailModal._groupByVendor = true; // reset toggle ke default (by vendor) setiap buka detail baru
 
-  document.getElementById('detailTitle').textContent = brandNama + ' · ' + tgl;
+  document.getElementById('detailTitle').innerHTML = brandNama + ' · ' + tgl + ' <span style="font-size:13px;font-weight:400;color:var(--muted);font-family:var(--mono)">🕐 ' + jam + '</span>';
   document.getElementById('detailMeta').textContent = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}`;
   document.getElementById('detailBody').innerHTML    = '<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
   const _mdEl = document.getElementById('modalDetail'); _mdEl.classList.add('show'); _mdEl._orderId = orderId;
