@@ -2005,6 +2005,11 @@ async function toggleOrderCard(el, orderId, bodyId) {
   }
   body.classList.add('open');
   chev.classList.add('open');
+  // Baca dataset SEBELUM innerHTML ditimpa — Safari iOS bisa me-reset dataset
+  // saat innerHTML diubah karena render cycle yang belum selesai. Menyimpan
+  // nilainya ke variabel lokal memastikan data tidak hilang saat loading.
+  const savedOrderStatus = body.dataset.orderStatus || '';
+  const savedCatatan     = body.dataset.catatan     || '';
   body.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:13px">Memuat item...</div>';
   try {
     const items = await supaGet('order_items', `order_id=eq.${orderId}&select=*&order=created_at`);
@@ -2012,8 +2017,7 @@ async function toggleOrderCard(el, orderId, bodyId) {
 
     // ── Sync progress FIFO — skip untuk order arsip dan cancelled ──
     // Order arsip/cancelled tidak perlu FIFO (sudah final, tidak boleh status-nya berubah)
-    const orderBodyStatus = document.getElementById(bodyId)?.dataset?.orderStatus || '';
-    const activeItemsForSync = (_myOrderTab === 'arsip' || _myOrderTab === 'cancelled' || orderBodyStatus === 'cancelled') ? [] : itemsArr.filter(it =>
+    const activeItemsForSync = (_myOrderTab === 'arsip' || _myOrderTab === 'cancelled' || savedOrderStatus === 'cancelled') ? [] : itemsArr.filter(it =>
       !it.is_custom && it.barang_id && (it.status_item || 'pending') !== 'cancelled'
     );
     if (activeItemsForSync.length > 0) {
@@ -2156,8 +2160,7 @@ async function toggleOrderCard(el, orderId, bodyId) {
       } catch(e) { console.warn('FIFO sync failed:', e); }
     }
 
-    const catatan = body.dataset.catatan || '';
-    body.innerHTML = buildOrderItems(itemsArr, catatan);
+    body.innerHTML = buildOrderItems(itemsArr, savedCatatan);
   } catch(e) {
     body.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:13px">Gagal memuat item.</div>';
   }
