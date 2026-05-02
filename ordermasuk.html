@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js" defer></script>
+  <script src="push-setup.js" defer></script>
   <script>document.addEventListener('DOMContentLoaded',()=>{if(localStorage.getItem('appTheme')==='light')document.body.classList.add('light-mode');});</script>
 <style>
 /* ── ORDER MASUK SPECIFIC ── */
@@ -3181,56 +3182,41 @@ window.copyWAManualMsg     = copyWAManualMsg;
 window.openWAManual        = openWAManual;
 
 // ═══════════════════════════════════════════════
-// PUSH NOTIFICATION — Order Masuk
+// PUSH NOTIFICATION — Order Masuk (Web Push)
 // ═══════════════════════════════════════════════
 async function initNotifOrderMasuk() {
-  // Cek apakah browser mendukung notifikasi
-  if (!('Notification' in window)) {
-    console.warn('[Notif] Browser tidak mendukung notifikasi');
-    return;
-  }
-
-  // Minta izin notifikasi ke user (muncul pop-up sekali)
-  if (Notification.permission === 'default') {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
+  // ── 1. Setup Web Push (Service Worker + subscription ke DB) ──
+  await initWebPush(_sb, {
+    onSuccess: () => {
+      console.log('[Notif] Web Push aktif ✓ (muncul meski browser tutup)');
+    },
+    onDenied: () => {
       console.warn('[Notif] Izin notifikasi ditolak oleh user');
-      return;
+      showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
+    },
+    onError: (msg) => {
+      console.warn('[Notif] Web Push tidak tersedia:', msg);
+      // Fallback ke in-tab realtime notification saja
     }
-  }
+  });
 
-  if (Notification.permission !== 'granted') return;
-
-  // Cegah duplikat channel jika loadAll() dipanggil ulang
+  // ── 2. Tetap subscribe Realtime untuk toast & reload tabel ────
+  //    (ini tetap jalan saat tab terbuka, melengkapi Web Push)
   await _sb.removeChannel(_sb.channel('order-masuk-notif'));
 
-  // Subscribe ke Supabase Realtime — INSERT di tabel orders
   _sb.channel('order-masuk-notif')
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'orders' },
       (payload) => {
-        const order  = payload.new;
-        const brand  = brands[order.brand_id] || 'Brand';
-        const pemesan= order.pemesan || order.created_by || 'Tim';
-        const orderId= (order.id || '').substring(0, 8).toUpperCase();
+        const order   = payload.new;
+        const brand   = brands[order.brand_id] || 'Brand';
+        const pemesan = order.pemesan || order.created_by || 'Tim';
 
-        // Tampilkan browser / HP notification
-        const notif = new Notification('🛒 Order Baru Masuk!', {
-          body: `[${brand}] dari ${pemesan} — ID: ${orderId}`,
-          icon: 'favicon.ico',
-          badge: 'favicon.ico',
-          tag: 'order-masuk-' + order.id,   // cegah duplikat notif
-          requireInteraction: false,
-        });
-
-        // Klik notif → fokus tab browser
-        notif.onclick = () => { window.focus(); notif.close(); };
-
-        // Tampilkan juga toast di dalam aplikasi
+        // Toast di dalam app (tetap tampil saat tab terbuka)
         showToast('success', `🛒 Order baru: [${brand}] dari ${pemesan}`);
 
-        // Reload tabel agar order baru langsung muncul
+        // Reload tabel
         loadAll();
       }
     )
