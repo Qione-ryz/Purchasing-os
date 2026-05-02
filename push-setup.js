@@ -9,7 +9,7 @@
 // Generate pakai: npx web-push generate-vapid-keys
 // Simpan private key di Supabase Secrets dengan nama: VAPID_PRIVATE_KEY
 // Simpan juga VAPID_PUBLIC_KEY dan VAPID_SUBJECT di Secrets
-const VAPID_PUBLIC_KEY = 'BEvXzS-b9Jh7SJPq5DVMVn_fuum11A83y2DFygDzOB2n5_kynxhnnuJNtYb0e_BwE-7DggHm6CVX58mqEQQ6ww4';
+const VAPID_PUBLIC_KEY = 'GANTI_DENGAN_VAPID_PUBLIC_KEY_KAMU';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -89,7 +89,9 @@ async function initWebPush(sb, opts = {}) {
 
   try {
     // 1. Register / ambil Service Worker yang sudah ada
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const swPath = location.pathname.replace(/\/[^/]*$/, '/sw.js'); // support subfolder
+    const swScope = location.pathname.replace(/\/[^/]*$/, '/');
+    const registration = await navigator.serviceWorker.register(swPath, { scope: swScope });
     await navigator.serviceWorker.ready;
     console.log('[Push] Service Worker siap ✓');
 
@@ -141,7 +143,7 @@ async function initWebPush(sb, opts = {}) {
  */
 async function disableWebPush(sb) {
   try {
-    const registration  = await navigator.serviceWorker.getRegistration('/');
+    const registration  = await navigator.serviceWorker.getRegistration(location.pathname.replace(/\/[^/]*$/, '/'));
     if (!registration) return;
     const subscription  = await registration.pushManager.getSubscription();
     if (!subscription)  return;
