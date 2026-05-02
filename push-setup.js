@@ -9,7 +9,7 @@
 // Generate pakai: npx web-push generate-vapid-keys
 // Simpan private key di Supabase Secrets dengan nama: VAPID_PRIVATE_KEY
 // Simpan juga VAPID_PUBLIC_KEY dan VAPID_SUBJECT di Secrets
-const VAPID_PUBLIC_KEY = 'GANTI_DENGAN_VAPID_PUBLIC_KEY_KAMU';
+const VAPID_PUBLIC_KEY = 'BEvXzS-b9Jh7SJPq5DVMVn_fuum11A83y2DFygDzOB2n5_kynxhnnuJNtYb0e_BwE-7DggHm6CVX58mqEQQ6ww4';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
