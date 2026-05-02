@@ -56,7 +56,7 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return;
 
   // Buka / fokus ke tab ordermasuk.html
-  const targetUrl = event.notification.data.url || '/ordermasuk.html';
+  const targetUrl = event.notification.data.url || '/Purchasing-os/ordermasuk.html';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
