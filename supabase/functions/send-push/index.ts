@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
       badge: '/favicon.ico',
       tag  : `order-masuk-${record.id}`,
       data : {
-        url    : '/ordermasuk.html',
+        url    : '/Purchasing-os/ordermasuk.html',
         orderId: record.id
       }
     });

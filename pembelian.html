@@ -2165,9 +2165,10 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
           <div class="item-sub">${item.sku} · ${item.satuan} · ${(window.allBrands||[]).find(b=>b.id===item.brand_id)?.nama||item.brand_id||'—'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
-          <input class="item-input" type="number" min="0.01" step="any"
+          <input class="item-input" type="text" inputmode="decimal"
             value="${item.qty}"
-            onchange="updateItemQty(${i}, this.value)"
+            oninput="this.value=this.value.replace(',','.');updateItemQty(${i}, this.value)"
+            onblur="this.value=parseFloat(this.value)||''"
             title="Qty"
             style="width:60px"/>
           <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan || ''}</span>
@@ -2839,9 +2840,10 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
           <div class="item-sub">${[item.sku, item.satuan, brandNama].filter(Boolean).join(' · ')}</div>
         </div>
         <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
-          <input class="item-input" type="number" min="0.01" step="any"
+          <input class="item-input" type="text" inputmode="decimal"
             value="${item.qty}"
-            onchange="editItems[${i}].qty=parseFloat(this.value)||0;updateEditSummary()"
+            oninput="this.value=this.value.replace(',','.');editItems[${i}].qty=parseFloat(this.value)||0;updateEditSummary()"
+            onblur="this.value=parseFloat(this.value)||''"
             style="width:60px" title="Qty"/>
           <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan||''}</span>
         </div>
