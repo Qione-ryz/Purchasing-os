@@ -2185,7 +2185,12 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   function updateItemQty(idx, val) {
     items[idx].qty = parseFloat(val) || 0;
-    renderItems();
+    /* Hanya update subtotal — jangan re-render penuh agar fokus input tidak hilang */
+    const rows = document.querySelectorAll('#itemList .item-row');
+    if (rows[idx]) {
+      const sub = rows[idx].querySelector('.item-subtotal');
+      if (sub) sub.textContent = formatRpShort(items[idx].qty * items[idx].harga_satuan);
+    }
     updateSummary();
   }
 
