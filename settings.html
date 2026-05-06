@@ -75,6 +75,15 @@
 
     @media (max-width:900px) { .settings-grid { grid-template-columns:1fr; } .settings-nav { position:static; display:flex; overflow-x:auto; } .settings-nav-item { white-space:nowrap; border-bottom:none; border-right:1px solid var(--border); } .settings-nav-item:last-child { border-right:none; } .settings-nav-item.active { border-left:none; border-bottom:2px solid var(--accent); } }
     @media (max-width:768px) { .field-row { grid-template-columns:1fr; } }
+
+    /* HAPUS DATA PANEL — komponen berulang */
+    .hapus-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+    .hapus-brand-wrap { flex:1; min-width:160px; }
+    .hapus-brand-wrap label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; display:block; margin-bottom:6px; }
+    .hapus-brand-wrap select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:13px; padding:9px 12px; outline:none; }
+    .hapus-info { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
+    .hapus-reset-warning { font-size:13px; color:var(--muted); padding:12px; background:rgba(248,113,113,0.06); border-radius:8px; border:1px solid rgba(248,113,113,0.2); }
+    .hapus-reset-btns { display:flex; gap:10px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -294,6 +303,9 @@
         </div>
 
         <!-- ═══════════════════════════════ SYSTEM ═══════════════════════════════ -->
+        <!-- TODO: Panel "Sistem" belum diimplementasi.
+             Rencana isi: toggle tema (dark/light), pengaturan PPN, bahasa, dll.
+             Nav item sudah ada di settings-nav → switchPanel('system') -->
         <!-- ═══════════════════════════════ SATUAN ═══════════════════════════════ -->
         <div class="panel" id="panel-satuan">
           <div class="card">
@@ -389,23 +401,6 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header"><div class="card-title">Preferensi Tampilan</div></div>
-            <div class="card-body">
-              <div class="toggle-row">
-                <div><div class="toggle-label">Animasi UI</div><div class="toggle-sub">Matikan jika terasa lambat</div></div>
-                <label class="toggle"><input type="checkbox" id="togAnim" checked onchange="savePref()"/><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-              </div>
-              <div class="toggle-row">
-                <div><div class="toggle-label">Konfirmasi sebelum hapus</div><div class="toggle-sub">Tampilkan dialog konfirmasi saat menghapus data</div></div>
-                <label class="toggle"><input type="checkbox" id="togConfirm" checked onchange="savePref()"/><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-              </div>
-              <div class="toggle-row">
-                <div><div class="toggle-label">Tampilkan ringkasan di topbar</div><div class="toggle-sub">Tampilkan jumlah transaksi hari ini</div></div>
-                <label class="toggle"><input type="checkbox" id="togSummary" checked onchange="savePref()"/><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-              </div>
-            </div>
-          </div>
 
           <div class="card">
             <div class="card-header"><div class="card-title">Informasi Sistem</div></div>
@@ -493,16 +488,16 @@
               </div>
             </div>
             <div class="card-body">
-              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:160px">
-                  <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Pilih Brand</label>
-                  <select id="hapusBarangBrand" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 12px;outline:none">
+              <div class="hapus-row">
+                <div class="hapus-brand-wrap">
+                  <label>Pilih Brand</label>
+                  <select id="hapusBarangBrand">
                     <option value="">— Pilih Brand —</option>
                   </select>
                 </div>
                 <button class="btn btn-danger" onclick="hapusBarangByBrand()" style="white-space:nowrap">🗑 Hapus Barang</button>
               </div>
-              <div id="hapusBarangInfo" style="margin-top:10px;font-size:12px;color:var(--muted);font-family:var(--mono)"></div>
+              <div id="hapusBarangInfo" class="hapus-info"></div>
             </div>
           </div>
 
@@ -515,16 +510,16 @@
               </div>
             </div>
             <div class="card-body">
-              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:160px">
-                  <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Pilih Brand</label>
-                  <select id="hapusVendorBrand" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 12px;outline:none">
+              <div class="hapus-row">
+                <div class="hapus-brand-wrap">
+                  <label>Pilih Brand</label>
+                  <select id="hapusVendorBrand">
                     <option value="">— Pilih Brand —</option>
                   </select>
                 </div>
                 <button class="btn btn-danger" onclick="hapusVendorByBrand()" style="white-space:nowrap">🗑 Hapus Vendor</button>
               </div>
-              <div id="hapusVendorInfo" style="margin-top:10px;font-size:12px;color:var(--muted);font-family:var(--mono)"></div>
+              <div id="hapusVendorInfo" class="hapus-info"></div>
             </div>
           </div>
 
@@ -537,16 +532,16 @@
               </div>
             </div>
             <div class="card-body">
-              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:160px">
-                  <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Pilih Brand</label>
-                  <select id="hapusBelisBrand" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 12px;outline:none">
+              <div class="hapus-row">
+                <div class="hapus-brand-wrap">
+                  <label>Pilih Brand</label>
+                  <select id="hapusBelisBrand">
                     <option value="">— Pilih Brand —</option>
                   </select>
                 </div>
                 <button class="btn btn-danger" onclick="hapusBelisByBrand()" style="white-space:nowrap">🗑 Hapus Pembelian</button>
               </div>
-              <div id="hapusBeliInfo" style="margin-top:10px;font-size:12px;color:var(--muted);font-family:var(--mono)"></div>
+              <div id="hapusBeliInfo" class="hapus-info"></div>
             </div>
           </div>
 
@@ -558,10 +553,10 @@
             </div>
             <div class="card-body">
               <div style="display:flex;flex-direction:column;gap:10px">
-                <div style="font-size:13px;color:var(--muted);padding:12px;background:rgba(248,113,113,0.06);border-radius:8px;border:1px solid rgba(248,113,113,0.2)">
+                <div class="hapus-reset-warning">
                   ⚠ Operasi ini akan menghapus semua data yang dipilih. Brand dan pengguna <strong>tidak</strong> ikut dihapus.
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <div class="hapus-reset-btns">
                   <button class="btn btn-danger btn-sm" onclick="hapusSemua('barang')">Hapus Semua Barang</button>
                   <button class="btn btn-danger btn-sm" onclick="hapusSemua('vendor')">Hapus Semua Vendor</button>
                   <button class="btn btn-danger btn-sm" onclick="hapusSemua('pembelian')">Hapus Semua Pembelian</button>
@@ -753,9 +748,8 @@
   </div>
 </div>
 
-<!-- SUPABASE -->
 <!-- MODAL KODE ORDER -->
-<div class="modal-overlay" id="kodeOrderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:300;align-items:center;justify-content:center">
+<div class="modal-overlay" id="kodeOrderModal">
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
       <span class="modal-title" id="kodeModalTitle">Tambah Kode Order</span>
@@ -788,15 +782,15 @@
   </div>
 </div>
 
+<!-- DEPENDENCIES: urutan load penting — supabase → config → auth → ppn → logger -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
   (async () => {
-    const SUPA_URL = 'https://jpfqysbaygcvlkxcecdo.supabase.co';
-    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg';
-    window._sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+    window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
     /* ── Auth check ── */
     const { data: { session } } = await window._sb.auth.getSession();
@@ -841,7 +835,7 @@
       return;
     }
 
-    loadPref();
+    applyThemeUI(localStorage.getItem('appTheme') || 'dark');
     setInviteLink();
 
     /* ── Load brands ── */
@@ -1469,25 +1463,6 @@
       .catch(()=>showToast('Gagal menyalin','error'));
   }
 
-  /* PREFERENCES */
-  function loadPref() {
-    const pref = JSON.parse(localStorage.getItem('sysPref')||'{}');
-    document.getElementById('togAnim').checked    = pref.anim    !== false;
-    document.getElementById('togConfirm').checked = pref.confirm !== false;
-    document.getElementById('togSummary').checked = pref.summary !== false;
-    /* Apply saved theme */
-    const theme = localStorage.getItem('appTheme') || 'dark';
-    applyThemeUI(theme);
-  }
-  function savePref() {
-    localStorage.setItem('sysPref', JSON.stringify({
-      anim:    document.getElementById('togAnim').checked,
-      confirm: document.getElementById('togConfirm').checked,
-      summary: document.getElementById('togSummary').checked
-    }));
-    showToast('Preferensi disimpan','success');
-  }
-
   /* THEME */
   function setTheme(mode) {
     localStorage.setItem('appTheme', mode);
@@ -1780,7 +1755,7 @@
   window.onToggleAssign=onToggleAssign; window.onModeChange=onModeChange;
   window.loadChecklist=loadChecklist; window.populateSrcBrandSelect=populateSrcBrandSelect;
   window.saveProfile=saveProfile; window.changePassword=changePassword;
-  window.copyInviteLink=copyInviteLink; window.loadPref=loadPref; window.savePref=savePref;
+  window.copyInviteLink=copyInviteLink;
   window.clearLocalCache=clearLocalCache; window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
   window.openCreateUserModal=openCreateUserModal; window.closeCreateUserModal=closeCreateUserModal; window.createUser=createUser;
@@ -2051,11 +2026,11 @@ function openKodeModal(editId) {
     generateKodeAuto();
   }
 
-  ov.style.display = 'flex';
+  ov.classList.add('show');
 }
 
 function closeKodeModal() {
-  document.getElementById('kodeOrderModal').style.display = 'none';
+  document.getElementById('kodeOrderModal').classList.remove('show');
 }
 
 function generateKodeAuto() {

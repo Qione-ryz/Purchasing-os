@@ -8,186 +8,7 @@
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
-  <style>
-    /* MULTI-BRAND CHECKBOXES */
-    .brand-checkbox-grid { display:flex; flex-wrap:wrap; gap:7px; margin-top:4px; padding:10px; background:var(--bg); border:1px solid var(--border); border-radius:8px; min-height:42px; }
-    .brand-none-msg { font-size:11px; color:var(--danger); margin-top:6px; font-family:var(--mono); display:none; }
-
-    /* DETAIL MODAL */
-    .detail-kv { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
-    .detail-kv:last-child { border-bottom:none; }
-    .detail-k { color:var(--muted); min-width:120px; font-family:var(--mono); font-size:12px; }
-    .detail-v { color:var(--text); flex:1; }
-    .price-history-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
-    .price-history-table th { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); padding:7px 10px; border-bottom:1px solid var(--border); text-align:left; }
-    .price-history-table td { padding:8px 10px; border-bottom:1px solid rgba(37,40,48,0.4); }
-    .price-history-table tr:last-child td { border-bottom:none; }
-    .price-history-table tr:hover td { background:rgba(255,255,255,0.03); }
-    .deleted-label { font-size:10px; font-family:var(--mono); color:var(--danger); background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:4px; padding:1px 6px; margin-left:4px; }
-
-    .brand-tags { display:flex; flex-wrap:wrap; gap:4px; }
-    .action-group { display:flex; gap:6px; }
-    th:hover { color:var(--text); }
-    th.sorted { color:var(--accent); }
-
-    /* INTERACTIVE FEEDBACK — price history inline buttons */
-    .ph-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--muted);
-      font-size: 10px;
-      padding: 2px 8px;
-      cursor: pointer;
-      margin-left: 4px;
-      transition: all .15s ease;
-      font-family: var(--mono);
-      user-select: none;
-    }
-    .ph-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(79,142,247,0.08);
-    }
-    .ph-btn:active {
-      transform: scale(0.93);
-      background: rgba(79,142,247,0.15);
-    }
-    .ph-btn-danger {
-      border-color: rgba(248,113,113,0.3);
-      color: var(--danger);
-    }
-    .ph-btn-danger:hover {
-      border-color: var(--danger);
-      color: var(--danger);
-      background: rgba(248,113,113,0.1);
-    }
-    .ph-btn-danger:active {
-      transform: scale(0.93);
-      background: rgba(248,113,113,0.18);
-    }
-
-    /* Row hover on price history */
-    .price-history-table tbody tr {
-      transition: background .12s;
-    }
-    .price-history-table tbody tr:hover td {
-      background: rgba(255,255,255,0.03);
-    }
-
-    /* Detail KV row hover */
-    .detail-kv {
-      transition: background .12s;
-      border-radius: 6px;
-      padding-left: 6px;
-      padding-right: 6px;
-      margin: 0 -6px;
-    }
-
-    /* Modal row click ripple */
-    @keyframes ph-ripple {
-      from { opacity: 0.3; transform: scale(0); }
-      to   { opacity: 0;   transform: scale(2); }
-    }
-
-    /* Detail overlay entrance animation */
-    #detailOverlay .modal {
-      transition: transform .2s cubic-bezier(.34,1.3,.7,1), opacity .2s ease;
-    }
-    #detailOverlay:not(.show) .modal {
-      transform: translateY(12px) scale(0.98);
-      opacity: 0;
-    }
-    #detailOverlay.show .modal {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-
-    /* ACTION DROPDOWN */
-    .action-more-wrap { position:relative; display:inline-block; }
-    .action-more-btn {
-      width:30px; height:30px; border-radius:6px; border:1px solid var(--border);
-      background:var(--surface); color:var(--muted); cursor:pointer;
-      display:flex; align-items:center; justify-content:center; font-size:16px;
-      transition:all .15s; line-height:1;
-    }
-    .action-more-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.06); }
-    .action-more-menu {
-      display:none; position:fixed; z-index:500;
-      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      padding:5px; min-width:140px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
-    }
-    .action-more-menu.open { display:block; }
-    .action-more-item {
-      display:flex; align-items:center; gap:8px; padding:8px 12px;
-      border-radius:5px; cursor:pointer; font-size:12px; transition:background .12s;
-      color:var(--text); text-decoration:none; width:100%; background:none; border:none; text-align:left;
-    }
-    .action-more-item:hover { background:rgba(79,142,247,0.08); }
-    .action-more-item.danger { color:var(--danger); }
-    .action-more-item.danger:hover { background:rgba(248,113,113,0.08); }
-    .sku-col { display:none; } /* hidden by default */
-
-    /* SATUAN ORDER ROWS */
-    .satuan-order-row {
-      display:flex; align-items:center; gap:8px;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:7px; padding:8px 10px;
-    }
-    .satuan-order-row input[type=text] {
-      flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px;
-      color:var(--text); font-family:var(--mono); font-size:12px; padding:6px 9px;
-      outline:none; transition:border-color .2s; min-width:0;
-    }
-    .satuan-order-row input[type=text]:focus { border-color:var(--accent); }
-    .satuan-order-row input[type=number] {
-      width:72px; background:var(--bg); border:1px solid rgba(247,146,79,0.4);
-      border-radius:6px; color:var(--accent3); font-family:var(--mono); font-size:12px;
-      padding:6px 8px; outline:none; text-align:center; transition:border-color .2s;
-    }
-    .satuan-order-row input[type=number]:focus { border-color:var(--accent3); }
-    .satuan-order-label { font-size:10px; color:var(--muted); font-family:var(--mono); white-space:nowrap; }
-    .satuan-order-del {
-      width:26px; height:26px; border-radius:5px; border:1px solid rgba(248,113,113,0.25);
-      background:none; color:var(--danger); cursor:pointer; font-size:13px;
-      display:flex; align-items:center; justify-content:center; flex-shrink:0;
-      transition:all .15s; opacity:0.7;
-    }
-    .satuan-order-del:hover { opacity:1; background:rgba(248,113,113,0.1); }
-
-    /* SURVEY HARGA */
-    .ppn-toggle { display:flex; gap:4px; }
-    .ppn-btn { flex:1; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-    .ppn-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
-    .survey-search-wrap { position:relative; }
-    .survey-dropdown {
-      position:absolute; top:100%; left:0; right:0; z-index:200;
-      background:var(--surface2); border:1px solid var(--border);
-      border-radius:8px; margin-top:4px; max-height:180px; overflow-y:auto;
-      box-shadow:0 8px 24px rgba(0,0,0,0.4);
-    }
-    .survey-option { padding:9px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .12s; }
-    .survey-option:last-child { border-bottom:none; }
-    .survey-option:hover { background:rgba(79,142,247,0.08); }
-    .survey-option-name { font-weight:500; }
-    .survey-option-sub { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
-    .badge-survey { background:rgba(168,139,250,0.15); color:#a78bfa; border:1px solid rgba(168,139,250,0.3); }
-
-    /* Global :active press feedback for all .btn variants */
-    .btn:active        { transform: scale(0.96); }
-    .btn-primary:active { filter: brightness(0.9); }
-    .btn-danger:active  { filter: brightness(0.9); }
-
-    /* Action more button press */
-    .action-more-btn:active { transform: scale(0.9); }
-
-    /* Table row click-to-open-detail subtle feedback */
-    #tableBody tr { transition: background .1s; }
-
-
-      .field-row, .brand-checkbox-grid { grid-template-columns:1fr; }
-    
-  </style>
+  <!-- Semua style halaman ini ada di style.css bagian "Barang page" -->
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -279,12 +100,12 @@
 
 <!-- MODAL TAMBAH / EDIT -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header">
+  <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div class="modal-header" style="flex-shrink:0">
       <span class="modal-title" id="modalTitle">Tambah Barang</span>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="overflow-y:auto;flex:1">
       <div class="error-box" id="modalError"></div>
 
       <div class="field-row">
@@ -316,11 +137,10 @@
 
       <!-- MULTI-BRAND -->
       <div class="field">
-        <label>Brand / Store * <span class="optional-tag">— boleh pilih lebih dari satu</span></label>
+        <label>Brand / Store <span class="optional-tag">(opsional) — boleh pilih lebih dari satu</span></label>
         <div class="brand-checkbox-grid" id="brandCheckboxGrid">
           <div style="color:var(--muted);font-size:13px;grid-column:1/-1">Memuat brand...</div>
         </div>
-        <div class="brand-none-msg" id="brandNoneMsg">⚠ Pilih minimal satu brand / store</div>
         <div class="field-hint" style="margin-top:6px">Contoh: Barang A dipakai oleh Store A, B, dan D sekaligus</div>
       </div>
 
@@ -359,20 +179,20 @@
 
 <!-- MODAL DETAIL BARANG -->
 <div class="modal-overlay" id="detailOverlay">
-  <div class="modal" style="max-width:620px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div class="modal-header" style="flex-shrink:0">
       <span class="modal-title" id="detailBarangNama">Detail Barang</span>
       <button class="modal-close" onclick="closeDetailModal()">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0">
       <!-- Info dasar -->
       <div id="detailInfoSection"></div>
       <!-- Riwayat harga -->
-      <div style="margin-top:20px">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+      <div style="margin-top:20px;display:flex;flex-direction:column;flex:1;min-height:0">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0">
           Riwayat Harga &amp; Vendor
         </div>
-        <div id="detailPriceSection">
+        <div id="detailPriceSection" style="overflow-y:auto;max-height:340px">
           <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Memuat riwayat harga...</div>
         </div>
       </div>
@@ -492,15 +312,57 @@
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
   /* ── SUPABASE INIT ── */
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+  /* ── STATE TERPUSAT ── */
+  const PageState = {
+    // Data cache
+    allData:          [],   // slice halaman aktif (atau hasil search)
+    allBrands:        [],
+    allSatuan:        [],
+    allKategori:      [],
+    allVendors:       [],
+    hargaTerakhirMap: {},
+    hargaCache:       {},
+    barangTotal:      0,
+    // Pagination & sort
+    currentPage:      1,
+    sortField:        'nama',
+    sortDir:          'asc',
+    pageBeforeSearch: null,
+    // UI state
+    deleteId:         null,
+    searchTimer:      null,
+    skuVisible:       false,
+    activeMenuId:     null,
+    currentDetailId:  null,
+    surveyPPNMode:    'exc',
+    surveyVendorOptions: [],
+    // Satuan order temp (saat modal dibuka)
+    satuanOrderTemp:  [],
+  };
+  window.PageState = PageState;
+
+  /* Proxy agar kode lama yang pakai window._xxx / variabel lepas tetap jalan */
+  Object.defineProperties(window, {
+    allData:          { get: () => PageState.allData,          set: v => { PageState.allData = v; },          configurable: true },
+    allBrands:        { get: () => PageState.allBrands,        set: v => { PageState.allBrands = v; },        configurable: true },
+    allSatuan:        { get: () => PageState.allSatuan,        set: v => { PageState.allSatuan = v; },        configurable: true },
+    allKategori:      { get: () => PageState.allKategori,      set: v => { PageState.allKategori = v; },      configurable: true },
+    allVendors:       { get: () => PageState.allVendors,       set: v => { PageState.allVendors = v; },       configurable: true },
+    hargaTerakhirMap: { get: () => PageState.hargaTerakhirMap, set: v => { PageState.hargaTerakhirMap = v; }, configurable: true },
+    hargaCache:       { get: () => PageState.hargaCache,       set: v => { PageState.hargaCache = v; },       configurable: true },
+    _barangTotal:     { get: () => PageState.barangTotal,      set: v => { PageState.barangTotal = v; },      configurable: true },
+    _skuVisible:      { get: () => PageState.skuVisible,       set: v => { PageState.skuVisible = v; },       configurable: true },
+    _currentDetailId: { get: () => PageState.currentDetailId,  set: v => { PageState.currentDetailId = v; },  configurable: true },
+    _userRole:        { get: () => PageState.userRole,         set: v => { PageState.userRole = v; },         configurable: true },
+  });
 
   /* ── AUTH CHECK ── */
   (async () => {
@@ -668,8 +530,8 @@
       localStorage.removeItem('_hargaCache');
       const calcHargaInc = h => {
         if (h.harga_inc_ppn) return h.harga_inc_ppn;
-        if (h.harga_exc_ppn) return Math.round(h.harga_exc_ppn * 1.11);
-        if (h.harga) return h.ppn_included ? h.harga : Math.round(h.harga * 1.11);
+        if (h.harga_exc_ppn) return toIncPPN(h.harga_exc_ppn);
+        if (h.harga) return h.ppn_included ? h.harga : toIncPPN(h.harga);
         return 0;
       };
       // Fetch semua barang_id untuk hargaTerakhirMap
@@ -758,9 +620,28 @@
 </script>
 
 <script>
-  let currentPage=1, sortField='nama', sortDir='asc', deleteId=null, searchTimer=null;
-  let _pageBeforeSearch=null;
-  const PER_PAGE=12;
+  /* State dari PageState — alias lokal untuk kemudahan baca */
+  const PER_PAGE = 12;
+  /* Getter/setter shorthand — baca dari PageState agar sinkron antar script block */
+  const _ps = window.PageState;
+  /* Variabel lepas diproxy ke PageState via getter di bawah tiap assignment */
+  let currentPage    = _ps.currentPage;
+  let sortField      = _ps.sortField;
+  let sortDir        = _ps.sortDir;
+  let deleteId       = _ps.deleteId;
+  let searchTimer    = _ps.searchTimer;
+  let _pageBeforeSearch = _ps.pageBeforeSearch;
+
+  /* Sync variabel lokal ke PageState setelah setiap perubahan dilakukan via fungsi,
+     sehingga block script lain bisa baca lewat PageState atau proxy window.* */
+  function _syncState() {
+    _ps.currentPage      = currentPage;
+    _ps.sortField        = sortField;
+    _ps.sortDir          = sortDir;
+    _ps.deleteId         = deleteId;
+    _ps.searchTimer      = searchTimer;
+    _ps.pageBeforeSearch = _pageBeforeSearch;
+  }
 
   /* Nama dan warna brand dari ID */
   function getBrandName(id)  { return (window.allBrands||[]).find(b=>b.id===id)?.nama  || id; }
@@ -802,8 +683,7 @@
     cb.checked  = !cb.checked;
     item.style.background   = cb.checked ? `${color}18`      : 'var(--surface)';
     item.style.borderColor  = cb.checked ? color              : 'var(--border)';
-    const noneMsg = document.getElementById('brandNoneMsg');
-    noneMsg.style.display = getCheckedBrands().length ? 'none' : 'block';
+
   }
 
   function getCheckedBrands() {
@@ -923,6 +803,7 @@
 
   function sortBy(field) {
     if(sortField===field) sortDir=sortDir==='asc'?'desc':'asc'; else { sortField=field; sortDir='asc'; }
+    _syncState();
     document.querySelectorAll('th [id^="sort-"]').forEach(el=>el.textContent='↕');
     document.querySelectorAll('th').forEach(el=>el.classList.remove('sorted'));
     const icon=document.getElementById('sort-'+field);
@@ -943,6 +824,7 @@
       currentPage = _pageBeforeSearch;
       _pageBeforeSearch = null;
     }
+    _syncState();
     fetchBarangPage();
   }
 
@@ -959,6 +841,7 @@
       } else if (q) {
         currentPage = 1;
       }
+      _syncState();
       fetchBarangPage();
     }, 250);
   }
@@ -987,7 +870,6 @@
   /* ══ MODAL ══ */
   async function openModal(id) {
     document.getElementById('modalError').classList.remove('show');
-    document.getElementById('brandNoneMsg').style.display='none';
     if (id) {
       let b=(window.allData||[]).find(x=>x.id===id);
       if(!b) {
@@ -1010,8 +892,7 @@
       document.getElementById('fKategori').value = '';
       document.getElementById('fSatuan').value = (window.allSatuan||[]).find(s=>s.nama.toLowerCase()==='pcs')?.nama || (window.allSatuan||[])[0]?.nama || '';
       document.getElementById('fStokMin').value = 0;
-      const active=localStorage.getItem('activeBrand');
-      buildBrandCheckboxes(active && active!=='all' ? [active] : (window.allBrands||[]).map(b=>b.id));
+      buildBrandCheckboxes([]);
     }
     document.getElementById('modalOverlay').classList.add('show');
     setTimeout(()=>document.getElementById('fNama').focus(),100);
@@ -1037,7 +918,6 @@
 
     if (!nama)           return showModalError('Nama barang wajib diisi.');
     if (!satuan)         return showModalError('Pilih satuan terlebih dahulu.');
-    if (!brandIds.length){ document.getElementById('brandNoneMsg').style.display='block'; return showModalError('Pilih minimal satu brand / store.'); }
 
     // Validasi satuan order
     if (typeof _satuanOrderTemp !== 'undefined') {
@@ -1204,7 +1084,7 @@
       beliItems.forEach(item => {
         const tx = item.riwayat_beli;
         if (!tx) return;
-        const hargaInc = Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : item.harga_satuan * 1.11));
+        const hargaInc = Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : toIncPPN(item.harga_satuan)));
         allRows.push({
           tanggal_js: tx.tanggal ? new Date(tx.tanggal) : new Date(0),
           vendorKey: tx.vendor_id || '__novendor__',
@@ -1214,7 +1094,7 @@
       });
 
       surveyRows.forEach(h => {
-        const hargaInc = Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : h.harga * 1.11));
+        const hargaInc = Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : toIncPPN(h.harga)));
         allRows.push({
           tanggal_js: h.tanggal ? new Date(h.tanggal) : new Date(0),
           vendorKey: h.vendor_id || '__novendor__',
@@ -1242,8 +1122,8 @@
         const tgl = entry.tanggal_js.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
         if (entry.sumber === 'pembelian' && entry.item) {
           const {tx, item} = entry;
-          const hargaInc = Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : item.harga_satuan * 1.11));
-          const hargaExc = Math.round(item.harga_exc_ppn || (item.ppn_included ? item.harga_satuan / 1.11 : item.harga_satuan));
+          const hargaInc = Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : toIncPPN(item.harga_satuan)));
+          const hargaExc = Math.round(item.harga_exc_ppn || (item.ppn_included ? toExcPPN(item.harga_satuan) : item.harga_satuan));
           const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
           let vendorLabel = '—';
           if (tx.vendor_id) vendorLabel = vendorMap[tx.vendor_id]||ghostCache[tx.vendor_id]||`<span style="color:var(--muted);font-style:italic">—</span>`;
@@ -1259,8 +1139,8 @@
           </tr>`;
         } else {
           const {h} = entry;
-          const hargaInc = Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : h.harga * 1.11));
-          const hargaExc = Math.round(h.harga_exc_ppn || (h.ppn_included ? h.harga / 1.11 : h.harga));
+          const hargaInc = Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : toIncPPN(h.harga)));
+          const hargaExc = Math.round(h.harga_exc_ppn || (h.ppn_included ? toExcPPN(h.harga) : h.harga));
           const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
           let vendorLabel = '—';
           if (h.vendor_id) vendorLabel = vendorMap[h.vendor_id]||ghostCache[h.vendor_id]||`<span style="color:var(--muted);font-style:italic">—</span>`;
@@ -1302,7 +1182,6 @@
   }
 
   function closeDetailModal() { document.getElementById('detailOverlay').classList.remove('show'); }
-
 
   /* ── INLINE KATEGORI PICKER ── */
   function openKategoriPicker(barangId, kategoriSaat, event) {
@@ -1421,7 +1300,13 @@
 
   /* ── ACTION DROPDOWN MENU ── */
   // Portal pattern: menu di-append ke body agar bebas dari stacking context tabel/card
-  let _activeMenuId = null;
+  /* _activeMenuId diproxy ke PageState.activeMenuId */
+  Object.defineProperty(window, '_activeMenuId', {
+    get: () => PageState.activeMenuId,
+    set: v => { PageState.activeMenuId = v; },
+    configurable: true
+  });
+  let _activeMenuId = PageState.activeMenuId;
 
   function toggleActionMenu(e, menuId) {
     e.stopPropagation();
@@ -1475,8 +1360,13 @@
   window.closeAllMenus    = closeAllMenus;
 
   /* ══ SURVEY / CATAT HARGA ══ */
-  let surveyPPNMode = 'exc';
-  let _surveyVendorOptions = [];
+  /* surveyPPNMode dan _surveyVendorOptions diproxy ke PageState */
+  Object.defineProperties(window, {
+    surveyPPNMode:        { get: () => PageState.surveyPPNMode,       set: v => { PageState.surveyPPNMode = v; },       configurable: true },
+    _surveyVendorOptions: { get: () => PageState.surveyVendorOptions, set: v => { PageState.surveyVendorOptions = v; }, configurable: true },
+  });
+  let surveyPPNMode = PageState.surveyPPNMode;
+  let _surveyVendorOptions = PageState.surveyVendorOptions;
 
   async function openSurveyModal(barangIdOverride, editSurveyId) {
     const barangId = barangIdOverride || window._currentDetailId;
@@ -1668,7 +1558,13 @@
 <script>
   /* ══ SATUAN ORDER ══ */
   // State sementara saat modal dibuka
-  let _satuanOrderTemp = []; // [{satuan, faktor}]
+  /* _satuanOrderTemp diproxy ke PageState.satuanOrderTemp */
+  Object.defineProperty(window, '_satuanOrderTemp', {
+    get: () => PageState.satuanOrderTemp,
+    set: v => { PageState.satuanOrderTemp = v; },
+    configurable: true
+  });
+  let _satuanOrderTemp = PageState.satuanOrderTemp;
 
   function updateSatuanDasarLabel() {
     const val = document.getElementById('fSatuan').value;
@@ -1770,354 +1666,7 @@
   window.addSatuanOrderRow = addSatuanOrderRow;
   window.removeSatuanOrderRow = removeSatuanOrderRow;
 </script>
-<script>
-/* ══ DUPLIKAT BARANG ══ */
-
-async function openDuplikatModal() {
-  document.getElementById('duplikatOverlay').classList.add('show');
-  document.getElementById('duplikatLoading').style.display = '';
-  document.getElementById('duplikatEmpty').style.display   = 'none';
-  document.getElementById('duplikatList').style.display    = 'none';
-  document.getElementById('duplikatFooter').style.display  = 'none';
-
-  try {
-    /* Ambil semua barang, group by nama (case-insensitive) */
-    const { data: rows } = await window._sb
-      .from('barang')
-      .select('*, barang_brands(brand_id)')
-      .order('nama');
-
-    const grupNama = {};
-    (rows||[]).forEach(b => {
-      const key = (b.nama||'').toLowerCase().trim();
-      if (!grupNama[key]) grupNama[key] = [];
-      grupNama[key].push({
-        ...b,
-        brand_ids: (b.barang_brands||[]).map(x=>x.brand_id)
-      });
-    });
-
-    /* Hanya grup yang punya > 1 item */
-    const dupGroups = Object.entries(grupNama)
-      .filter(([,items]) => items.length > 1)
-      .sort((a,b) => a[0].localeCompare(b[0]));
-
-    document.getElementById('duplikatLoading').style.display = 'none';
-
-    if (!dupGroups.length) {
-      document.getElementById('duplikatEmpty').style.display = '';
-      return;
-    }
-
-    /* Render grup */
-    const listEl = document.getElementById('duplikatList');
-    listEl.style.display = '';
-    listEl.innerHTML = dupGroups.map(([key, items]) => `
-      <div style="border-bottom:1px solid var(--border);padding:16px 20px">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-          <span style="background:rgba(247,146,79,0.15);color:var(--accent3);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px">${items.length} duplikat</span>
-          ${items[0].nama}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${items.map((b,i) => {
-            const brandTags = b.brand_ids.map(bid => {
-              const br = (window.allBrands||[]).find(x=>x.id===bid);
-              const color = br?.warna||'#4f8ef7';
-              return `<span style="font-size:10px;padding:1px 7px;border-radius:3px;background:${color}22;color:${color};border:1px solid ${color}44">${br?.nama||bid}</span>`;
-            }).join(' ');
-            const tgl = b.created_at ? new Date(b.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—';
-            return `
-            <label style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='rgba(248,113,113,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-              <input type="checkbox" data-id="${b.id}" style="width:16px;height:16px;accent-color:var(--danger);flex-shrink:0"/>
-              <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${b.id.slice(0,8)}…</span>
-                  ${b.sku ? `<span style="font-family:var(--mono);font-size:11px;color:var(--accent2)">${b.sku}</span>` : ''}
-                  <span style="font-family:var(--mono);font-size:11px">${b.satuan||'—'}</span>
-                  ${brandTags}
-                </div>
-                <div style="font-size:11px;color:var(--muted);margin-top:3px">Dibuat: ${tgl}</div>
-              </div>
-              ${i===0 ? '<span style="font-size:10px;font-family:var(--mono);color:var(--accent2);white-space:nowrap">Pertama dibuat</span>' : ''}
-            </label>`;
-          }).join('')}
-        </div>
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <button onclick="pilihDuplikatGrup('${key}', 'all')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer">Pilih semua</button>
-          <button onclick="pilihDuplikatGrup('${key}', 'keep_first')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer">Pilih semua kecuali pertama</button>
-          <button onclick="pilihDuplikatGrup('${key}', 'none')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer">Batalkan pilihan</button>
-        </div>
-      </div>`
-    ).join('');
-
-    document.getElementById('duplikatFooter').style.display = '';
-    updateDuplikatCount();
-
-    /* Update count on checkbox change */
-    listEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
-      cb.addEventListener('change', updateDuplikatCount);
-    });
-
-  } catch(e) {
-    document.getElementById('duplikatLoading').innerHTML =
-      `<div style="color:var(--danger);padding:20px">Gagal memuat: ${e.message}</div>`;
-  }
-}
-
-function pilihDuplikatGrup(namaKey, mode) {
-  /* Cari semua checkbox dalam grup ini */
-  const listEl   = document.getElementById('duplikatList');
-  /* Grup ditandai dari label dengan data-id yang cocok dengan items di grup */
-  const allCbs   = Array.from(listEl.querySelectorAll('input[type=checkbox]'));
-
-  /* Dapatkan semua id dalam grup dengan mencocokkan nama di judul grup */
-  /* Grup adalah div dengan text nama yang mengandung namaKey */
-  const grupDivs = listEl.querySelectorAll('[style*="border-bottom"]');
-  grupDivs.forEach(div => {
-    const titleEl = div.querySelector('[style*="font-weight:600"]');
-    if (!titleEl) return;
-    const nama = titleEl.textContent.trim().split('\n').pop().trim().toLowerCase();
-    if (nama !== namaKey) return;
-
-    const cbs = Array.from(div.querySelectorAll('input[type=checkbox]'));
-    if (mode === 'all') {
-      cbs.forEach(cb => cb.checked = true);
-    } else if (mode === 'none') {
-      cbs.forEach(cb => cb.checked = false);
-    } else if (mode === 'keep_first') {
-      cbs.forEach((cb, i) => cb.checked = i > 0);
-    }
-  });
-  updateDuplikatCount();
-}
-
-function updateDuplikatCount() {
-  const count = document.querySelectorAll('#duplikatList input[type=checkbox]:checked').length;
-  const btn   = document.getElementById('btnHapusDipilih');
-  btn.textContent = count ? `🗑 Hapus ${count} yang Dipilih` : '🗑 Hapus yang Dipilih';
-  btn.disabled    = count === 0;
-}
-
-async function hapusDuplikatDipilih() {
-  const ids = Array.from(document.querySelectorAll('#duplikatList input[type=checkbox]:checked'))
-    .map(cb => cb.dataset.id);
-  if (!ids.length) return;
-  if (!confirm(`Hapus ${ids.length} barang duplikat yang dipilih?\n\nRiwayat harga terkait juga ikut dihapus. Tidak bisa dibatalkan.`)) return;
-
-  const btn = document.getElementById('btnHapusDipilih');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menghapus...';
-
-  try {
-    /* Hapus relasi dan data terkait */
-    await window._sb.from('barang_brands').delete().in('barang_id', ids);
-    await window._sb.from('riwayat_harga').delete().in('barang_id', ids);
-    await window._sb.from('barang').delete().in('id', ids);
-
-    showToast(`✓ ${ids.length} duplikat dihapus`, 'success');
-    closeDuplikatModal();
-    await window.loadBarang();
-  } catch(e) {
-    showToast('Gagal: '+e.message, 'error');
-    btn.disabled = false; btn.textContent = `🗑 Hapus ${ids.length} yang Dipilih`;
-  }
-}
-
-function closeDuplikatModal() {
-  document.getElementById('duplikatOverlay').classList.remove('show');
-}
-window.openDuplikatModal=openDuplikatModal;
-window.closeDuplikatModal=closeDuplikatModal;
-window.hapusDuplikatDipilih=hapusDuplikatDipilih;
-
-/* ══ EXPORT ══ */
-function toggleExportMenu(e) {
-  e.stopPropagation();
-  const menu = document.getElementById('exportMenu');
-  const isOpen = menu.classList.contains('open');
-  closeExportMenu();
-  if (!isOpen) {
-    menu.classList.add('open');
-    setTimeout(() => document.addEventListener('click', closeExportMenu), 0);
-  }
-}
-function closeExportMenu() {
-  document.getElementById('exportMenu')?.classList.remove('open');
-  document.removeEventListener('click', closeExportMenu);
-}
-
-async function _fetchAllFiltered() {
-  const search = document.getElementById('searchInput').value.toLowerCase().trim();
-  const brand  = document.getElementById('filterBrand').value;
-  const kat    = document.getElementById('filterKategori').value;
-  const sat    = document.getElementById('filterSatuan').value;
-
-  let q = window._sb.from('barang').select('*, barang_brands(brand_id)').order('nama');
-  if (kat) q = q.eq('kategori', kat);
-  if (sat) q = q.eq('satuan', sat);
-  const { data: allRaw } = await q;
-  let all = (allRaw || []).map(b => ({
-    ...b,
-    brand_ids: (b.barang_brands||[]).map(x=>x.brand_id),
-    brand_id: (b.barang_brands||[])[0]?.brand_id||''
-  }));
-  if (brand)  all = all.filter(b => (b.brand_ids||[]).includes(brand));
-  if (search) all = all.filter(b =>
-    (b.nama||'').toLowerCase().includes(search) ||
-    (b.sku||'').toLowerCase().includes(search) ||
-    (b.deskripsi||'').toLowerCase().includes(search)
-  );
-  return all;
-}
-
-function _getBrandName(id) {
-  return (window.allBrands||[]).find(b=>b.id===id)?.nama || id;
-}
-
-async function _fetchHargaMap(barangIds) {
-  /* Fetch harga terakhir per barang_id → { id: { exc, inc } } */
-  const result = {};
-  const ppn = window._ppnRate || 11;
-  const calcExc = h => {
-    if (h.harga_exc_ppn) return h.harga_exc_ppn;
-    if (h.harga_inc_ppn) return Math.round(h.harga_inc_ppn / (1 + ppn/100));
-    if (h.harga) return h.ppn_included ? Math.round(h.harga / (1 + ppn/100)) : h.harga;
-    return 0;
-  };
-  const CHUNK = 50;
-  for (let i = 0; i < barangIds.length; i += CHUNK) {
-    const chunk = barangIds.slice(i, i + CHUNK);
-    const { data: rows } = await window._sb
-      .from('riwayat_harga')
-      .select('barang_id, harga, harga_exc_ppn, harga_inc_ppn, ppn_included, tanggal')
-      .in('barang_id', chunk)
-      .order('tanggal', { ascending: false });
-    (rows || []).forEach(h => {
-      if (!h.barang_id || result[h.barang_id]) return;
-      const exc = calcExc(h);
-      const inc = h.harga_inc_ppn || (exc ? Math.round(exc * (1 + ppn/100)) : 0);
-      if (exc > 0) result[h.barang_id] = { exc, inc };
-    });
-  }
-  return result;
-}
-
-async function exportBarangExcel() {
-  showToast('Menyiapkan export...', 'success');
-  const data = await _fetchAllFiltered();
-  if (!data.length) return showToast('Tidak ada data untuk diexport', 'error');
-
-  const ppn = window._ppnRate || 11;
-  const hargaMap = await _fetchHargaMap(data.map(b => b.id));
-
-  const rows = [
-    ['Nama Barang', 'SKU', 'Kategori', 'Satuan', 'Brand / Store', `Harga Satuan Exc PPN`, `Harga Satuan Inc PPN (${ppn}%)`, 'Deskripsi']
-  ];
-  data.forEach(b => {
-    const brandNames = (Array.isArray(b.brand_ids)?b.brand_ids:[]).map(_getBrandName).join(', ');
-    const h = hargaMap[b.id];
-    rows.push([
-      b.nama||'', b.sku||'', b.kategori||'', b.satuan||'', brandNames,
-      h ? h.exc : '', h ? h.inc : '',
-      b.deskripsi||''
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [28, 14, 16, 12, 22, 18, 18, 36].map(w=>({wch:w}));
-
-  /* Format kolom harga sebagai number (Rp) */
-  const hargaCols = [5, 6]; // kolom F dan G (0-indexed)
-  for (let r = 1; r <= data.length; r++) {
-    hargaCols.forEach(c => {
-      const cell = ws[XLSX.utils.encode_cell({r, c})];
-      if (cell && typeof cell.v === 'number') {
-        cell.z = '#,##0';
-        cell.t = 'n';
-      }
-    });
-  }
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Daftar Barang');
-  XLSX.writeFile(wb, `barang_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`✓ Export ${data.length} barang berhasil`, 'success');
-}
-
-async function exportBarangPDF() {
-  showToast('Menyiapkan data...', 'success');
-  const data = await _fetchAllFiltered();
-  if (!data.length) return showToast('Tidak ada data untuk diexport', 'error');
-
-  const ppn = window._ppnRate || 11;
-  const hargaMap = await _fetchHargaMap(data.map(b => b.id));
-
-  const filterInfo = [];
-  const fBrand  = document.getElementById('filterBrand');
-  const fKat    = document.getElementById('filterKategori');
-  const fSat    = document.getElementById('filterSatuan');
-  const fSearch = document.getElementById('searchInput');
-  if (fBrand.value)  filterInfo.push('Brand: ' + fBrand.options[fBrand.selectedIndex].text);
-  if (fKat.value)    filterInfo.push('Kategori: ' + fKat.options[fKat.selectedIndex].text);
-  if (fSat.value)    filterInfo.push('Satuan: ' + fSat.value);
-  if (fSearch.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
-
-  const fmt = n => n ? 'Rp ' + Math.round(n).toLocaleString('id-ID') : '—';
-
-  const rows = data.map((b,i) => {
-    const brandNames = (Array.isArray(b.brand_ids)?b.brand_ids:[]).map(_getBrandName).join(', ');
-    const h = hargaMap[b.id];
-    return `<tr>
-      <td style="text-align:center;color:#888">${i+1}</td>
-      <td><strong>${b.nama||'—'}</strong>${b.sku?`<br><span style="color:#888;font-size:11px;font-family:monospace">${b.sku}</span>`:''}</td>
-      <td>${b.kategori||'—'}</td>
-      <td style="text-align:center">${b.satuan||'—'}</td>
-      <td>${brandNames||'—'}</td>
-      <td style="text-align:right;font-family:monospace;font-size:12px">${fmt(h?.exc)}</td>
-      <td style="text-align:right;font-family:monospace;font-size:12px;color:#166534">${fmt(h?.inc)}</td>
-    </tr>`;
-  }).join('');
-
-  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
-  <title>Daftar Barang — PurchaseOS</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1a1a1a; padding: 28px; }
-    h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-    .meta { color: #666; font-size: 11px; margin-bottom: 6px; }
-    .filters { font-size: 11px; color: #2563eb; margin-bottom: 16px; font-style: italic; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #1e293b; color: #fff; font-size: 10px; font-weight: 600; padding: 8px 9px; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; }
-    td { padding: 8px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-    tr:nth-child(even) td { background: #f8fafc; }
-    .footer { margin-top: 18px; font-size: 10px; color: #888; text-align: right; }
-    @media print { body { padding: 14px; } }
-  </style></head><body>
-  <h1>Daftar Barang — PurchaseOS</h1>
-  <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} barang &nbsp;·&nbsp; PPN ${ppn}%</div>
-  ${filterInfo.length ? `<div class="filters">Filter aktif: ${filterInfo.join(' | ')}</div>` : ''}
-  <table>
-    <thead><tr>
-      <th>#</th><th>Nama Barang / SKU</th><th>Kategori</th>
-      <th style="text-align:center">Satuan</th><th>Brand</th>
-      <th style="text-align:right">Harga Exc PPN</th>
-      <th style="text-align:right">Harga Inc PPN (${ppn}%)</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="footer">PurchaseOS · ${new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
-  <script>window.onload=()=>window.print()<\/script>
-  </body></html>`;
-
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-}
-
-window.toggleExportMenu  = toggleExportMenu;
-window.closeExportMenu   = closeExportMenu;
-window.exportBarangExcel = exportBarangExcel;
-window.exportBarangPDF   = exportBarangPDF;
-
-</script>
+<script src="barang-duplikat.js"></script>
+<script src="barang-export.js"></script>
 </body>
 </html>

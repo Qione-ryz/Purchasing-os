@@ -94,6 +94,9 @@
     /* period badge reusable */
     .period-badge { font-family:var(--mono); font-size:10px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:2px 8px; }
 
+    .topbar-brand-row { display:flex; align-items:center; gap:6px; }
+    .topbar-date-wrap { position:relative; }
+
     @media (max-width:1024px) { .stats-grid{grid-template-columns:repeat(2,1fr)} .row-2,.row-3{grid-template-columns:1fr} }
     @media (max-width:768px)  { .stats-grid{grid-template-columns:1fr 1fr} }
   </style>
@@ -111,14 +114,14 @@
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
     <div class="topbar-right">
-      <div style="display:flex;align-items:center;gap:6px">
+      <div class="topbar-brand-row">
         <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">🏷 Brand:</span>
         <div id="brandFilterWrap" class="brand-filter-wrap" style="min-width:160px;max-width:220px"></div>
       </div>
       <div class="date-chip" id="dateChip">—</div>
       <input type="date" id="dashDateFrom" style="display:none"/>
       <input type="date" id="dashDateTo"   style="display:none"/>
-      <div style="position:relative">
+      <div class="topbar-date-wrap">
         <button class="btn btn-ghost btn-sm" id="btnDashDate" onclick="dashDf.toggle()" style="white-space:nowrap;min-width:130px;font-family:var(--mono);font-size:11px">
           📅 <span id="dashDateLabel">Bulan Ini</span>
         </button>
@@ -193,6 +196,7 @@
           <span class="card-title" id="barChartTitle">Pengeluaran 6 Bulan Terakhir</span>
           <div style="display:flex;align-items:center;gap:10px">
             <div style="display:flex;gap:4px">
+              <button id="btnBar3"  onclick="setBarRange(3)"  class="bar-range-btn">3 Bln</button>
               <button id="btnBar6"  onclick="setBarRange(6)"  class="bar-range-btn active">6 Bln</button>
               <button id="btnBar12" onclick="setBarRange(12)" class="bar-range-btn">1 Thn</button>
             </div>
@@ -335,14 +339,12 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script src="sidebar.js"></script>
 <script>
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
   (async function init() {
     const { data: { session } } = await window._sb.auth.getSession();
@@ -376,11 +378,21 @@
     await loadDashboard();
   })();
 
+  /* ── STATE TERPUSAT ── */
+  const DashState = {
+    selectedBrands:    [],
+    brandMap:          {},
+    barRange:          6,
+    topBarangAllRows:  [],
+    topBarangExpanded: false,
+  };
+  window.DashState = DashState;
+
   /* ── BRANDS ── */
   async function loadBrands() {
     const COLORS = ['#4f8ef7','#38d9a9','#f7924f','#a78bfa','#f472b6','#facc15','#34d399','#fb923c'];
-    window.brandMap = {};
-    window._selectedBrands = [];
+    window.brandMap = DashState.brandMap = {};
+    DashState.selectedBrands = [];
     try {
       const { data: brands } = await window._sb.from('brands').select('*').order('nama');
       (brands || []).forEach((b, i) => {
@@ -390,7 +402,7 @@
       window._allBrandsData = brands || [];
       try {
         const saved = JSON.parse(localStorage.getItem('activeBrands') || '[]');
-        if (Array.isArray(saved) && saved.length) window._selectedBrands = saved;
+        if (Array.isArray(saved) && saved.length) DashState.selectedBrands = saved;
       } catch(e) {}
       buildBrandDropdown(brands || []);
       updateBrandFilterUI();
@@ -415,7 +427,7 @@
           <div class="brand-filter-option" data-brand-id="${b.id}" onclick="toggleBrandOption(event,'${b.id}')">
             <input type="checkbox" class="chk-brand" data-id="${b.id}"/>
             <div class="brand-dot-sm" style="background:${b._color}"></div>
-            <span>${b.nama}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis">${b.nama}</span>
           </div>`).join('')}
         ${!brands.length ? '<div style="font-size:12px;color:var(--muted);padding:4px 10px">Belum ada brand</div>' : ''}
       </div>`;
@@ -440,16 +452,16 @@
 
   function toggleBrandOption(e, brandId) {
     e.stopPropagation();
-    const idx = window._selectedBrands.indexOf(brandId);
-    if (idx === -1) window._selectedBrands.push(brandId);
-    else window._selectedBrands.splice(idx, 1);
+    const idx = DashState.selectedBrands.indexOf(brandId);
+    if (idx === -1) DashState.selectedBrands.push(brandId);
+    else DashState.selectedBrands.splice(idx, 1);
     updateBrandFilterUI(); onBrandChange();
   }
 
-  function selectAllBrands() { window._selectedBrands = []; updateBrandFilterUI(); onBrandChange(); }
+  function selectAllBrands() { DashState.selectedBrands = []; updateBrandFilterUI(); onBrandChange(); }
 
   function updateBrandFilterUI() {
-    const sel = window._selectedBrands, isAll = sel.length === 0;
+    const sel = DashState.selectedBrands, isAll = sel.length === 0;
     const allChk = document.getElementById('chkAllBrands');
     const filterBtn = document.getElementById('brandFilterBtn');
     const label = document.getElementById('brandFilterLabel');
@@ -506,8 +518,8 @@
     return { fromVal: document.getElementById('dashDateFrom').value, toVal: document.getElementById('dashDateTo').value };
   }
 
-  function getCurrentBrand()   { return window._selectedBrands || []; }
-  function matchesBrand(bid)   { const s = window._selectedBrands || []; return !s.length || s.includes(bid); }
+  function getCurrentBrand()   { return DashState.selectedBrands || []; }
+  function matchesBrand(bid)   { const s = DashState.selectedBrands || []; return !s.length || s.includes(bid); }
 
   function buildPembelianUrl(extra = {}) {
     const brands = getCurrentBrand(), { from: df, to: dt } = dashDf.getRange();
@@ -519,7 +531,7 @@
   }
 
   function buildPembelianUrlBarRange() {
-    const n = window._barRange || 6, brands = getCurrentBrand(), now = new Date();
+    const n = DashState.barRange || 6, brands = getCurrentBrand(), now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - (n-1), 1);
     const p = new URLSearchParams({ tab:'riwayat', dateFrom: from.toISOString().split('T')[0], dateTo: new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0] });
     if (brands.length === 1) p.set('brand', brands[0]);
@@ -532,9 +544,6 @@
   async function loadDashboard() {
     const selectedBrands = getCurrentBrand(), isAll = !selectedBrands.length;
     const now = new Date(), { fromVal, toVal } = getDateRange();
-    const thisMonthStr = fromVal || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const nextMonthStr = toVal ? new Date(new Date(toVal).getTime()+86400000).toISOString().split('T')[0]
-                               : new Date(now.getFullYear(), now.getMonth()+1, 1).toISOString().split('T')[0];
     const dateLabel = document.getElementById('dashDateLabel').textContent;
 
     document.getElementById('statBeliSub').textContent  = dateLabel;
@@ -564,7 +573,13 @@
 
     // Stat: pembelian & nilai
     try {
-      const { data: beliRows } = await window._sb.from('riwayat_beli').select('brand_id,total').gte('tanggal',thisMonthStr).lt('tanggal',nextMonthStr);
+      let q = window._sb.from('riwayat_beli').select('brand_id,total');
+      if (fromVal) q = q.gte('tanggal', fromVal);
+      if (toVal)   q = q.lte('tanggal', toVal);
+      if (!fromVal && !toVal) {
+        // Semua Waktu — tidak ada constraint tanggal, query semua
+      }
+      const { data: beliRows } = await q;
       const filtered = (beliRows||[]).filter(r => isAll || selectedBrands.includes(r.brand_id));
       animateCount('statBeli', filtered.length);
       document.getElementById('statTotal').textContent = formatRp(filtered.reduce((s,r)=>s+(r.total||0),0));
@@ -579,44 +594,68 @@
   }
 
   /* ── BAR CHART ── */
-  window._barRange = 6;
-
   function setBarRange(n) {
-    window._barRange = n;
-    document.getElementById('barChartTitle').textContent = `Pengeluaran ${n===6?'6 Bulan':'1 Tahun'} Terakhir`;
+    DashState.barRange = n;
+    document.getElementById('barChartTitle').textContent = `Pengeluaran ${n===3?'3 Bulan':n===6?'6 Bulan':'1 Tahun'} Terakhir`;
+    document.getElementById('btnBar3').classList.toggle('active', n===3);
     document.getElementById('btnBar6').classList.toggle('active', n===6);
     document.getElementById('btnBar12').classList.toggle('active', n===12);
     loadBarChart(getCurrentBrand());
   }
 
   async function loadBarChart(selectedBrands) {
-    const isAll = !selectedBrands?.length, n = window._barRange||6, now = new Date();
-    const months=[], values=[];
-    for (let i=n-1; i>=0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-      months.push(d.toLocaleDateString('id-ID', { month:'short', year: n>6?'2-digit':undefined }));
-      try {
-        const { data: rows } = await window._sb.from('riwayat_beli').select('brand_id,total')
-          .gte('tanggal', new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0])
-          .lt('tanggal',  new Date(d.getFullYear(),d.getMonth()+1,1).toISOString().split('T')[0]);
-        values.push((rows||[]).reduce((s,r)=>{ return (!isAll && !selectedBrands.includes(r.brand_id)) ? s : s+(r.total||0); }, 0));
-      } catch { values.push(0); }
+    const isAll = !selectedBrands?.length, n = DashState.barRange || 6, now = new Date();
+
+    /* Hitung range penuh sekali — 1 query untuk semua bulan */
+    const startDate = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
+    const endDate   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const startStr  = startDate.toISOString().split('T')[0];
+    const endStr    = endDate.toISOString().split('T')[0];
+
+    let rows = [];
+    try {
+      const { data } = await window._sb.from('riwayat_beli').select('tanggal,brand_id,total')
+        .gte('tanggal', startStr).lt('tanggal', endStr);
+      rows = data || [];
+    } catch { /* silent — nilai bulan akan 0 */ }
+
+    /* Aggregate per bulan di client-side */
+    const monthTotals = {};
+    for (let i = 0; i < n; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - (n - 1 - i), 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthTotals[key] = 0;
     }
+    rows.forEach(r => {
+      if (!r.tanggal) return;
+      if (!isAll && !selectedBrands.includes(r.brand_id)) return;
+      const key = r.tanggal.slice(0, 7);
+      if (key in monthTotals) monthTotals[key] += r.total || 0;
+    });
+
+    const months = [], values = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.toLocaleDateString('id-ID', { month: 'short', year: n > 6 ? '2-digit' : undefined }));
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      values.push(monthTotals[key] || 0);
+    }
+
     const maxVal = Math.max(...values, 1);
     const barGroup = document.getElementById('barGroup'), barLabels = document.getElementById('barLabels'), tooltip = document.getElementById('barTooltip');
     barGroup.innerHTML = barLabels.innerHTML = '';
     const yLabel = document.getElementById('barYAxisLabel'); if (yLabel) yLabel.textContent = 'max: ' + formatRp(maxVal);
 
     values.forEach((v, i) => {
-      const pct = v===0 ? 0 : Math.max(3, Math.round((v/maxVal)*100));
+      const pct = v === 0 ? 0 : Math.max(3, Math.round((v / maxVal) * 100));
       const col = document.createElement('div'); col.className = 'bar-col';
-      const bar = document.createElement('div'); bar.className = 'bar' + (i===n-1?' current':''); bar.style.height='0px';
-      bar.addEventListener('mouseenter', () => { tooltip.style.display='block'; tooltip.textContent=`${months[i]}: ${formatRp(v)}`; });
-      bar.addEventListener('mousemove',  e  => { tooltip.style.left=(e.clientX+12)+'px'; tooltip.style.top=(e.clientY-30)+'px'; });
-      bar.addEventListener('mouseleave', () => { tooltip.style.display='none'; });
+      const bar = document.createElement('div'); bar.className = 'bar' + (i === n - 1 ? ' current' : ''); bar.style.height = '0px';
+      bar.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; tooltip.textContent = `${months[i]}: ${formatRp(v)}`; });
+      bar.addEventListener('mousemove',  e  => { tooltip.style.left = (e.clientX + 12) + 'px'; tooltip.style.top = (e.clientY - 30) + 'px'; });
+      bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
       col.appendChild(bar); barGroup.appendChild(col);
-      setTimeout(() => { bar.style.height = pct+'%'; }, 80+i*40);
-      const lbl = document.createElement('div'); lbl.className='bar-label'; lbl.textContent=months[i];
+      setTimeout(() => { bar.style.height = pct + '%'; }, 80 + i * 40);
+      const lbl = document.createElement('div'); lbl.className = 'bar-label'; lbl.textContent = months[i];
       barLabels.appendChild(lbl);
     });
   }
@@ -649,15 +688,14 @@
   }
 
   /* ── TOP BARANG ── */
-  window._topBarangAllRows = []; window._topBarangExpanded = false;
 
-  function toggleTopBarangRows() { window._topBarangExpanded = !window._topBarangExpanded; renderTopBarangRows(getCurrentBrand()); }
+  function toggleTopBarangRows() { DashState.topBarangExpanded = !DashState.topBarangExpanded; renderTopBarangRows(getCurrentBrand()); }
   function onTopBarangPeriodChange() { loadTopBarang(getCurrentBrand()); }
 
   function renderTopBarangRows(selectedBrands) {
     const isSingle = selectedBrands?.length === 1;
     const tbody = document.getElementById('tabelTopBarang'), showMoreDiv = document.getElementById('topBarangShowMore'), btnToggle = document.getElementById('btnTopBarangToggle');
-    const all = window._topBarangAllRows, expanded = window._topBarangExpanded;
+    const all = DashState.topBarangAllRows, expanded = DashState.topBarangExpanded;
     const display = expanded ? all : all.slice(0,5);
     const brandTh = tbody.closest('table').querySelector('thead tr th:nth-child(2)');
     if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
@@ -696,7 +734,7 @@
       });
       const sorted = Object.entries(agg).sort((a,b) => sortBy==='freq' ? b[1].freq-a[1].freq : b[1].totalBelanja-a[1].totalBelanja).slice(0,10);
       if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Belum ada pembelian di periode ini</div></div></td></tr>`; document.getElementById('topBarangShowMore').style.display='none'; return; }
-      window._topBarangAllRows = sorted; window._topBarangExpanded = false;
+      DashState.topBarangAllRows = sorted; DashState.topBarangExpanded = false;
       renderTopBarangRows(selectedBrands);
     } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Belum ada data.</td></tr>`; }
   }

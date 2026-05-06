@@ -7,172 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
   <script src="datefilter.js"></script>
   <script src="sidebar.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <style>
-    /* FILTER BAR */
-    .filter-bar {
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:var(--radius); padding:18px 20px;
-      display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto;
-      gap:12px; align-items:end; margin-bottom:20px;
-    }
-    .filter-bar label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; display:block; margin-bottom:5px; }
-    .filter-bar select, .filter-bar input {
-      width:100%; background:var(--bg); border:1px solid var(--border);
-      border-radius:8px; color:var(--text); font-family:var(--mono);
-      font-size:12px; padding:9px 12px; outline:none; transition:border-color .2s;
-    }
-    .filter-bar select:focus, .filter-bar input:focus { border-color:var(--accent); }
-    input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.4); cursor:pointer; }
-
-    /* STATS ROW (harga variant) */
-    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
-    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; position:relative; overflow:hidden; transition:border-color .2s; }
-    .stat-card:hover { border-color:var(--accent); }
-    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-    .stat-card.blue::before  { background:var(--accent); }
-    .stat-card.green::before { background:var(--accent2); }
-    .stat-card.orange::before{ background:var(--accent3); }
-    .stat-card.red::before   { background:var(--danger); }
-    .stat-label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
-    .stat-value { font-size:22px; font-weight:600; font-family:var(--mono); line-height:1; margin-bottom:4px; }
-    .stat-value.blue   { color:var(--accent); }
-    .stat-value.green  { color:var(--accent2); }
-    .stat-value.orange { color:var(--accent3); }
-    .stat-value.red    { color:var(--danger); }
-    .stat-sub { font-size:11px; color:var(--muted); }
-    .stat-icon { position:absolute; top:14px; right:14px; font-size:24px; opacity:.12; }
-
-    /* LAYOUT */
-    .main-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; margin-bottom:20px; align-items:start; }
-
-    /* CHART CARD */
-    .card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
-    .card-title { font-size:14px; font-weight:600; }
-
-    .chart-container { position:relative; height:320px; }
-    .chart-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:280px; color:var(--muted); gap:10px; }
-    .chart-empty-icon { font-size:36px; opacity:.5; }
-
-    /* BARANG LIST */
-    .barang-list { max-height:320px; overflow-y:auto; }
-    .barang-item { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid rgba(37,40,48,0.5); cursor:pointer; transition:background .15s; }
-    .barang-item:last-child { border-bottom:none; }
-    .barang-item:hover { background:rgba(79,142,247,0.05); }
-    .barang-item.selected { background:rgba(79,142,247,0.1); border-left:2px solid var(--accent); }
-    .barang-item-name { font-size:13px; font-weight:500; }
-    .barang-item-sub  { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
-    .barang-item-price { text-align:right; }
-    .barang-price-val  { font-family:var(--mono); font-size:13px; color:var(--accent2); }
-    .barang-price-trend { font-size:11px; margin-top:2px; font-family:var(--mono); }
-    .trend-up   { color:var(--danger); }
-    .trend-down { color:var(--accent2); }
-    .trend-flat { color:var(--muted); }
-
-    /* PRICE CHANGE INDICATOR */
-    .price-change { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-family:var(--mono); }
-    .price-change.up   { color:var(--danger); }
-    .price-change.down { color:var(--accent2); }
-    .price-change.flat { color:var(--muted); }
-
-    /* TAB */
-    .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:20px; width:fit-content; }
-    .tab-btn { padding:8px 18px; border:none; border-radius:7px; font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--muted); transition:background .2s,color .2s; }
-    .tab-btn.active { background:var(--surface2); color:var(--text); }
-
-    /* TOOLBAR (harga uses slightly different sizing) */
-    .filter-sel { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:12px; padding:8px 11px; cursor:pointer; outline:none; }
-
-    /* PERBANDINGAN */
-    .compare-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; padding:20px 20px 24px; }
-    .compare-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:18px 20px 20px; }
-    .compare-vendor { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
-    .compare-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-    .compare-price { font-family:var(--mono); font-size:18px; color:var(--accent2); margin-bottom:4px; }
-    .compare-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
-    .compare-best { border-color:rgba(56,217,169,0.4); }
-    .termurah-badge { font-size:10px; font-family:var(--mono); color:var(--accent2); background:rgba(56,217,169,0.12); padding:2px 7px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
-
-    /* TOOLTIP CHART */
-    .chartjs-tooltip { background:var(--surface2) !important; border:1px solid var(--border) !important; border-radius:8px !important; font-family:var(--mono) !important; font-size:12px !important; }
-
-    th:hover { color:var(--text); }
-    th.sorted { color:var(--accent); }
-
-    @media (max-width:1200px) { .stats-row { grid-template-columns:repeat(2,1fr); } .main-grid { grid-template-columns:1fr; } }
-    @media (max-width:768px) {
-      .filter-bar { grid-template-columns:1fr 1fr; }
-      .stats-row { grid-template-columns:1fr 1fr; }
-    }
-
-    /* Sembunyikan sidebar brand-selector — pakai multi-brand di filter-bar */
-    .brand-selector { display:none !important; }
-
-    /* Barang multi-select filter (reuse brand-filter styles) */
-    .barang-filter-wrap { position:relative; }
-
-    /* Tab global harga */
-    #tabGlobal .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
-
-    /* Multi-brand filter dropdown */
-    .brand-filter-wrap { position:relative; }
-    .brand-filter-btn {
-      display:flex; align-items:center; gap:8px; padding:9px 12px;
-      background:var(--bg); border:1px solid var(--border); border-radius:8px;
-      cursor:pointer; font-size:12px; color:var(--text); width:100%;
-      transition:border-color .2s; text-align:left; font-family:var(--mono);
-      white-space:nowrap; overflow:hidden;
-    }
-    .brand-filter-btn:hover { border-color:var(--accent); }
-    .brand-filter-btn.has-selection { border-color:var(--accent); color:var(--accent); }
-    .brand-filter-count {
-      background:var(--accent); color:#fff; border-radius:10px;
-      font-size:10px; font-family:var(--mono); padding:1px 6px; min-width:18px; text-align:center;
-    }
-    .brand-filter-dropdown {
-      display:none; position:fixed; z-index:9999;
-      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
-      padding:8px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
-      max-height:280px; overflow-y:auto;
-    }
-    .brand-filter-dropdown.open { display:block; }
-    .brand-filter-option {
-      display:flex; align-items:center; gap:10px; padding:8px 10px;
-      border-radius:6px; cursor:pointer; font-size:13px; transition:background .15s;
-      user-select:none;
-    }
-    .brand-filter-option:hover { background:rgba(79,142,247,0.08); }
-    .brand-filter-option.selected { background:rgba(79,142,247,0.12); color:var(--accent); }
-    .brand-filter-option input[type=checkbox] { accent-color:var(--accent); width:15px; height:15px; flex-shrink:0; pointer-events:none; }
-    .brand-filter-sep { height:1px; background:var(--border); margin:6px 0; }
-    .brand-filter-all { font-weight:600; }
-    .brand-dot-sm { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-    .date-quick-btn { padding:6px 8px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-  .date-quick-btn:hover { border-color:var(--accent); color:var(--accent); }
-  .date-quick-btn.active { background:rgba(79,142,247,0.12); border-color:var(--accent); color:var(--accent); }
-
-  /* ── PAGINATION ── */
-  .page-btns { display:flex; align-items:center; gap:4px; }
-  .page-btn {
-    min-width:34px; height:34px; padding:0 6px;
-    border:1px solid var(--border); border-radius:8px;
-    background:var(--surface); color:var(--muted);
-    font-family:var(--mono); font-size:12px; font-weight:500;
-    cursor:pointer; transition:all .15s;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .page-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.07); }
-  .page-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; cursor:default; }
-  .page-btn:disabled { opacity:.3; cursor:not-allowed; }
-  .page-btn.nav { font-size:13px; color:var(--muted); }
-
-  /* Button active press feedback */
-  .btn:active        { transform: scale(0.96); }
-  .btn-primary:active { filter: brightness(0.9); }
-  .btn-ghost:active   { filter: brightness(0.9); }
-</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -522,7 +362,7 @@
 
 <!-- MODAL DETAIL BARANG -->
 <div class="modal-overlay" id="barangDetailOverlay" onclick="if(event.target===this)closeBarangDetail()">
-  <div class="modal" style="max-width:620px">
+  <div class="modal" style="max-width:860px">
     <div class="modal-header">
       <span class="modal-title" id="barangDetailNama">Detail Barang</span>
       <button class="modal-close" onclick="closeBarangDetail()">✕</button>
@@ -543,15 +383,10 @@
   </div>
 </div>
 
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script>
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
   (async function init() {
     const { data: { session } } = await window._sb.auth.getSession();
@@ -656,8 +491,8 @@
         if (!tx || !item.barang_id || !item.harga_satuan) return;
         const tglJs = tx.tanggal ? new Date(tx.tanggal + 'T00:00:00') : new Date();
         const ppn_inc = item.ppn_included || false;
-        const h_exc   = item.harga_exc_ppn || (ppn_inc ? Math.round(item.harga_satuan / 1.11) : item.harga_satuan);
-        const h_inc   = item.harga_inc_ppn || (ppn_inc ? item.harga_satuan : Math.round(item.harga_satuan * 1.11));
+        const h_exc   = item.harga_exc_ppn || (ppn_inc ? toExcPPN(item.harga_satuan) : item.harga_satuan);
+        const h_inc   = item.harga_inc_ppn || (ppn_inc ? item.harga_satuan : toIncPPN(item.harga_satuan));
         rows.push({
           id:           (tx.id||'') + '_' + (item.barang_id || ''),
           barang_id:    item.barang_id,
@@ -682,7 +517,7 @@
         const tglJs = h.tanggal ? new Date(h.tanggal + 'T00:00:00') : new Date();
         const ppn_inc = h.ppn_included || false;
         const h_exc   = h.harga_exc_ppn || h.harga;
-        const h_inc   = h.harga_inc_ppn || Math.round(h_exc * 1.11);
+        const h_inc   = h.harga_inc_ppn || toIncPPN(h_exc);
         rows.push({
           id:           h.id,
           barang_id:    h.barang_id,
@@ -719,19 +554,44 @@
   /* ══════════════════════════════════════════
      STATE
   ══════════════════════════════════════════ */
-  let filteredData = [];
-  let selectedBarangId = '';
-  let chartInst = null;
-  let bandingInst = null;
-  let ppnMode = 'inc';
-  const PPN_RATE = 0.11;
-  function applyPPN(n) { return ppnMode === 'inc' ? n * (1 + PPN_RATE) : n; }
+  const PageState = {
+    filteredData    : [],
+    selectedBarangId: '',
+    chartInst       : null,
+    bandingInst     : null,
+    ppnMode         : 'inc',
+    activeTab       : 'tren',
+    tabelView       : 'ringkasan',
+    diffMode        : 'vendor',
+    tFilterBarangId : null,
+    tPage           : 1,
+    tSortField      : 'naik',
+    tSortDir        : 'desc',
+    tSearchTimer    : null,
+    tShowBrand      : false,
+    gPage           : 1,
+    gSortField      : 'tanggal',
+    gSortDir        : 'desc',
+    gSearchTimer    : null,
+    selectedGlobalBrands: [],
+  };
+  window.PageState = PageState;
+
+  /* Proxy untuk akses lintas file / lintas script block */
+  Object.defineProperties(window, {
+    filteredData    : { get: () => PageState.filteredData,     set: v => { PageState.filteredData = v; },     configurable: true },
+    selectedBarangId: { get: () => PageState.selectedBarangId, set: v => { PageState.selectedBarangId = v; }, configurable: true },
+    chartInst       : { get: () => PageState.chartInst,        set: v => { PageState.chartInst = v; },        configurable: true },
+    bandingInst     : { get: () => PageState.bandingInst,      set: v => { PageState.bandingInst = v; },      configurable: true },
+    ppnMode         : { get: () => PageState.ppnMode,          set: v => { PageState.ppnMode = v; },          configurable: true },
+  });
+
   function getHarga(r) {
-    if (ppnMode === 'inc') return r.harga_inc || Math.round(r.harga * (1 + PPN_RATE));
+    if (PageState.ppnMode === 'inc') return r.harga_inc || toIncPPN(r.harga);
     return r.harga;
   }
   function setPPN(mode) {
-    ppnMode = mode;
+    PageState.ppnMode = mode;
 
     document.getElementById('ppnBtnExc').style.background = mode==='exc' ? 'var(--accent)' : 'transparent';
     document.getElementById('ppnBtnExc').style.color = mode==='exc' ? '#fff' : 'var(--muted)';
@@ -987,9 +847,9 @@
 
     list.innerHTML = visible.map(([id,b]) => {
       const isSelected = (window._selectedBarangs||[]).includes(id);
-      const dispHarga = ppnMode==='inc' ? (b.harga_inc||Math.round(b.harga*(1+PPN_RATE))) : b.harga;
+      const dispHarga = PageState.ppnMode==='inc' ? (b.harga_inc || toIncPPN(b.harga)) : b.harga;
       /* Gunakan diff per-vendor yang sama — bukan cross-vendor */
-      const diff2    = ppnMode==='inc' ? b.vendorDiffInc : b.vendorDiff;
+      const diff2    = PageState.ppnMode==='inc' ? b.vendorDiffInc : b.vendorDiff;
       const trendCls2 = diff2 === null ? 'trend-flat'
                       : diff2 > 0 ? 'trend-up'
                       : diff2 < 0 ? 'trend-down' : 'trend-flat';
@@ -1039,10 +899,8 @@
   /* ══════════════════════════════════════════
      TAB
   ══════════════════════════════════════════ */
-  let activeTab = 'tren';
-
   function switchTab(tab) {
-    activeTab = tab;
+    PageState.activeTab = tab;
     ['tren','banding','tabel'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).style.display = t===tab ? '' : 'none';
       document.getElementById('tabBtn'+capitalize(t)).classList.toggle('active', t===tab);
@@ -1095,9 +953,9 @@
   function capitalize(s) { return s.charAt(0).toUpperCase()+s.slice(1); }
 
   function renderCurrentTab() {
-    if (activeTab==='tren')    renderChart();
-    if (activeTab==='banding') renderBanding();
-    if (activeTab==='tabel')   { setTabelView(tabelView); renderTabel(); }
+    if (PageState.activeTab==='tren')    renderChart();
+    if (PageState.activeTab==='banding') renderBanding();
+    if (PageState.activeTab==='tabel')   { setTabelView(PageState.tabelView); renderTabel(); }
   }
 
   /* ══════════════════════════════════════════
@@ -1659,21 +1517,11 @@
   /* ══════════════════════════════════════════
      TABEL HARGA PEMBELIAN — Dual View
   ══════════════════════════════════════════ */
-  let tShowBrand       = false;
-  let tabelView        = 'ringkasan'; // 'ringkasan' | 'detail'
-  let diffMode         = 'vendor';    // 'vendor' | 'krono'
-  let _tFilterBarangId = null;        // filter barang_id saat drill-down dari ringkasan
-  let tPage            = 1;
-  const T_PER     = 20;
-  let tSortField  = 'naik';
-  let tSortDir    = 'desc';
-  let tSearchTimer = null;
-
   function setTabelView(v) {
-    tabelView = v;
+    PageState.tabelView = v;
     /* Reset filter barang saat kembali ke ringkasan */
-    if (v === 'ringkasan' && _tFilterBarangId) {
-      _tFilterBarangId = null;
+    if (v === 'ringkasan' && PageState.tFilterBarangId) {
+      PageState.tFilterBarangId = null;
       const inp = document.getElementById('tSearch');
       if (inp) { inp.value = ''; inp.readOnly = false; inp.style.color = ''; inp.style.fontWeight = ''; }
       const clr = document.getElementById('tSearchClear');
@@ -1714,7 +1562,7 @@
           <option value="avg-asc">Rata-rata Terendah</option>
           <option value="nama_barang-asc">Nama A–Z</option>
           <option value="tanggal-desc">Terbaru Dibeli</option>`;
-        tSortField = 'naik'; tSortDir = 'desc';
+        PageState.tSortField = 'naik'; PageState.tSortDir = 'desc';
       } else {
         sortSel.innerHTML = `
           <option value="tanggal-desc">Terbaru</option>
@@ -1724,15 +1572,15 @@
           <option value="nama_barang-asc">Nama A–Z</option>
           <option value="diff-desc">Kenaikan Terbesar</option>
           <option value="diff-asc">Penurunan Terbesar</option>`;
-        tSortField = 'tanggal'; tSortDir = 'desc';
+        PageState.tSortField = 'tanggal'; PageState.tSortDir = 'desc';
       }
     }
-    tPage = 1; renderTabel();
+    PageState.tPage = 1; renderTabel();
   }
   window.setTabelView = setTabelView;
 
   function setDiffMode(mode) {
-    diffMode = mode;
+    PageState.diffMode = mode;
     const btnV = document.getElementById('tDiffBtnVendor');
     const btnK = document.getElementById('tDiffBtnKrono');
     if (btnV) { btnV.style.background = mode === 'vendor' ? 'var(--accent)' : 'transparent'; btnV.style.color = mode === 'vendor' ? '#fff' : 'var(--muted)'; btnV.style.fontWeight = mode === 'vendor' ? '600' : '400'; }
@@ -1752,8 +1600,8 @@
     let base = (window.hargaRaw || []).filter(r => {
       const mv  = !vendor || r.vendor_id === vendor;
       const mp  = (!fromDate || r.tanggal_js >= fromDate) && (!toDate || r.tanggal_js <= toDate);
-      /* Filter barang: pakai _tFilterBarangId (dari drill-down) jika ada */
-      const mb  = !_tFilterBarangId || r.barang_id === _tFilterBarangId;
+      /* Filter barang: pakai PageState.tFilterBarangId (dari drill-down) jika ada */
+      const mb  = !PageState.tFilterBarangId || r.barang_id === PageState.tFilterBarangId;
       /* Filter brand: cek dari _barangBrandsMap (label master) */
       let mbr = true;
       if (selBrands.length > 0) {
@@ -1763,7 +1611,7 @@
       return mv && mp && mb && mbr;
     });
     /* Search hanya sebagai filter tambahan di atas (tidak menggantikan filter barang) */
-    if (search && !_tFilterBarangId) {
+    if (search && !PageState.tFilterBarangId) {
       base = base.filter(r =>
         (r.nama_barang||'').toLowerCase().includes(search) ||
         (r.sku||'').toLowerCase().includes(search) ||
@@ -1823,8 +1671,8 @@
   }
 
   function renderTabel() {
-    if (tabelView === 'ringkasan') renderTabelRingkasan();
-    else                           renderTabelDetail();
+    if (PageState.tabelView === 'ringkasan') renderTabelRingkasan();
+    else                                     renderTabelDetail();
     renderTabelSummaryStrip();
   }
 
@@ -1842,7 +1690,7 @@
       const currH = getHarga(r);
       const rDate = dateOnly(r.tanggal_js);
       let prev;
-      if (diffMode === 'krono') {
+      if (PageState.diffMode === 'krono') {
         prev = allDesc.find(x => x.barang_id === r.barang_id && x._rid !== r._rid && dateOnly(x.tanggal_js) < rDate);
       } else {
         prev = allDesc.find(x =>
@@ -1863,7 +1711,7 @@
     const topTurun = txTurun.length ? txTurun.reduce((a,b) => b._diffPct < a._diffPct ? b : a) : null;
     const total    = Object.keys(base.reduce((m,r)=>{ m[r.barang_id]=1; return m; },{})).length;
 
-    const modeLabel = diffMode === 'krono' ? 'vs Pasar' : 'vs Vendor';
+    const modeLabel = PageState.diffMode === 'krono' ? 'vs Pasar' : 'vs Vendor';
 
     const card = (color, icon, label, value, sub) => `
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;position:relative;overflow:hidden">
@@ -1917,33 +1765,34 @@
 
     /* Sort */
     agg.sort((a, b) => {
-      if (tSortField === 'naik') {
-        const va = a.trendPct ?? (tSortDir === 'desc' ? -Infinity : Infinity);
-        const vb = b.trendPct ?? (tSortDir === 'desc' ? -Infinity : Infinity);
-        return tSortDir === 'desc' ? vb - va : va - vb;
+      if (PageState.tSortField === 'naik') {
+        const va = a.trendPct ?? (PageState.tSortDir === 'desc' ? -Infinity : Infinity);
+        const vb = b.trendPct ?? (PageState.tSortDir === 'desc' ? -Infinity : Infinity);
+        return PageState.tSortDir === 'desc' ? vb - va : va - vb;
       }
-      if (tSortField === 'harga') {
+      if (PageState.tSortField === 'harga') {
         const va = a.latestH || 0, vb = b.latestH || 0;
-        return tSortDir === 'desc' ? vb - va : va - vb;
+        return PageState.tSortDir === 'desc' ? vb - va : va - vb;
       }
-      if (tSortField === 'avg') {
+      if (PageState.tSortField === 'avg') {
         const va = a.avgH || 0, vb = b.avgH || 0;
-        return tSortDir === 'desc' ? vb - va : va - vb;
+        return PageState.tSortDir === 'desc' ? vb - va : va - vb;
       }
-      if (tSortField === 'tanggal') {
+      if (PageState.tSortField === 'tanggal') {
         const va = a.latestTgl || 0, vb = b.latestTgl || 0;
-        return tSortDir === 'desc' ? vb - va : va - vb;
+        return PageState.tSortDir === 'desc' ? vb - va : va - vb;
       }
-      if (tSortField === 'nama_barang') {
-        return tSortDir === 'asc' ? a.nama.localeCompare(b.nama) : b.nama.localeCompare(a.nama);
+      if (PageState.tSortField === 'nama_barang') {
+        return PageState.tSortDir === 'asc' ? a.nama.localeCompare(b.nama) : b.nama.localeCompare(a.nama);
       }
       return 0;
     });
 
+    const T_PER = 20;
     const total = agg.length;
     const pages = Math.ceil(total / T_PER) || 1;
-    tPage = Math.min(tPage, pages);
-    const slice = agg.slice((tPage-1)*T_PER, tPage*T_PER);
+    PageState.tPage = Math.min(PageState.tPage, pages);
+    const slice = agg.slice((PageState.tPage-1)*T_PER, PageState.tPage*T_PER);
     const tbody = document.getElementById('tRingkasanBody');
     if (!tbody) return;
 
@@ -1995,33 +1844,33 @@
     }
 
     const paginInfo = document.getElementById('tPaginInfo');
-    if (paginInfo) paginInfo.textContent = `${total} barang · Hal ${tPage}/${pages}`;
-    buildPagination(document.getElementById('tPageBtns'), tPage, pages, pg => { tPage = pg; renderTabel(); });
+    if (paginInfo) paginInfo.textContent = `${total} barang · Hal ${PageState.tPage}/${pages}`;
+    buildPagination(document.getElementById('tPageBtns'), PageState.tPage, pages, pg => { PageState.tPage = pg; renderTabel(); });
   }
 
   /* Drill-down: switch ke detail view filtered by barang */
   function drillDownBarang(id, nama) {
-    _tFilterBarangId = id;
+    PageState.tFilterBarangId = id;
     /* Tampilkan nama barang di search sebagai info, tapi tidak sebagai filter */
     const inp = document.getElementById('tSearch');
     if (inp) { inp.value = nama; inp.readOnly = true; inp.style.color = 'var(--accent)'; inp.style.fontWeight = '600'; }
     /* Ganti tombol ✕ jadi clear filter */
     const clr = document.getElementById('tSearchClear');
     if (clr) { clr.style.display = 'flex'; clr.title = 'Hapus filter barang'; }
-    tPage = 1;
+    PageState.tPage = 1;
     setTabelView('detail');
   }
   window.drillDownBarang = drillDownBarang;
 
   function clearDetailFilter() {
-    _tFilterBarangId = null;
+    PageState.tFilterBarangId = null;
     const inp = document.getElementById('tSearch');
     if (inp) { inp.value = ''; inp.readOnly = false; inp.style.color = ''; inp.style.fontWeight = ''; }
     const clr = document.getElementById('tSearchClear');
     if (clr) clr.style.display = 'none';
     const info = document.getElementById('tSearchResultInfo');
     if (info) info.style.display = 'none';
-    tPage = 1; renderTabel();
+    PageState.tPage = 1; renderTabel();
   }
   window.clearDetailFilter = clearDetailFilter;
 
@@ -2043,7 +1892,7 @@
       const currH   = getHarga(r);
       const rDate   = dateOnly(r.tanggal_js);
       let prev;
-      if (diffMode === 'krono') {
+      if (PageState.diffMode === 'krono') {
         /* Cari entri barang yang sama, tanggal STRICTLY lebih awal (bukan hari yang sama) */
         prev = allDesc.find(x =>
           x.barang_id === r.barang_id &&
@@ -2068,24 +1917,25 @@
 
     /* Sort */
     const sorted = base.sort((a, b) => {
-      if (tSortField === 'diff') {
-        const va = a._diff ?? (tSortDir === 'asc' ? Infinity : -Infinity);
-        const vb = b._diff ?? (tSortDir === 'asc' ? Infinity : -Infinity);
-        return tSortDir === 'asc' ? va - vb : vb - va;
+      if (PageState.tSortField === 'diff') {
+        const va = a._diff ?? (PageState.tSortDir === 'asc' ? Infinity : -Infinity);
+        const vb = b._diff ?? (PageState.tSortDir === 'asc' ? Infinity : -Infinity);
+        return PageState.tSortDir === 'asc' ? va - vb : vb - va;
       }
-      let va = a[tSortField], vb = b[tSortField];
-      if (tSortField === 'tanggal') { va = a.tanggal_js; vb = b.tanggal_js; }
-      if (va instanceof Date) return tSortDir === 'asc' ? va - vb : vb - va;
+      let va = a[PageState.tSortField], vb = b[PageState.tSortField];
+      if (PageState.tSortField === 'tanggal') { va = a.tanggal_js; vb = b.tanggal_js; }
+      if (va instanceof Date) return PageState.tSortDir === 'asc' ? va - vb : vb - va;
       va = va || 0; vb = vb || 0;
-      if (typeof va === 'number') return tSortDir === 'asc' ? va - vb : vb - va;
+      if (typeof va === 'number') return PageState.tSortDir === 'asc' ? va - vb : vb - va;
       va = va.toString().toLowerCase(); vb = vb.toString().toLowerCase();
-      return tSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return PageState.tSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     });
 
+    const T_PER = 20;
     const total = sorted.length;
     const pages = Math.ceil(total / T_PER) || 1;
-    tPage = Math.min(tPage, pages);
-    const slice = sorted.slice((tPage-1)*T_PER, tPage*T_PER);
+    PageState.tPage = Math.min(PageState.tPage, pages);
+    const slice = sorted.slice((PageState.tPage-1)*T_PER, PageState.tPage*T_PER);
     const tbody = document.getElementById('tTableBody');
     if (!tbody) return;
 
@@ -2098,7 +1948,7 @@
         let changeEl = '<span class="price-change flat">—</span>';
         if (diff !== null) {
           const pct = Math.abs(diffPct).toFixed(1);
-          const tip = (diffMode === 'krono' && r._prevVendor && r._prevVendor !== r.vendor_nama)
+          const tip = (PageState.diffMode === 'krono' && r._prevVendor && r._prevVendor !== r.vendor_nama)
             ? ` title="vs ${r._prevVendor}"` : '';
           changeEl = Math.abs(diff) < 1
             ? `<span class="price-change flat"${tip}>→ Sama</span>`
@@ -2132,39 +1982,39 @@
     }
 
     const pi2 = document.getElementById('tPaginInfo2');
-    if (pi2) pi2.textContent = `${Math.min((tPage-1)*T_PER+1,total||1)}–${Math.min(tPage*T_PER,total)} dari ${total}`;
-    buildPagination(document.getElementById('tPageBtns2'), tPage, pages, pg => { tPage = pg; renderTabel(); });
+    if (pi2) pi2.textContent = `${Math.min((PageState.tPage-1)*T_PER+1,total||1)}–${Math.min(PageState.tPage*T_PER,total)} dari ${total}`;
+    buildPagination(document.getElementById('tPageBtns2'), PageState.tPage, pages, pg => { PageState.tPage = pg; renderTabel(); });
   }
 
   function toggleTabelBrand() {
-    tShowBrand = !tShowBrand;
+    PageState.tShowBrand = !PageState.tShowBrand;
     const btn = document.getElementById('tBrandToggleBtn');
-    if (btn) btn.textContent = tShowBrand ? '🙈 Brand' : '👁 Brand';
+    if (btn) btn.textContent = PageState.tShowBrand ? '🙈 Brand' : '👁 Brand';
     const hdr = document.getElementById('tColBrandHdr');
-    if (hdr) hdr.style.display = tShowBrand ? '' : 'none';
-    document.querySelectorAll('.tColBrand').forEach(el => { el.style.display = tShowBrand ? '' : 'none'; });
+    if (hdr) hdr.style.display = PageState.tShowBrand ? '' : 'none';
+    document.querySelectorAll('.tColBrand').forEach(el => { el.style.display = PageState.tShowBrand ? '' : 'none'; });
   }
   window.toggleTabelBrand = toggleTabelBrand;
 
   function tSortBy(field) {
-    if(tSortField===field) tSortDir=tSortDir==='asc'?'desc':'asc';
-    else { tSortField=field; tSortDir=(field==='tanggal'||field==='harga'||field==='diff'||field==='naik')?'desc':'asc'; }
+    if(PageState.tSortField===field) PageState.tSortDir=PageState.tSortDir==='asc'?'desc':'asc';
+    else { PageState.tSortField=field; PageState.tSortDir=(field==='tanggal'||field==='harga'||field==='diff'||field==='naik')?'desc':'asc'; }
     document.querySelectorAll('[id^="ts-"]').forEach(el=>el.textContent='↕');
     document.querySelectorAll('th').forEach(el=>el.classList.remove('sorted'));
     const icon=document.getElementById('ts-'+field);
-    if(icon){icon.textContent=tSortDir==='asc'?'↑':'↓';icon.parentElement.classList.add('sorted');}
-    tPage=1; renderTabel();
+    if(icon){icon.textContent=PageState.tSortDir==='asc'?'↑':'↓';icon.parentElement.classList.add('sorted');}
+    PageState.tPage=1; renderTabel();
   }
 
   function tSortChange() {
     const val = document.getElementById('tSortSel').value.split('-');
-    tSortField=val[0]; tSortDir=val[1]; tPage=1; renderTabel();
+    PageState.tSortField=val[0]; PageState.tSortDir=val[1]; PageState.tPage=1; renderTabel();
   }
 
   function onTSearch() {
-    clearTimeout(tSearchTimer);
-    tSearchTimer = setTimeout(() => {
-      tPage = 1;
+    clearTimeout(PageState.tSearchTimer);
+    PageState.tSearchTimer = setTimeout(() => {
+      PageState.tPage = 1;
       renderTabel();
       const q    = document.getElementById('tSearch').value.trim();
       const info = document.getElementById('tSearchResultInfo');
@@ -2188,14 +2038,14 @@
   }
 
   function clearTSearch() {
-    _tFilterBarangId = null;
+    PageState.tFilterBarangId = null;
     const input = document.getElementById('tSearch');
     input.value = ''; input.readOnly = false; input.style.color = ''; input.style.fontWeight = '';
     const btn = document.getElementById('tSearchClear');
     if (btn) btn.style.display = 'none';
     const info = document.getElementById('tSearchResultInfo');
     if (info) info.style.display = 'none';
-    tPage = 1;
+    PageState.tPage = 1;
     renderTabel();
     input.focus();
   }
@@ -2385,13 +2235,6 @@
   /* ══════════════════════════════════════════
      TAB HARGA GLOBAL
   ══════════════════════════════════════════ */
-  let gPage = 1;
-  const G_PER = 20;
-  let gSortField = 'tanggal';
-  let gSortDir   = 'desc';
-  let gSearchTimer = null;
-  let _selectedGlobalBrands = []; // filter brand khusus tab global
-
   /* Build global brand filter dropdown (terpisah dari filter utama) */
   function buildGlobalBrandDropdown(brands) {
     const wrap = document.getElementById('globalBrandFilterWrap');
@@ -2460,21 +2303,21 @@
 
   function toggleGlobalBrandOption(e, brandId) {
     e.stopPropagation();
-    const idx = _selectedGlobalBrands.indexOf(brandId);
-    if (idx === -1) _selectedGlobalBrands.push(brandId);
-    else _selectedGlobalBrands.splice(idx, 1);
+    const idx = PageState.selectedGlobalBrands.indexOf(brandId);
+    if (idx === -1) PageState.selectedGlobalBrands.push(brandId);
+    else PageState.selectedGlobalBrands.splice(idx, 1);
     updateGlobalBrandFilterUI();
-    gPage = 1; renderGlobal();
+    PageState.gPage = 1; renderGlobal();
   }
 
   function selectAllGlobalBrands() {
-    _selectedGlobalBrands = [];
+    PageState.selectedGlobalBrands = [];
     updateGlobalBrandFilterUI();
-    gPage = 1; renderGlobal();
+    PageState.gPage = 1; renderGlobal();
   }
 
   function updateGlobalBrandFilterUI() {
-    const sel = _selectedGlobalBrands;
+    const sel = PageState.selectedGlobalBrands;
     const isAll = sel.length === 0;
     const btn = document.getElementById('globalBrandFilterBtn');
     const label = document.getElementById('globalBrandFilterLabel');
@@ -2513,10 +2356,10 @@
     });
 
     /* Filter berdasarkan brand MASTER barang (bukan brand transaksi) */
-    if (_selectedGlobalBrands.length > 0) {
+    if (PageState.selectedGlobalBrands.length > 0) {
       base = base.filter(r => {
         const masterBrandIds = window._barangBrandsMap?.[r.barang_id] || [];
-        return masterBrandIds.some(bid => _selectedGlobalBrands.includes(bid));
+        return masterBrandIds.some(bid => PageState.selectedGlobalBrands.includes(bid));
       });
     }
 
@@ -2528,28 +2371,31 @@
       );
     }
 
+    const G_SORT = PageState.gSortField;
+    const G_DIR  = PageState.gSortDir;
     return base.sort((a, b) => {
-      let va = a[gSortField], vb = b[gSortField];
-      if (gSortField === 'tanggal')      { va = a.tanggal_js; vb = b.tanggal_js; }
-      if (gSortField === 'brand_master') {
+      let va = a[G_SORT], vb = b[G_SORT];
+      if (G_SORT === 'tanggal')      { va = a.tanggal_js; vb = b.tanggal_js; }
+      if (G_SORT === 'brand_master') {
         va = (getBarangMasterBrands(a.barang_id)[0] || '').toLowerCase();
         vb = (getBarangMasterBrands(b.barang_id)[0] || '').toLowerCase();
-        return gSortDir==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return G_DIR==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
       }
-      if (va instanceof Date) return gSortDir==='asc' ? va-vb : vb-va;
+      if (va instanceof Date) return G_DIR==='asc' ? va-vb : vb-va;
       va = (va||0); vb = (vb||0);
-      if (typeof va==='number') return gSortDir==='asc' ? va-vb : vb-va;
+      if (typeof va==='number') return G_DIR==='asc' ? va-vb : vb-va;
       va = va.toString().toLowerCase(); vb = vb.toString().toLowerCase();
-      return gSortDir==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return G_DIR==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     });
   }
 
   function renderGlobal() {
+    const G_PER = 20;
     const data  = getGFiltered();
     const total = data.length;
     const pages = Math.ceil(total/G_PER)||1;
-    gPage = Math.min(gPage, pages);
-    const slice = data.slice((gPage-1)*G_PER, gPage*G_PER);
+    PageState.gPage = Math.min(PageState.gPage, pages);
+    const slice = data.slice((PageState.gPage-1)*G_PER, PageState.gPage*G_PER);
     const tbody = document.getElementById('gTableBody');
     if (!tbody) return;
 
@@ -2587,28 +2433,28 @@
     }
 
     document.getElementById('gPaginInfo').textContent =
-      `Menampilkan ${Math.min((gPage-1)*G_PER+1,total||1)}–${Math.min(gPage*G_PER,total)} dari ${total} catatan`;
-    buildPagination(document.getElementById('gPageBtns'), gPage, pages, pg => { gPage = pg; renderGlobal(); });
+      `Menampilkan ${Math.min((PageState.gPage-1)*G_PER+1,total||1)}–${Math.min(PageState.gPage*G_PER,total)} dari ${total} catatan`;
+    buildPagination(document.getElementById('gPageBtns'), PageState.gPage, pages, pg => { PageState.gPage = pg; renderGlobal(); });
   }
 
   function gSortBy(field) {
-    if(gSortField===field) gSortDir=gSortDir==='asc'?'desc':'asc';
-    else { gSortField=field; gSortDir=(field==='tanggal'||field==='harga')?'desc':'asc'; }
+    if(PageState.gSortField===field) PageState.gSortDir=PageState.gSortDir==='asc'?'desc':'asc';
+    else { PageState.gSortField=field; PageState.gSortDir=(field==='tanggal'||field==='harga')?'desc':'asc'; }
     document.querySelectorAll('[id^="gs-"]').forEach(el=>el.textContent='↕');
     const icon=document.getElementById('gs-'+field);
-    if(icon){icon.textContent=gSortDir==='asc'?'↑':'↓';}
-    gPage=1; renderGlobal();
+    if(icon){icon.textContent=PageState.gSortDir==='asc'?'↑':'↓';}
+    PageState.gPage=1; renderGlobal();
   }
 
   function gSortChange() {
     const val = document.getElementById('gSortSel').value.split('-');
-    gSortField=val[0]; gSortDir=val[1]; gPage=1; renderGlobal();
+    PageState.gSortField=val[0]; PageState.gSortDir=val[1]; PageState.gPage=1; renderGlobal();
   }
 
   function onGSearch() {
-    clearTimeout(gSearchTimer);
-    gSearchTimer = setTimeout(() => {
-      gPage = 1; renderGlobal();
+    clearTimeout(PageState.gSearchTimer);
+    PageState.gSearchTimer = setTimeout(() => {
+      PageState.gPage = 1; renderGlobal();
       const q    = document.getElementById('gSearch').value.trim();
       const info = document.getElementById('gSearchResultInfo');
       if (!info) return;
@@ -2858,8 +2704,8 @@
         allEntries.push({
           tglStr:    tx.tanggal || '',
           tglJs:     tx.tanggal ? new Date(tx.tanggal + 'T00:00:00') : new Date(0),
-          hargaInc:  Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : item.harga_satuan * 1.11)),
-          hargaExc:  Math.round(item.harga_exc_ppn || (item.ppn_included ? item.harga_satuan / 1.11 : item.harga_satuan)),
+          hargaInc:  Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : toIncPPN(item.harga_satuan))),
+          hargaExc:  Math.round(item.harga_exc_ppn || (item.ppn_included ? toExcPPN(item.harga_satuan) : item.harga_satuan)),
           vendorNama: window.vendorMap?.[tx.vendor_id] || '—',
           brandCell: `<span class="badge badge-blue" style="font-size:10px">${window.brandMap?.[tx.brand_id] || '—'}</span>`,
           qty:       item.qty || '—',
@@ -2872,8 +2718,8 @@
         allEntries.push({
           tglStr:    h.tanggal || '',
           tglJs:     h.tanggal ? new Date(h.tanggal + 'T00:00:00') : new Date(0),
-          hargaInc:  Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : h.harga * 1.11)),
-          hargaExc:  Math.round(h.harga_exc_ppn || (h.ppn_included ? h.harga / 1.11 : h.harga)),
+          hargaInc:  Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : toIncPPN(h.harga))),
+          hargaExc:  Math.round(h.harga_exc_ppn || (h.ppn_included ? toExcPPN(h.harga) : h.harga)),
           vendorNama: window.vendorMap?.[h.vendor_id] || h.catatan || '—',
           brandCell: `<span style="font-size:9px;font-family:var(--mono);background:rgba(168,139,250,0.15);color:#a78bfa;border:1px solid rgba(168,139,250,0.3);border-radius:3px;padding:2px 7px">survey</span>`,
           qty:       '—',
@@ -2953,7 +2799,6 @@
     }
   });
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   function exportHarga() {
     const data = getTFiltered();
@@ -2968,7 +2813,7 @@
     data.forEach(r => {
       const brandNama = window.brandMap?.[r.brand_id] || r.brand_id || '—';
       const hargaExc  = r.harga     || 0;
-      const hargaInc  = r.harga_inc || Math.round(hargaExc * 1.11);
+      const hargaInc  = r.harga_inc || toIncPPN(hargaExc);
       rows.push([
         r.tanggal       || '',
         r.nama_barang   || '',
@@ -2996,7 +2841,7 @@
       });
       const bandingRows = [['Vendor', 'Harga Terakhir (Inc)', 'Harga Rata-rata (Inc)', 'Jumlah Catatan']];
       Object.entries(byVendor).forEach(([nama, rows2]) => {
-        const hargaInc = r => r.harga_inc || Math.round(r.harga * 1.11);
+        const hargaInc = r => r.harga_inc || toIncPPN(r.harga);
         const latest = hargaInc(rows2[0]);
         const avg    = Math.round(rows2.reduce((s,r)=>s+hargaInc(r),0)/rows2.length);
         bandingRows.push([nama, latest, avg, rows2.length]);
@@ -3010,10 +2855,10 @@
     XLSX.writeFile(wb, `analisis_harga_${tgl}.xlsx`);
     showToast(`✓ Export ${data.length} catatan berhasil`, 'success');
   }
-  window.exportHarga = exportHarga;
-  window.openBarangDetail = openBarangDetail;
+  window.openBarangDetail  = openBarangDetail;
   window.closeBarangDetail = closeBarangDetail;
 </script>
+<script src="harga-export.js"></script>
 <!-- HARGA DATE PICKER PORTAL — render di body agar tidak tertimpa elemen lain -->
 <div id="hargaDatePicker" style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
   <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>

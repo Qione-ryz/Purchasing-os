@@ -3,16 +3,16 @@
 // ═══════════════════════════════════════════════
 // File ini harus ada di ROOT folder repo (sejajar index.html / ordermasuk.html)
 
-const SW_VERSION = 'v1.0.0';
+const SW_VERSION = 'v1.1.0';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installed', SW_VERSION);
-  self.skipWaiting(); // Langsung aktif tanpa tunggu tab lama ditutup
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activated', SW_VERSION);
-  event.waitUntil(self.clients.claim()); // Ambil kontrol semua tab sekarang
+  event.waitUntil(self.clients.claim());
 });
 
 // ── HANDLE PUSH EVENT (dari server) ──────────────────────────────────────────
@@ -37,7 +37,7 @@ self.addEventListener('push', (event) => {
     tag        : payload.tag     || 'order-masuk',
     data       : payload.data    || {},
     requireInteraction: false,
-    vibrate    : [200, 100, 200],  // pola getar di HP
+    vibrate    : [200, 100, 200],
     actions    : [
       { action: 'open',   title: '📋 Lihat Order' },
       { action: 'dismiss',title: '✕ Tutup' }
@@ -55,18 +55,15 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return;
 
-  // Buka / fokus ke tab ordermasuk.html
   const targetUrl = event.notification.data.url || '/Purchasing-os/ordermasuk.html';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Cek apakah tab ordermasuk sudah terbuka
       for (const client of clients) {
         if (client.url.includes('ordermasuk') && 'focus' in client) {
           return client.focus();
         }
       }
-      // Kalau belum ada, buka tab baru
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);
       }
@@ -75,13 +72,47 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // ── HANDLE PUSH SUBSCRIPTION CHANGE ─────────────────────────────────────────
-// Dipanggil browser jika subscription expired / berubah
+// Dipanggil browser otomatis jika subscription expired / berubah
+const VAPID_PUBLIC_KEY = 'BEvXzS-b9Jh7SJPq5DVMVn_fuum11A83y2DFygDzOB2n5_kynxhnnuJNtYb0e_BwE-7DggHm6CVX58mqEQQ6ww4';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
 self.addEventListener('pushsubscriptionchange', (event) => {
-  console.log('[SW] Subscription berubah, perlu re-subscribe');
-  // Kirim pesan ke main thread untuk re-subscribe
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED' });
-    });
-  });
+  console.log('[SW] Subscription berubah, re-subscribe otomatis...');
+
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly     : true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    })
+    .then(async (newSubscription) => {
+      console.log('[SW] Re-subscribe berhasil ✓');
+      const subJson = newSubscription.toJSON();
+
+      // Kirim ke tab yang terbuka — push-setup.js akan simpan ke Supabase
+      const clients = await self.clients.matchAll({ includeUncontrolled: true });
+      if (clients.length > 0) {
+        clients.forEach(client => {
+          client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription: subJson });
+        });
+        console.log('[SW] Subscription baru dikirim ke tab ✓');
+      } else {
+        // Tidak ada tab terbuka — initWebPush() akan upsert saat halaman dibuka berikutnya
+        console.log('[SW] Tidak ada tab terbuka, subscription tersimpan saat halaman dibuka');
+      }
+    })
+    .catch((err) => {
+      console.error('[SW] Re-subscribe gagal:', err);
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED' });
+        });
+      });
+    })
+  );
 });

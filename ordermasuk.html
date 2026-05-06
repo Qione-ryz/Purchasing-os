@@ -6,228 +6,18 @@
 <title>PurchaseOS — Order Masuk</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css"/>
-  <link rel="stylesheet" href="theme.css"/>
-  <script src="sidebar.js" defer></script>
-  <script src="push-setup.js" defer></script>
-  <script>document.addEventListener('DOMContentLoaded',()=>{if(localStorage.getItem('appTheme')==='light')document.body.classList.add('light-mode');});</script>
-<style>
-/* ── ORDER MASUK SPECIFIC ── */
-
-/* Brand multi-select dropdown (from dashboard) */
-.brand-filter-wrap { position:relative; }
-.brand-filter-btn { display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);width:100%;transition:border-color .2s;text-align:left; }
-.brand-filter-btn:hover { border-color:var(--accent); }
-.brand-filter-btn.has-selection { border-color:var(--accent);color:var(--accent); }
-.brand-filter-count { background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px;min-width:18px;text-align:center; }
-.brand-filter-dropdown { display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto; }
-.brand-filter-dropdown.open { display:block; }
-.brand-filter-option { display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none; }
-.brand-filter-option:hover { background:rgba(79,142,247,0.08); }
-.brand-filter-option.selected { background:rgba(79,142,247,0.12);color:var(--accent); }
-.brand-filter-option input[type=checkbox] { accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none; }
-.brand-filter-sep { height:1px;background:var(--border);margin:6px 0; }
-.brand-filter-all { font-weight:600; }
-.brand-dot-sm { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
-
-/* Cancelled tab active state */
-.btn-tab-active { background:rgba(248,113,113,0.12) !important;color:var(--danger) !important;border-color:rgba(248,113,113,0.4) !important; }
-.btn-arsip-active { background:rgba(167,139,250,0.12) !important;color:#a78bfa !important;border-color:rgba(167,139,250,0.4) !important; }
-
-.topbar-right { display:flex; align-items:center; gap:12px; }
-
-/* FILTER BAR */
-.filter-bar {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  margin-bottom:20px;
-}
-.filter-bar .search-wrap { flex:1; min-width:200px; }
-
-/* STAT STRIP */
-.stat-strip {
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-  margin-bottom:20px;
-}
-.strip-card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:14px 18px;
-  position:relative;
-  overflow:hidden;
-}
-.strip-card::before {
-  content:'';
-  position:absolute;
-  top:0; left:0; right:0;
-  height:2px;
-}
-.strip-card.blue::before   { background:var(--accent); }
-.strip-card.orange::before { background:var(--accent3); }
-.strip-card.green::before  { background:var(--accent2); }
-.strip-card.purple::before { background:#a78bfa; }
-.strip-val {
-  font-family:var(--mono);
-  font-size:22px;
-  font-weight:500;
-  line-height:1;
-  margin-bottom:4px;
-}
-.strip-val.blue   { color:var(--accent); }
-.strip-val.orange { color:var(--accent3); }
-.strip-val.green  { color:var(--accent2); }
-.strip-val.purple { color:#a78bfa; }
-.strip-label { font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:.7px; }
-
-/* ORDER LIST TABLE */
-
-
-
-
-/* ITEMS SUBTABLE */
-.sub-table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
-.sub-table th {
-  font-family:var(--mono); font-size:10px; text-transform:uppercase;
-  letter-spacing:.7px; color:var(--muted); padding:8px 10px;
-  text-align:left; border-bottom:1px solid var(--border);
-  overflow:hidden; white-space:nowrap;
-}
-.sub-table td {
-  padding:9px 10px;
-  border-bottom:1px solid rgba(37,40,48,0.4);
-  vertical-align:middle;
-  overflow:hidden;
-}
-.sub-table tr:last-child td { border-bottom:none; }
-/* Column widths — fixed agar header & row sejajar */
-.sub-table .col-barang   { width:25%; }
-.sub-table .col-satuan   { width:11%; }
-.sub-table .col-harga    { width:13%; }
-.sub-table .col-status   { width:11%; }
-.sub-table .col-progress { width:20%; }
-.sub-table .col-aksi     { width:124px; min-width:124px; }
-
-/* PROGRESS */
-.prog-wrap { background:var(--border); border-radius:4px; height:5px; min-width:60px; overflow:hidden; margin-top:4px; }
-.prog-bar  { height:100%; border-radius:4px; }
-.prog-bar.done    { background:var(--accent2); }
-.prog-bar.partial { background:var(--accent3); }
-.prog-bar.zero    { background:var(--muted); }
-
-/* QTY INPUT inline */
-.qty-input {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:6px;
-  color:var(--text);
-  font-family:var(--mono);
-  font-size:12px;
-  padding:5px 8px;
-  width:72px;
-  outline:none;
-  transition:border-color .2s;
-}
-.qty-input:focus { border-color:var(--accent2); }
-
-/* MODAL */
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; }
-#modalBeli, #modalWA, #modalWAManual, #modalWAMode, #modalConfirm { z-index:300; }
-.modal-overlay.show { display:flex; }
-.modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:780px; max-height:90vh; overflow-y:auto; margin:20px; animation:modalIn .2s ease; }
-@keyframes modalIn { from { opacity:0; transform:scale(.96) translateY(8px); } }
-.modal-header { padding:20px 22px 0; display:flex; align-items:center; justify-content:space-between; }
-.modal-title  { font-size:16px; font-weight:600; }
-.modal-close  { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; }
-.modal-close:hover { color:var(--text); }
-.modal-body   { padding:18px 22px; }
-.modal-footer { padding:0 22px 20px; display:flex; gap:10px; justify-content:flex-end; position:sticky; bottom:0; background:var(--surface); border-top:1px solid var(--border); padding-top:14px; margin-top:4px; z-index:1; }
-
-/* FIELD */
-.field { margin-bottom:16px; }
-.field label { display:block; font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
-.field input, .field select, .field textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:10px 13px; outline:none; transition:border-color .2s; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
-.field textarea { resize:vertical; min-height:60px; font-size:13px; }
-.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.field-hint { font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono); }
-
-/* INFO BOX */
-.info-box { border-radius:8px; padding:10px 14px; font-size:12px; font-family:var(--mono); margin-bottom:14px; }
-.info-box.orange { background:rgba(247,146,79,0.08); border:1px solid rgba(247,146,79,0.2); color:var(--accent3); }
-.info-box.blue   { background:rgba(79,142,247,0.08); border:1px solid rgba(79,142,247,0.2); color:var(--accent); }
-.info-box.green  { background:rgba(56,217,169,0.08); border:1px solid rgba(56,217,169,0.2); color:var(--accent2); }
-
-/* BADGE */
-.badge { display:inline-block; padding:3px 8px; border-radius:5px; font-size:11px; font-family:var(--mono); font-weight:500; min-width:72px; text-align:center; }
-.badge-gray   { background:rgba(107,114,128,0.15); color:var(--muted); }
-.badge-green  { background:rgba(56,217,169,0.15); color:var(--accent2); border:1px solid rgba(56,217,169,0.2); }
-.badge-orange { background:rgba(247,146,79,0.15); color:var(--accent3); border:1px solid rgba(247,146,79,0.2); }
-.badge-blue   { background:rgba(79,142,247,0.15); color:var(--accent); border:1px solid rgba(79,142,247,0.2); }
-.badge-red    { background:rgba(248,113,113,0.15); color:var(--danger); border:1px solid rgba(248,113,113,0.2); }
-.badge-purple { background:rgba(167,139,250,0.15); color:#a78bfa; border:1px solid rgba(167,139,250,0.2); }
-
-/* ACTION BUTTONS inline */
-.action-wrap { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-
-/* TOAST */
-.toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; font-size:13px; display:flex; align-items:center; gap:10px; box-shadow:0 8px 32px rgba(0,0,0,0.4); transform:translateY(80px); opacity:0; transition:transform .3s,opacity .3s; max-width:320px; }
-.toast.show { transform:translateY(0); opacity:1; }
-.toast.success { border-color:rgba(56,217,169,0.4); }
-.toast.error   { border-color:rgba(248,113,113,0.4); }
-
-/* SPINNER */
-.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* EMPTY */
-.empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
-.empty-icon  { font-size:36px; margin-bottom:10px; }
-.empty-text  { font-size:14px; }
-
-/* TABLE ROW hover */
-table tbody tr { transition: background .15s; }
-table tbody tr:hover td { background: rgba(79,142,247,0.04); }
-
-/* Pastikan sidebar overlay tidak block content saat tersembunyi */
-.overlay { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); }
-.overlay.show { display:block; }
-
-/* CUSTOM TAG */
-.custom-tag { font-size:10px; font-family:var(--mono); background:rgba(247,146,79,0.12); color:var(--accent3); border:1px solid rgba(247,146,79,0.2); border-radius:4px; padding:2px 6px; margin-left:6px; }
-
-/* VENDOR GROUP in detail modal */
-.vendor-group { margin-bottom:18px; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.vendor-group-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 14px; background:var(--surface2);
-  border-bottom:1px solid var(--border);
-  font-size:12px; font-weight:600;
-}
-.vendor-group-header .vg-name { color:var(--text); }
-.vendor-group-header .vg-meta { font-family:var(--mono); font-size:11px; color:var(--muted); }
-.vendor-group-wa {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:4px 10px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer;
-  background:rgba(37,211,102,0.12); color:#25D366;
-  border:1px solid rgba(37,211,102,0.3); transition:background .15s;
-  text-decoration:none; white-space:nowrap;
-}
-.vendor-group-wa:hover { background:rgba(37,211,102,0.22); }
-.vendor-group-none { font-size:11px; color:var(--muted); font-family:var(--mono); padding:4px 6px; }
-
-/* CONFIRM OVERLAY */
-.confirm-body { padding:14px 22px 20px; font-size:14px; color:var(--muted); line-height:1.6; }
-.confirm-body strong { color:var(--text); }
-
-@media(max-width:900px) {
-  .stat-strip { grid-template-columns:repeat(2,1fr); }
-}
-@media(max-width:600px) {
-  .stat-strip { grid-template-columns:1fr 1fr; }
-  .filter-bar { flex-direction:column; align-items:stretch; }
-}
-</style>
+<link rel="stylesheet" href="theme.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="logger.js"></script>
+<script>
+  // Apply theme sebelum render untuk mencegah flash — tidak bergantung body
+  (function(){ try { if(localStorage.getItem('appTheme')==='light') document.documentElement.classList.add('light-mode'); } catch(e){} })();
+</script>
+<script src="ppn.js"></script>
+<script src="sidebar.js" defer></script>
+<script src="push-setup.js" defer></script>
 </head>
 <body>
 
@@ -246,7 +36,7 @@ table tbody tr:hover td { background: rgba(79,142,247,0.04); }
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
       <button class="btn btn-ghost btn-sm" id="btnTabCancelled" onclick="toggleCancelledTab()" style="color:var(--muted)">Cancelled (—)</button>
-      <button class="btn btn-ghost btn-sm" id="btnPurge" class="admin-only" onclick="purgeCancelled()" style="color:var(--danger);border-color:rgba(248,113,113,0.3);display:none">🗑 Hapus Permanen</button>
+      <button class="btn btn-ghost btn-sm admin-only" id="btnPurge" onclick="purgeCancelled()" style="color:var(--danger);border-color:rgba(248,113,113,0.3);display:none">🗑 Hapus Permanen</button>
       <button class="btn btn-ghost btn-sm" id="btnTabArsip" onclick="toggleArsipTab()" style="color:var(--muted)">📦 Arsip</button>
     </div>
   </div>
@@ -274,8 +64,8 @@ table tbody tr:hover td { background: rgba(79,142,247,0.04); }
     </div>
 
     <!-- FILTER BAR -->
-    <div class="filter-bar">
-      <div class="search-wrap" style="flex:1;min-width:220px;position:relative">
+    <div class="filter-bar om-filter-bar">
+      <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input class="search-input" id="searchInput" placeholder="Cari kode order, brand, pemesan, catatan..." oninput="onSearchInput()"/>
         <button id="searchClearBtn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
@@ -335,7 +125,7 @@ table tbody tr:hover td { background: rgba(79,142,247,0.04); }
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalDetail')">Tutup</button>
-      <button class="btn btn-ghost btn-sm" id="btnModalWA" class="admin-only" onclick="openWAModeSelector()" style="color:#25D366;border-color:rgba(37,211,102,0.4)">📱 Order via WA</button>
+      <button class="btn btn-ghost btn-sm admin-only" id="btnModalWA" onclick="openWAModeSelector()" style="color:#25D366;border-color:rgba(37,211,102,0.4)">📱 Order via WA</button>
     </div>
   </div>
 </div>
@@ -553,12 +343,9 @@ table tbody tr:hover td { background: rgba(79,142,247,0.04); }
   <span id="toastMsg">OK</span>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="auth.js"></script>
-<script src="logger.js"></script>
 <script>
 // ═══════════════════════════════════════════════
-// CONFIG — Supabase JS client (sama dengan barang.html)
+// INIT SUPABASE — pakai APP_CONFIG dari config.js
 // ═══════════════════════════════════════════════
 // ── Memory storage fallback (untuk file:// & Edge Tracking Prevention) ──
 const _memStore = {};
@@ -568,54 +355,103 @@ const _storage = {
   removeItem: (k) => { try { localStorage.removeItem(k);       } catch {} delete _memStore[k]; },
 };
 
-const _SUPA_URL = 'https://jpfqysbaygcvlkxcecdo.supabase.co';
-const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg';
-
-const _sb = supabase.createClient(_SUPA_URL, _SUPA_KEY, {
+window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey, {
   auth: { storage: _storage, persistSession: true, autoRefreshToken: true }
 });
-// Expose ke window agar auth.js bisa pakai client yang sama (dengan _storage fallback)
-window._sb = _sb;
 
-// ── Role helpers — getUserRole & applyRoleUI dari auth.js ──
-// auth.js sudah di-load sebelum script ini, fungsinya tersedia di window.
+// Re-apply theme setelah body tersedia — ppn.js applyTheme() bisa gagal di head
+// karena document.body belum ada saat ppn.js diparse
+try {
+  if (typeof applyTheme === 'function') applyTheme();
+} catch(e) {
+  try { if (localStorage.getItem('appTheme') === 'light') document.body.classList.add('light-mode'); } catch(_) {}
+}
 
-// _isReadOnly: helper lokal — dipakai di banyak tempat untuk render dinamis
+// ─── Override applyRoleUI — sekali admin, tidak bisa di-downgrade
+// (Pola: definisikan langsung sebagai window.fn, bukan const _orig = fn)
+window.applyRoleUI = function(role) {
+  if (window._userRole === 'admin' && role !== 'admin') return;
+  // Jalankan logika applyRoleUI dari auth.js secara manual
+  window._userRole = role;
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = role === 'admin' ? '' : 'none';
+  });
+  const roleEl = document.getElementById('userRole');
+  if (roleEl) {
+    roleEl.textContent = role === 'admin' ? 'Admin' : 'User';
+    roleEl.style.color = role === 'admin' ? 'var(--accent2)' : 'var(--muted)';
+  }
+};
+
+// _isReadOnly: helper lokal
 function _isReadOnly() {
   return !window._userRole || window._userRole !== 'admin';
 }
 
-// Override applyRoleUI — sekali role di-set ke 'admin', tidak bisa di-downgrade
-// oleh siapapun (sidebar.js, auth.js onAuthStateChange, dll)
-const _origApplyRoleUI = window.applyRoleUI;
-window.applyRoleUI = function(role) {
-  // Jika sudah admin, abaikan panggilan dengan role lebih rendah
-  if (window._userRole === 'admin' && role !== 'admin') return;
-  if (_origApplyRoleUI) _origApplyRoleUI(role);
+// ═══════════════════════════════════════════════
+// PAGE STATE — A2
+// ═══════════════════════════════════════════════
+const PageState = {
+  allOrders:      [],   // raw from DB
+  filtered:       [],   // after filter
+  brands:         {},   // {id: nama}
+  brandColors:    {},   // {id: warna}
+  brandsArr:      [],   // [{id, nama, warna}]
+  vendors:        [],
+  currentPage:    1,
+  selectedBrands: [],   // [] = semua brand
+  showCancelled:  false,
+  showArsip:      false,
+  archivedOrders: [],   // cache order arsip
+  beliState:      null, // {itemId, barangId, brandId, nama, satuan, sisa, faktor, satuanDb}
+  customState:    null, // {request_id, order_item_id, nama, satuan, brand_id}
+  itemNamaMap:    {},   // {item_id: nama_barang}
+  searchTimer:    null,
+  waOrderId:      null,
+  waBrandId:      null,
+  waOrderItems:   [],
+  waManualVendorItemsMap: {},
+  cancelItemState: null, // {itemId, orderId, nama}
 };
+window.PageState = PageState;
 
-/*
-  ── WAJIB dijalankan di Supabase SQL Editor ──
-  ALTER TABLE order_items ADD COLUMN IF NOT EXISTS status_item TEXT DEFAULT 'pending';
-  -- status_item values: 'pending' | 'ordered' | 'selesai' | 'cancelled'
-  -- 'ordered' = sudah dipesan ke vendor, hanya indikator visual, tidak mempengaruhi progress
-  ALTER TABLE order_items ADD COLUMN IF NOT EXISTS keterangan_cancel TEXT;
-  CREATE POLICY "auth update order_items" ON order_items FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-  CREATE POLICY "auth update orders"      ON orders      FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+// Proxy agar referensi lama (let allOrders, let filtered, dst) tetap bekerja
+Object.defineProperties(window, {
+  allOrders:      { get: () => PageState.allOrders,      set: v => { PageState.allOrders = v; },      configurable: true },
+  filtered:       { get: () => PageState.filtered,       set: v => { PageState.filtered = v; },       configurable: true },
+  brands:         { get: () => PageState.brands,         set: v => { PageState.brands = v; },         configurable: true },
+  brandColors:    { get: () => PageState.brandColors,    set: v => { PageState.brandColors = v; },    configurable: true },
+  brandsArr:      { get: () => PageState.brandsArr,      set: v => { PageState.brandsArr = v; },      configurable: true },
+  vendors:        { get: () => PageState.vendors,        set: v => { PageState.vendors = v; },        configurable: true },
+  currentPage:    { get: () => PageState.currentPage,    set: v => { PageState.currentPage = v; },    configurable: true },
+  _selectedBrands:{ get: () => PageState.selectedBrands, set: v => { PageState.selectedBrands = v; }, configurable: true },
+  _showCancelled: { get: () => PageState.showCancelled,  set: v => { PageState.showCancelled = v; },  configurable: true },
+  _showArsip:     { get: () => PageState.showArsip,      set: v => { PageState.showArsip = v; },      configurable: true },
+  archivedOrders: { get: () => PageState.archivedOrders, set: v => { PageState.archivedOrders = v; }, configurable: true },
+  beliState:      { get: () => PageState.beliState,      set: v => { PageState.beliState = v; },      configurable: true },
+  customState:    { get: () => PageState.customState,    set: v => { PageState.customState = v; },    configurable: true },
+  _itemNamaMap:   { get: () => PageState.itemNamaMap,    set: v => { PageState.itemNamaMap = v; },    configurable: true },
+  _searchTimer:   { get: () => PageState.searchTimer,    set: v => { PageState.searchTimer = v; },    configurable: true },
+  _waOrderId:     { get: () => PageState.waOrderId,      set: v => { PageState.waOrderId = v; },      configurable: true },
+  _waBrandId:     { get: () => PageState.waBrandId,      set: v => { PageState.waBrandId = v; },      configurable: true },
+  _waOrderItems:  { get: () => PageState.waOrderItems,   set: v => { PageState.waOrderItems = v; },   configurable: true },
+  _waManualVendorItemsMap: { get: () => PageState.waManualVendorItemsMap, set: v => { PageState.waManualVendorItemsMap = v; }, configurable: true },
+  _cancelItemState:{ get: () => PageState.cancelItemState, set: v => { PageState.cancelItemState = v; }, configurable: true },
+});
 
-  -- Untuk FIFO sync: pastikan order_items bisa di-join ke orders
-  -- (relasi sudah ada via order_id FK, tidak perlu migrasi tambahan)
+const PER_PAGE = 15;
 
-  -- CATATAN: kolom order_item_id di riwayat_beli_items TIDAK diperlukan
-  -- untuk sistem FIFO ini. Distribusi dilakukan pure by created_at order.
-
-  -- Jika sebelumnya sudah menambahkan kolom tanggal_dibutuhkan, hapus dengan:
-  -- ALTER TABLE orders DROP COLUMN IF EXISTS tanggal_dibutuhkan;
-
-  -- ARSIP: tambah kolom selesai_at untuk tracking kapan order selesai
-  -- ALTER TABLE orders ADD COLUMN IF NOT EXISTS selesai_at TIMESTAMPTZ;
-  -- status 'archived' sudah pakai kolom status yang ada, tidak perlu kolom baru
-*/
+// Catatan migrasi DB (dipindah dari inline comment ke sini agar tidak membebani produksi):
+// Lihat file MIGRATION.md atau jalankan SQL berikut di Supabase SQL Editor:
+//   ALTER TABLE order_items ADD COLUMN IF NOT EXISTS status_item TEXT DEFAULT 'pending';
+//   ALTER TABLE order_items ADD COLUMN IF NOT EXISTS keterangan_cancel TEXT;
+//   CREATE POLICY "auth update order_items" ON order_items FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+//   CREATE POLICY "auth update orders"      ON orders      FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+//   ALTER TABLE orders ADD COLUMN IF NOT EXISTS selesai_at TIMESTAMPTZ;
+//
+//   -- Pendekatan 1: kunci pembelian ke order item spesifik (mencegah bug FIFO)
+//   ALTER TABLE riwayat_beli_items ADD COLUMN IF NOT EXISTS order_item_id UUID REFERENCES order_items(id) ON DELETE SET NULL;
+//   CREATE INDEX IF NOT EXISTS idx_rbi_order_item_id ON riwayat_beli_items(order_item_id);
 
 async function supaGet(table, q='') {
   const params = q ? new URLSearchParams(q) : null;
@@ -668,27 +504,8 @@ async function supaDelete(table, q) {
 }
 
 // ═══════════════════════════════════════════════
-// STATE
+// STATE — dikelola via PageState + proxy di atas
 // ═══════════════════════════════════════════════
-let allOrders   = [];   // raw from DB
-let filtered    = [];   // after filter
-let brands      = {};   // {id: nama}
-let brandColors = {};   // {id: warna}
-let brandsArr   = [];   // [{id, nama, warna}]
-let vendors     = [];
-let currentPage = 1;
-const PER_PAGE  = 15;
-let _selectedBrands = []; // [] = semua
-let _showCancelled  = false;
-
-// Beli modal state
-let beliState = null;   // {order_item_id, barang_id, brand_id, nama, satuan, qty_sisa}
-
-// Custom approve state
-let customState = null; // {request_id, order_item_id, nama, satuan, brand_id}
-
-// Map nama barang per item id (untuk tombol aksi tanpa encode string)
-let _itemNamaMap = {};
 
 // Wrapper global untuk tombol aksi selesai (dipanggil dari inline onclick)
 function _aksiSelesai(itemId, orderId) {
@@ -787,17 +604,16 @@ async function init() {
     if (event === 'SIGNED_OUT') window.location.href = 'index.html';
   });
 
-  // BUG FIX: Hapus sessionStorage cache agar getUserRole() selalu fetch dari DB.
-  // Cache lama bisa berisi 'user' yang salah jika tab pernah dipakai akun lain.
+  // Hapus cache role agar getUserRole() selalu fetch dari DB —
+  // cache lama bisa berisi 'user' yang salah jika tab pernah dipakai akun lain.
   sessionStorage.removeItem('userRole');
 
   // Fetch role dari DB sebelum render apapun
   const role = await getUserRole();
   window._userRole = role;
-  window._lastKnownRole = role;  // dipakai sidebar.js saat renderSidebar()
+  window._lastKnownRole = role; // dipakai sidebar.js saat renderSidebar()
 
-  // Render sidebar SEGERA setelah role diketahui — sebelum loadAll()
-  // agar sidebar tidak bergantung pada keberhasilan fetch data utama.
+  // Render sidebar setelah role diketahui, sebelum loadAll()
   initSidebar();
 
   // Isi nama user di sidebar
@@ -808,10 +624,9 @@ async function init() {
   if (elName) elName.textContent = name;
   if (elAv)   elAv.textContent   = name[0].toUpperCase();
 
-  // Apply role segera setelah sidebar dirender
   applyRoleUI(role);
 
-  // Load data utama (brands, vendors, orders)
+  // Load data utama
   try {
     await Promise.all([loadBrands(), loadVendors()]);
     await loadAll();
@@ -819,17 +634,12 @@ async function init() {
     console.error('[init] loadAll gagal:', e);
   }
 
-  // Aktifkan push notification realtime order masuk
+  // Aktifkan push notification + realtime
   try {
     await initNotifOrderMasuk();
   } catch(e) {
     console.warn('[init] initNotifOrderMasuk gagal:', e);
   }
-
-  // Apply role sekali lagi untuk elemen-elemen baru yang baru dirender
-  window._userRole = role;
-  window._lastKnownRole = role;
-  applyRoleUI(role);
 }
 
 async function loadBrands() {
@@ -1145,7 +955,7 @@ function toggleCancelledTab() {
 // ═══════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════
-let _searchTimer = null;
+// _searchTimer dikelola via PageState.searchTimer (proxy _searchTimer)
 function onSearchInput() {
   const val = document.getElementById('searchInput').value;
   document.getElementById('searchClearBtn').style.display = val ? 'block' : 'none';
@@ -1381,9 +1191,8 @@ function buildInlinePanel(o, items) {
 // ═══════════════════════════════════════════════
 // ARSIP
 // ═══════════════════════════════════════════════
+// _showArsip, archivedOrders, _cancelItemState dikelola via PageState + proxy
 const ARCHIVE_DAYS = 7; // arsip otomatis setelah X hari selesai
-let _showArsip = false;
-let archivedOrders = []; // cache order arsip (hanya diload saat tab arsip dibuka)
 
 // Auto-archive: cek order selesai yang sudah >= 7 hari, ubah ke 'archived'
 async function _autoArchiveSelesai() {
@@ -1513,7 +1322,6 @@ async function _runFifoSync(barangIds) {
   if (!barangIds || barangIds.length === 0) return {};
 
   // 1. Ambil semua competing order_items untuk barang-barang ini
-  //    Sertakan brand_id dari orders agar FIFO dipisah per brand
   const { data: allCompetingItems } = await _sb
     .from('order_items')
     .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, orders!inner(created_at, brand_id)')
@@ -1521,18 +1329,38 @@ async function _runFifoSync(barangIds) {
     .neq('status_item', 'cancelled')
     .eq('is_custom', false);
 
-  // 2. Ambil total qty pembelian (status=selesai) per barang_id + brand_id
-  //    Sertakan brand_id dari riwayat_beli agar tidak cross-brand
+  // 2. Cek item mana yang sudah punya record riwayat_beli_items dengan order_item_id
+  //    Item seperti ini sudah diinput manual — TIDAK ikut distribusi FIFO
+  //    untuk mencegah stok pembelian satu order "bocor" ke order lain
+  const allItemIds = (allCompetingItems || []).map(ci => ci.id);
+  let manuallyLinkedItemIds = new Set();
+  if (allItemIds.length > 0) {
+    const { data: linkedRows } = await _sb
+      .from('riwayat_beli_items')
+      .select('order_item_id')
+      .in('order_item_id', allItemIds)
+      .not('order_item_id', 'is', null);
+    (linkedRows || []).forEach(r => {
+      if (r.order_item_id) manuallyLinkedItemIds.add(r.order_item_id);
+    });
+  }
+
+  // Item yang sudah diinput manual dikeluarkan dari kompetisi FIFO
+  const fifoCompetitors = (allCompetingItems || []).filter(ci =>
+    !manuallyLinkedItemIds.has(ci.id)
+  );
+
+  // 3. Ambil total qty pembelian FIFO (hanya yang TIDAK terkait order_item_id)
   const { data: allBeliItems } = await _sb
     .from('riwayat_beli_items')
-    .select('barang_id, qty, riwayat_beli!inner(tanggal, status, brand_id)')
+    .select('barang_id, qty, order_item_id, riwayat_beli!inner(tanggal, status, brand_id)')
     .in('barang_id', barangIds)
-    .eq('riwayat_beli.status', 'selesai');
+    .eq('riwayat_beli.status', 'selesai')
+    .is('order_item_id', null);  // ← hanya record tanpa order_item_id (FIFO lama / legacy)
 
-  // Earliest order per barang+brand (batas tanggal pembelian minimum)
-  // Kunci: `${barang_id}::${brand_id}`
+  // Earliest order per barang+brand
   const earliestOrderPerKey = {};
-  (allCompetingItems || []).forEach(ci => {
+  fifoCompetitors.forEach(ci => {
     const brandId = ci.orders?.brand_id || '';
     const key = ci.barang_id + '::' + brandId;
     const t = ci.orders?.created_at || '';
@@ -1541,7 +1369,7 @@ async function _runFifoSync(barangIds) {
     }
   });
 
-  // Total beli per barang+brand (hanya setelah order pertama masuk, hanya brand yang sama)
+  // Total beli FIFO per barang+brand (hanya setelah order pertama masuk)
   const beliTotalPerKey = {};
   (allBeliItems || []).forEach(bi => {
     if (!bi.barang_id || !bi.qty) return;
@@ -1553,25 +1381,23 @@ async function _runFifoSync(barangIds) {
     beliTotalPerKey[key] = (beliTotalPerKey[key] || 0) + bi.qty;
   });
 
-  // Bangun beliTotalPerBarang untuk kompatibilitas return value (union semua brand)
   const beliTotalPerBarang = {};
   Object.entries(beliTotalPerKey).forEach(([key, qty]) => {
     const barangId = key.split('::')[0];
     beliTotalPerBarang[barangId] = (beliTotalPerBarang[barangId] || 0) + qty;
   });
 
-  // 3. FIFO distribution per barang_id + brand_id
-  const fifoResultMap = {}; // {order_item_id: qty_terpenuhi}
+  // 4. FIFO distribution — hanya untuk item yang belum diinput manual
+  const fifoResultMap = {};
 
-  // Kumpulkan semua kombinasi barang+brand yang ada
   const barangBrandKeys = [...new Set(
-    (allCompetingItems || []).map(ci => ci.barang_id + '::' + (ci.orders?.brand_id || ''))
+    fifoCompetitors.map(ci => ci.barang_id + '::' + (ci.orders?.brand_id || ''))
   )];
 
   for (const key of barangBrandKeys) {
     const [barangId, brandId] = key.split('::');
     let sisaBeli = beliTotalPerKey[key] || 0;
-    const competitors = (allCompetingItems || [])
+    const competitors = fifoCompetitors
       .filter(ci => ci.barang_id === barangId && (ci.orders?.brand_id || '') === brandId)
       .sort((a, b) => {
         const tA = a.orders?.created_at || '', tB = b.orders?.created_at || '';
@@ -1583,13 +1409,12 @@ async function _runFifoSync(barangIds) {
       continue;
     }
 
-    // Pass 1 (sesuai urutan FIFO): item selesai manual sudah mengkonsumsi stok —
-    // kurangi sisaBeli terlebih dahulu agar order lain tidak double-counting
+    // Pass 1: item selesai manual kurangi sisaBeli dulu
     for (const ci of competitors) {
       if ((ci.status_item || 'pending') !== 'selesai') continue;
       const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
       const sudahDapat = Math.min(ci.qty_terpenuhi || kebutuhan, kebutuhan);
-      fifoResultMap[ci.id] = sudahDapat; // pertahankan nilai selesai manual
+      fifoResultMap[ci.id] = sudahDapat;
       sisaBeli = Math.max(0, sisaBeli - sudahDapat);
     }
 
@@ -1607,16 +1432,13 @@ async function _runFifoSync(barangIds) {
     });
   }
 
-  // 4. Update DB di background untuk item yang qty-nya berubah
+  // 5. Update DB di background untuk item FIFO yang qty-nya berubah
   const adaData = Object.keys(beliTotalPerBarang).length > 0;
   if (adaData) {
-    (allCompetingItems || []).forEach(ci => {
-      // Jangan timpa item yang sudah di-selesaikan manual (status_item='selesai')
-      // karena qty_terpenuhi-nya sudah benar dan tidak perlu di-override FIFO
+    fifoCompetitors.forEach(ci => {
       if ((ci.status_item || 'pending') === 'selesai') return;
       const newQty = fifoResultMap[ci.id];
       if (newQty === undefined) return;
-      // Update DB di background tanpa tunggu
       _sb.from('order_items')
         .update({ qty_terpenuhi: newQty })
         .eq('id', ci.id)
@@ -1926,8 +1748,19 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     // ── Kolom AKSI: tombol selesaikan + cancel + ordered — hidden untuk read-only ──
     const aksiDisabled = isDone || isCancelled;
     _itemNamaMap[it.id] = it.nama_barang || '';
+
+    // Tombol "Batalkan Selesai" — hanya untuk admin, hanya pada item yang status_item='selesai'
+    const isManualDone = statusItem === 'selesai';
+    const batalSelesaiBtn = (!_isReadOnly() && isManualDone)
+      ? `<button class="btn btn-sm"
+           onclick="event.stopPropagation();batalkanSelesaiItem('${it.id}','${o.id}')"
+           style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
+           title="Batalkan status selesai — kembalikan ke pending">↩</button>`
+      : '';
+
     const aksiCell = _isReadOnly() ? '<span style="color:var(--muted);font-size:11px">—</span>' : `
       <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap;align-items:center">
+        ${batalSelesaiBtn}
         <button class="btn btn-sm"
           onclick="event.stopPropagation();_aksiOrdered('${it.id}','${o.id}')"
           style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:${isOrdered?'rgba(56,189,248,0.18)':'rgba(56,189,248,0.06)'};color:${aksiDisabled?'var(--muted)':'#38bdf8'};border:1px solid ${isOrdered?'rgba(56,189,248,0.5)':aksiDisabled?'var(--border)':'rgba(56,189,248,0.2)'};opacity:${aksiDisabled?'0.35':'1'};cursor:${aksiDisabled?'not-allowed':'pointer'};font-size:14px;line-height:1;transition:background .15s,border-color .15s"
@@ -2216,9 +2049,6 @@ function openWAModeSelector() {
 // ═══════════════════════════════════════════════
 // WA ORDER — MODE 1: BY GROUP (original flow)
 // ═══════════════════════════════════════════════
-let _waOrderId   = null;
-let _waBrandId   = null;
-let _waOrderItems = []; // items belum selesai dari order ini
 
 function _salamWaktu() {
   const h = new Date().getHours();
@@ -2481,7 +2311,7 @@ function openWA() {
 // ═══════════════════════════════════════════════
 // WA ORDER — MODE 2: MANUAL ITEM PICKER
 // ═══════════════════════════════════════════════
-let _waManualVendorItemsMap = {}; // {vendor_id: [item]} dari histori (untuk auto-checklist)
+// _waManualVendorItemsMap dikelola via PageState.waManualVendorItemsMap
 
 async function _openWAManualModal() {
   if (!_waOrderId) return;
@@ -2741,50 +2571,51 @@ async function submitBeli() {
   btn.disabled  = true;
 
   try {
-    // 1. Ambil data item terkini untuk hitung qty_terpenuhi baru
-    const itemRows = await supaGet('order_items', `id=eq.${beliState.itemId}&select=qty_terpenuhi,qty_order,faktor_konversi,satuan_db,order_id`);
+    // 1. Ambil data item terkini
+    const itemRows = await supaGet('order_items', `id=eq.${beliState.itemId}&select=qty_terpenuhi,qty_order,faktor_konversi,satuan_db,order_id,status_item`);
     const item = Array.isArray(itemRows) ? itemRows[0] : null;
     if (!item) throw new Error('Item tidak ditemukan');
 
-    const faktor    = beliState.faktor || 1;
-    // qty input = dalam satuan_db, simpan langsung ke qty_terpenuhi (satuan_db)
-    const newQtyTerpenuhi = (item.qty_terpenuhi || 0) + qty;
-    const qtyOrderDb      = item.qty_order * faktor; // total order dalam satuan_db
+    const faktor         = beliState.faktor || 1;
+    const qtyOrderDb     = item.qty_order * faktor;
+    // Akumulasi qty — tidak boleh melebihi kebutuhan order ini
+    const newQtyTerpenuhi = Math.min((item.qty_terpenuhi || 0) + qty, qtyOrderDb);
+    const sudahPenuh      = newQtyTerpenuhi >= qtyOrderDb;
 
-    // 2. Update qty_terpenuhi di order_items
-    await supaPatch('order_items', `id=eq.${beliState.itemId}`, {
-      qty_terpenuhi: newQtyTerpenuhi
+    // 2. Update qty_terpenuhi + status_item langsung di order_items
+    //    status_item = 'selesai' jika sudah penuh, tetap 'ordered'/'pending' jika belum
+    const newStatusItem = sudahPenuh
+      ? 'selesai'
+      : ((item.status_item === 'ordered') ? 'ordered' : 'pending');
+
+    const { error: updErr } = await _sb.from('order_items')
+      .update({ qty_terpenuhi: newQtyTerpenuhi, status_item: newStatusItem })
+      .eq('id', beliState.itemId);
+    if (updErr) throw updErr;
+
+    // 3. Recalculate status order
+    await _recalcOrderStatus(item.order_id, {
+      [beliState.itemId]: { qty_terpenuhi: newQtyTerpenuhi, status_item: newStatusItem }
     });
 
-    // 3. Cek apakah semua item di order ini sudah selesai → update status order
-    const allItems = await supaGet('order_items', `order_id=eq.${item.order_id}&select=qty_order,qty_terpenuhi,faktor_konversi`);
-    if (Array.isArray(allItems) && allItems.length > 0) {
-      const allDone    = allItems.every(it => {
-        const f = it.faktor_konversi || 1;
-        return it.qty_terpenuhi >= (it.qty_order * f);
-      });
-      const anyPartial = allItems.some(it => (it.qty_terpenuhi || 0) > 0);
-      const newStatus  = allDone ? 'selesai' : anyPartial ? 'partial' : 'pending';
-      await supaPatch('orders', `id=eq.${item.order_id}`, { status: newStatus });
-    }
-
-    // 4. Insert ke riwayat_beli (opsional — untuk history)
+    // 4. Insert ke riwayat_beli + riwayat_beli_items dengan order_item_id
+    //    order_item_id mengunci pembelian ini ke item order ini — FIFO tidak akan overlap
     try {
       const beliHeader = await supaPost('riwayat_beli', {
         brand_id:  beliState.brandId,
         tanggal:   tgl,
         vendor_id: vendor,
         catatan:   catatan || null,
-        status:    'selesai',  // WAJIB 'selesai' agar ikut terhitung di sync FIFO
+        status:    'selesai',
       });
       const beliId = (Array.isArray(beliHeader) ? beliHeader[0] : beliHeader)?.id;
       if (beliId) {
         await supaPost('riwayat_beli_items', {
-          beli_id:   beliId,
-          barang_id: beliState.barangId || null,
-          qty:       qty,
-          harga:     harga,
-          // order_item_id tidak diisi — FIFO sync murni berdasarkan created_at order
+          beli_id:       beliId,
+          barang_id:     beliState.barangId || null,
+          qty:           qty,
+          harga:         harga,
+          order_item_id: beliState.itemId,  // ← kunci: mengunci pembelian ke order item ini
         });
       }
     } catch(e2) { console.warn('riwayat_beli insert failed (non-critical):', e2); }
@@ -2801,12 +2632,13 @@ async function submitBeli() {
       } catch(e3) { console.warn('riwayat_harga insert failed (non-critical):', e3); }
     }
 
-    showToast('success', '✓ Pembelian dicatat — progress order diupdate');
+    const pesanToast = sudahPenuh
+      ? '✓ Pembelian dicatat — item selesai'
+      : `✓ Pembelian dicatat — ${newQtyTerpenuhi}/${qtyOrderDb} ${beliState.satuanDb}`;
+    showToast('success', pesanToast);
     closeModal('modalBeli');
-    closeModal('modalDetail');
     await loadAll();
-    document.querySelectorAll('.detail-panel').forEach(p => { p.dataset.loaded=''; p.classList.remove('open'); p.innerHTML=''; });
-    document.querySelectorAll('.order-row').forEach(r => r.classList.remove('expanded'));
+    await _refreshDetailBody(item.order_id);
 
   } catch(e) {
     showToast('error','✕ Gagal menyimpan: ' + e.message);
@@ -2821,8 +2653,7 @@ async function submitBeli() {
 // ITEM ACTIONS — SELESAIKAN & CANCEL
 // ═══════════════════════════════════════════════
 
-// State untuk cancel modal
-let _cancelItemState = null; // {itemId, orderId, nama}
+// _cancelItemState dikelola via PageState.cancelItemState (proxy _cancelItemState)
 
 // Selesaikan item secara manual (set qty_terpenuhi = qty_order * faktor, status_item = 'selesai')
 async function selesaikanItem(itemId, orderId, nama) {
@@ -2876,6 +2707,48 @@ async function selesaikanItem(itemId, orderId, nama) {
     }
   );
 }
+
+// Batalkan status selesai — reset item ke pending (admin only)
+async function batalkanSelesaiItem(itemId, orderId) {
+  const nama = _itemNamaMap[itemId] || itemId;
+  showConfirm(
+    'Batalkan Status Selesai?',
+    `Kembalikan <strong>${nama}</strong> ke status <strong>Pending</strong>?<br><br>
+     <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">
+       qty_terpenuhi akan direset ke 0. Riwayat pembelian yang terhubung
+       ke item ini tidak dihapus.
+     </span>`,
+    async () => {
+      try {
+        const { data: { session: sess } } = await _sb.auth.getSession();
+        if (!sess) throw new Error('Tidak ada sesi login — silakan login ulang');
+
+        const { data: updData, error: updErr } = await _sb
+          .from('order_items')
+          .update({ qty_terpenuhi: 0, status_item: 'pending' })
+          .eq('id', itemId)
+          .select();
+
+        if (updErr) throw updErr;
+        if (!updData || updData.length === 0) {
+          throw new Error('Update ditolak DB (0 rows) — cek RLS policy.');
+        }
+
+        await _recalcOrderStatus(orderId, {
+          [itemId]: { qty_terpenuhi: 0, status_item: 'pending' }
+        });
+
+        showToast('success', `↩ ${nama} dikembalikan ke Pending`);
+        await loadAll();
+        await _refreshDetailBody(orderId);
+      } catch(e) {
+        showToast('error', '✕ ' + e.message);
+        console.error('[batalkanSelesaiItem]', e);
+      }
+    }
+  );
+}
+window.batalkanSelesaiItem = batalkanSelesaiItem;
 
 // Buka modal cancel item
 function openCancelItem(itemId, orderId, nama) {
@@ -3034,34 +2907,42 @@ async function _recalcOrderStatus(orderId, overrides) {
 // PAGINATION
 // ═══════════════════════════════════════════════
 function renderPagination(total) {
-  const wrap    = document.getElementById('paginationWrap');
-  const btns    = document.getElementById('pageButtons');
-  const info    = document.getElementById('paginInfo');
-  const pages   = Math.ceil(total/PER_PAGE);
-  const start   = (currentPage-1)*PER_PAGE+1;
-  const end     = Math.min(currentPage*PER_PAGE, total);
+  const wrap  = document.getElementById('paginationWrap');
+  const info  = document.getElementById('paginInfo');
+  const pb    = document.getElementById('pageButtons');
+  const pages = Math.ceil(total / PER_PAGE) || 1;
 
-  if (pages<=1) { wrap.style.display='none'; return; }
-  wrap.style.display='flex';
-  info.textContent = `${start}–${end} dari ${total}`;
+  if (pages <= 1 && total === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
 
-  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
-  for (let p=1;p<=pages;p++) {
-    if (pages>7 && p>2 && p<pages-1 && Math.abs(p-currentPage)>1) {
-      if (p===3 || p===pages-2) html += `<span style="padding:0 4px;color:var(--muted)">…</span>`;
-      continue;
-    }
-    html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  const start = Math.min((currentPage - 1) * PER_PAGE + 1, total);
+  const end   = Math.min(currentPage * PER_PAGE, total);
+  info.textContent = `Menampilkan ${start}–${end} dari ${total} order`;
+
+  pb.innerHTML = '';
+  const addBtn = (lbl, pg, dis, act) => {
+    const b = document.createElement('button');
+    b.className = 'page-btn' + (act ? ' active' : '') + (['««','‹','›','»»'].includes(lbl) ? ' nav' : '');
+    b.textContent = lbl;
+    b.disabled = dis;
+    b.onclick = () => { currentPage = pg; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    pb.appendChild(b);
+  };
+  addBtn('««', 1,           currentPage === 1,     false);
+  addBtn('‹',  currentPage - 1, currentPage === 1, false);
+  for (let p = Math.max(1, currentPage - 2); p <= Math.min(pages, currentPage + 2); p++) {
+    addBtn(p, p, false, p === currentPage);
   }
-  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===pages?'disabled':''}>›</button>`;
-  btns.innerHTML = html;
+  addBtn('›',  currentPage + 1, currentPage === pages, false);
+  addBtn('»»', pages,           currentPage === pages, false);
 }
+
 function goPage(p) {
-  const pages = Math.ceil(filtered.length/PER_PAGE);
-  if (p<1||p>pages) return;
+  const pages = Math.ceil(filtered.length / PER_PAGE);
+  if (p < 1 || p > pages) return;
   currentPage = p;
   renderTable();
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 

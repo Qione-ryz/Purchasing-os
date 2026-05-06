@@ -7,63 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="sidebar.js"></script>
-  <style>
-    .import-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:20px; overflow:hidden; }
-    .import-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
-    .import-title { font-size:15px; font-weight:600; }
-    .import-desc  { font-size:12px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
-    .import-body  { padding:20px; }
-
-    .drop-zone {
-      border:2px dashed var(--border); border-radius:10px; padding:36px 20px;
-      text-align:center; cursor:pointer; transition:border-color .2s, background .2s;
-    }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color:var(--accent); background:rgba(79,142,247,0.04);
-    }
-    .drop-icon { font-size:32px; margin-bottom:10px; }
-    .drop-text { font-size:14px; font-weight:500; margin-bottom:4px; }
-    .drop-sub  { font-size:12px; color:var(--muted); font-family:var(--mono); }
-
-    .field-map { margin-top:16px; }
-    .field-map-row { display:grid; grid-template-columns:1fr 24px 1fr; gap:8px; align-items:center; margin-bottom:8px; font-size:13px; }
-    .field-map-label { font-family:var(--mono); font-size:11px; color:var(--muted); padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; }
-    .field-map-arrow { text-align:center; color:var(--muted); }
-
-    .preview-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:14px; }
-    .preview-table th { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--border); text-align:left; background:var(--bg); }
-    .preview-table td { padding:8px 10px; border-bottom:1px solid rgba(37,40,48,0.3); }
-    .preview-table tr.row-ok td { }
-    .preview-table tr.row-err td { background:rgba(248,113,113,0.06); }
-    .row-status-ok  { color:var(--accent2); font-size:16px; }
-    .row-status-err { color:var(--danger);  font-size:12px; font-family:var(--mono); }
-
-    .schema-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:16px; }
-    .schema-title { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:10px; }
-    .schema-row { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(37,40,48,0.3); font-size:12px; }
-    .schema-row:last-child { border-bottom:none; }
-    .schema-col  { font-family:var(--mono); font-weight:500; min-width:160px; }
-    .schema-req  { font-size:10px; font-family:var(--mono); padding:1px 6px; border-radius:3px; flex-shrink:0; }
-    .req-yes  { background:rgba(248,113,113,0.12); color:var(--danger); }
-    .req-no   { background:rgba(107,114,128,0.1);  color:var(--muted); }
-    .schema-desc { color:var(--muted); flex:1; }
-
-    .progress-bar-wrap { background:var(--border); border-radius:4px; height:6px; margin:12px 0; overflow:hidden; }
-    .progress-bar      { height:100%; background:var(--accent2); border-radius:4px; transition:width .3s; }
-
-    .result-box { padding:12px 16px; border-radius:8px; font-size:13px; margin-top:12px; display:none; }
-    .result-box.show { display:block; }
-    .result-box.success { background:rgba(56,217,169,0.1); border:1px solid rgba(56,217,169,0.3); color:var(--accent2); }
-    .result-box.error   { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); color:var(--danger); }
-
-    .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:20px; width:fit-content; }
-    .tab-btn { padding:8px 18px; border:none; border-radius:7px; font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--muted); transition:background .2s,color .2s; }
-    .tab-btn.active { background:var(--surface2); color:var(--text); }
-
-    .btn-download { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.3); border-radius:7px; color:var(--accent); font-size:12px; font-family:var(--mono); cursor:pointer; text-decoration:none; transition:all .15s; }
-    .btn-download:hover { background:rgba(79,142,247,0.2); }
-  </style>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -85,11 +28,11 @@
   <div class="content">
 
     <!-- TAB -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabBtnBarang"    onclick="switchTab('barang')">📋 Barang</button>
-      <button class="tab-btn"        id="tabBtnVendor"    onclick="switchTab('vendor')">🏢 Vendor</button>
-      <button class="tab-btn"        id="tabBtnPembelian" onclick="switchTab('pembelian')">🛒 Pembelian</button>
-      <button class="tab-btn"        id="tabBtnHarga"     onclick="switchTab('harga')">📈 Harga</button>
+    <div class="import-tab-bar">
+      <button class="import-tab-btn active" id="tabBtnBarang"    onclick="switchTab('barang')">📋 Barang</button>
+      <button class="import-tab-btn"        id="tabBtnVendor"    onclick="switchTab('vendor')">🏢 Vendor</button>
+      <button class="import-tab-btn"        id="tabBtnPembelian" onclick="switchTab('pembelian')">🛒 Pembelian</button>
+      <button class="import-tab-btn"        id="tabBtnHarga"     onclick="switchTab('harga')">📈 Harga</button>
     </div>
 
     <!-- ═══ TAB BARANG ═══ -->
@@ -136,10 +79,10 @@
           <div id="previewBarang"></div>
           <div class="result-box" id="resultBarang"></div>
           <div id="progressBarang" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar" id="pbBarang" style="width:0%"></div></div>
+            <div class="import-progress-wrap"><div class="import-progress-bar" id="pbBarang" style="width:0%"></div></div>
             <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelBarang">0 / 0</div>
           </div>
-          <div id="actionBarang" style="display:none;margin-top:14px;display:flex;gap:10px">
+          <div id="actionBarang" style="display:none;margin-top:14px;gap:10px">
             <button class="btn btn-primary" id="btnImportBarang" onclick="doImport('barang')">⬆ Mulai Import</button>
             <button class="btn btn-ghost" onclick="resetImport('barang')">✕ Batal</button>
           </div>
@@ -194,10 +137,10 @@
           <div id="previewVendor"></div>
           <div class="result-box" id="resultVendor"></div>
           <div id="progressVendor" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar" id="pbVendor" style="width:0%"></div></div>
+            <div class="import-progress-wrap"><div class="import-progress-bar" id="pbVendor" style="width:0%"></div></div>
             <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelVendor">0 / 0</div>
           </div>
-          <div id="actionVendor" style="display:none;margin-top:14px;display:flex;gap:10px">
+          <div id="actionVendor" style="display:none;margin-top:14px;gap:10px">
             <button class="btn btn-primary" id="btnImportVendor" onclick="doImport('vendor')">⬆ Mulai Import</button>
             <button class="btn btn-ghost" onclick="resetImport('vendor')">✕ Batal</button>
           </div>
@@ -245,10 +188,10 @@
           <div id="previewPembelian"></div>
           <div class="result-box" id="resultPembelian"></div>
           <div id="progressPembelian" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar" id="pbPembelian" style="width:0%"></div></div>
+            <div class="import-progress-wrap"><div class="import-progress-bar" id="pbPembelian" style="width:0%"></div></div>
             <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelPembelian">0 / 0</div>
           </div>
-          <div id="actionPembelian" style="display:none;margin-top:14px;display:flex;gap:10px">
+          <div id="actionPembelian" style="display:none;margin-top:14px;gap:10px">
             <button class="btn btn-primary" id="btnImportPembelian" onclick="doImport('pembelian')">⬆ Mulai Import</button>
             <button class="btn btn-ghost" onclick="resetImport('pembelian')">✕ Batal</button>
           </div>
@@ -287,10 +230,10 @@
           <div id="previewHarga"></div>
           <div class="result-box" id="resultHarga"></div>
           <div id="progressHarga" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar" id="pbHarga" style="width:0%"></div></div>
+            <div class="import-progress-wrap"><div class="import-progress-bar" id="pbHarga" style="width:0%"></div></div>
             <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelHarga">0 / 0</div>
           </div>
-          <div id="actionHarga" style="display:none;margin-top:14px;display:flex;gap:10px">
+          <div id="actionHarga" style="display:none;margin-top:14px;gap:10px">
             <button class="btn btn-primary" id="btnImportHarga" onclick="doImport('harga')">⬆ Mulai Import</button>
             <button class="btn btn-ghost" onclick="resetImport('harga')">✕ Batal</button>
           </div>
@@ -304,14 +247,32 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
+<script src="sidebar.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+  /* ══ PAGE STATE ══ */
+  const PageState = {
+    allBrands:  [],
+    allBarang:  [],
+    allVendors: [],
+    barangMap:  {},
+    vendorMap:  {},
+  };
+  window.PageState = PageState;
+
+  /* Proxy agar referensi window.* yang sudah ada di fungsi lain tetap bekerja */
+  Object.defineProperties(window, {
+    allBrands:  { get: () => PageState.allBrands,  set: v => { PageState.allBrands  = v; }, configurable: true },
+    allBarang:  { get: () => PageState.allBarang,  set: v => { PageState.allBarang  = v; }, configurable: true },
+    allVendors: { get: () => PageState.allVendors, set: v => { PageState.allVendors = v; }, configurable: true },
+    barangMap:  { get: () => PageState.barangMap,  set: v => { PageState.barangMap  = v; }, configurable: true },
+    vendorMap:  { get: () => PageState.vendorMap,  set: v => { PageState.vendorMap  = v; }, configurable: true },
+  });
 
   (async () => {
     const { data: { session } } = await window._sb.auth.getSession();
@@ -846,7 +807,6 @@
     });
 
     let done = 0, failed = 0;
-    const ppnRate = window._ppnRate || 11;
 
     for (const [, grpRows] of Object.entries(groups)) {
       try {
@@ -858,8 +818,8 @@
         const items = grpRows.map(r => {
           const b = window.barangMap[r.nama_barang.toLowerCase()];
           const hargaRaw  = parseFloat(r.harga_satuan) || 0;
-          const harga_exc = ppnInc ? Math.round(hargaRaw / (1 + ppnRate/100)) : hargaRaw;
-          const harga_inc = ppnInc ? hargaRaw : Math.round(hargaRaw * (1 + ppnRate/100));
+          const harga_exc = ppnInc ? toExcPPN(hargaRaw) : hargaRaw;
+          const harga_inc = ppnInc ? hargaRaw : toIncPPN(hargaRaw);
           const qty       = parseFloat(r.qty) || 0;
           const hargaSubtotal = ppnInc ? harga_inc : harga_exc;
           return {
@@ -929,7 +889,6 @@
   /* ══ IMPORT HARGA ══ */
   async function importHarga(rows, onProgress) {
     let done = 0, failed = 0;
-    const ppnRate = window._ppnRate || 11;
 
     for (const r of rows) {
       try {
@@ -938,8 +897,8 @@
         const brandId    = b?.brand_id || (b?.brand_ids || [])[0] || null;
         const ppnInc     = r.status_harga.toLowerCase() === 'inc';
         const hargaRaw   = parseFloat(r.harga) || 0;
-        const harga_exc  = ppnInc ? Math.round(hargaRaw / (1 + ppnRate/100)) : hargaRaw;
-        const harga_inc  = ppnInc ? hargaRaw : Math.round(hargaRaw * (1 + ppnRate/100));
+        const harga_exc  = ppnInc ? toExcPPN(hargaRaw) : hargaRaw;
+        const harga_inc  = ppnInc ? hargaRaw : toIncPPN(hargaRaw);
 
         const { error } = await window._sb.from('riwayat_harga').insert({
           barang_id:     b?.id || null,

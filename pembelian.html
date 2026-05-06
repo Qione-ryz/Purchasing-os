@@ -10,26 +10,14 @@
   <script src="sidebar.js"></script>
   <script src="datefilter.js"></script>
   <style>
-    /* TAB */
-    .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:24px; width:fit-content; }
-    .tab-btn { padding:9px 20px; border:none; border-radius:7px; font-family:var(--sans); font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--muted); transition:background .2s,color .2s; }
-    .tab-btn.active { background:var(--surface2); color:var(--text); }
-
-    /* FORM PEMBELIAN */
+/* FORM PEMBELIAN */
     .form-layout { display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start; }
-
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); }
-    .card-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .card-title { font-size:15px; font-weight:600; }
-    .card-body { padding:20px; }
-
-    .field { margin-bottom:14px; }
-    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .field-hint { font-size:11px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
-
-    /* ITEM LIST */
+.card-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-size:15px; font-weight:600; }
+.card-body { padding:20px; }
+/* ITEM LIST */
     .item-list { margin-bottom:14px; }
-    .item-row {
+.item-row {
       display:grid; grid-template-columns:1fr 80px 110px 80px 24px;
       gap:8px; align-items:center; margin-bottom:8px;
       padding:10px 12px; background:var(--bg);
@@ -37,164 +25,135 @@
       transition:border-color .2s;
       animation:fadeUp .2s ease both;
     }
-    .item-row:hover { border-color:rgba(79,142,247,0.3); }
-    .item-label { font-size:13px; font-weight:500; }
-    .item-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); }
-    .item-input {
+.item-row:hover { border-color:rgba(79,142,247,0.3); }
+.item-label { font-size:13px; font-weight:500; }
+.item-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); }
+.item-input {
       width:100%; background:var(--surface); border:1px solid var(--border);
       border-radius:6px; color:var(--text); font-family:var(--mono);
       font-size:13px; padding:6px 9px; outline:none; text-align:right;
       transition:border-color .2s;
     }
-    .item-input:focus { border-color:var(--accent); }
-    .item-subtotal { font-family:var(--mono); font-size:12px; color:var(--accent2); text-align:right; }
-    .item-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px; border-radius:4px; transition:color .2s; }
-    .item-del:hover { color:var(--danger); }
-    .item-header { display:grid; grid-template-columns:1fr 80px 110px 80px 24px; gap:8px; padding:0 12px 6px; font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
-
-    .add-item-area { border:1px dashed var(--border); border-radius:8px; padding:12px; }
-    .add-item-row { display:grid; grid-template-columns:1fr auto; gap:8px; }
-    .item-search-wrap { }
-    .search-wrap { position: relative; flex: 1; min-width: 220px; }
-    .item-dropdown {
+.item-input:focus { border-color:var(--accent); }
+.item-subtotal { font-family:var(--mono); font-size:12px; color:var(--accent2); text-align:right; }
+.item-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px; border-radius:4px; transition:color .2s; }
+.item-del:hover { color:var(--danger); }
+.item-header { display:grid; grid-template-columns:1fr 80px 110px 80px 24px; gap:8px; padding:0 12px 6px; font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.add-item-area { border:1px dashed var(--border); border-radius:8px; padding:12px; }
+.add-item-row { display:grid; grid-template-columns:1fr auto; gap:8px; }
+.item-search-wrap { }
+.item-dropdown {
       position:fixed; z-index:9999;
       background:var(--surface2); border:1px solid var(--border);
       border-radius:8px; max-height:320px; overflow-y:auto;
       box-shadow:0 8px 24px rgba(0,0,0,0.4);
     }
-    .item-option { padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .15s; }
-    .item-option:last-child { border-bottom:none; }
-    .item-option:hover { background:rgba(79,142,247,0.08); }
-    .item-option-name { font-weight:500; }
-    .item-option-sub  { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
-    .harga-src { display:inline-block; font-size:9px; font-family:var(--mono); padding:1px 5px; border-radius:3px; margin-left:4px; vertical-align:middle; }
-    .harga-src.vendor  { background:rgba(56,217,169,0.15); color:var(--accent2); }
-    .harga-src.fallback{ background:rgba(107,114,128,0.15); color:var(--muted); }
-    .harga-src.manual  { background:rgba(247,146,79,0.15);  color:var(--accent3); }
-    .vendor-price-info { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:6px; padding:6px 10px; background:rgba(79,142,247,0.06); border-radius:6px; border:1px solid rgba(79,142,247,0.12); }
-
-    /* Diskon toggle */
+.item-option { padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .15s; }
+.item-option:last-child { border-bottom:none; }
+.item-option:hover { background:rgba(79,142,247,0.08); }
+.item-option-name { font-weight:500; }
+.item-option-sub  { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
+.harga-src { display:inline-block; font-size:9px; font-family:var(--mono); padding:1px 5px; border-radius:3px; margin-left:4px; vertical-align:middle; }
+.harga-src.vendor  { background:rgba(56,217,169,0.15); color:var(--accent2); }
+.harga-src.fallback{ background:rgba(107,114,128,0.15); color:var(--muted); }
+.harga-src.manual  { background:rgba(247,146,79,0.15);  color:var(--accent3); }
+.vendor-price-info { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:6px; padding:6px 10px; background:rgba(79,142,247,0.06); border-radius:6px; border:1px solid rgba(79,142,247,0.12); }
+/* Diskon toggle */
     .diskon-toggle { display:flex; gap:4px; margin-bottom:6px; }
-    .diskon-toggle-btn { flex:1; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-    .diskon-toggle-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
-
-    /* Multi-select item panel */
+.diskon-toggle-btn { flex:1; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
+.diskon-toggle-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
+/* Multi-select item panel */
     .multisel-panel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; max-height:260px; overflow-y:auto; margin-top:8px; display:none; }
-    .multisel-item { display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .12s; user-select:none; }
-    .multisel-item:last-child { border-bottom:none; }
-    .multisel-item:hover { background:rgba(79,142,247,0.06); }
-    .multisel-item.checked { background:rgba(56,217,169,0.06); }
-    .multisel-cb { width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .12s; background:var(--bg); }
-    .multisel-item.checked .multisel-cb { background:var(--accent2); border-color:var(--accent2); color:#0d0f14; font-size:11px; }
-    .multisel-item-name { font-size:13px; font-weight:500; flex:1; }
-    .multisel-item-sub { font-size:11px; color:var(--muted); font-family:var(--mono); }
-    .multisel-item-price { font-size:12px; font-family:var(--mono); color:var(--accent2); white-space:nowrap; }
-    .multisel-footer { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-top:1px solid var(--border); background:var(--surface); border-radius:0 0 8px 8px; }
-    .multisel-count { font-size:12px; color:var(--muted); font-family:var(--mono); }
-
-    /* SUMMARY CARD */
+.multisel-item { display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .12s; user-select:none; }
+.multisel-item:last-child { border-bottom:none; }
+.multisel-item:hover { background:rgba(79,142,247,0.06); }
+.multisel-item.checked { background:rgba(56,217,169,0.06); }
+.multisel-cb { width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .12s; background:var(--bg); }
+.multisel-item.checked .multisel-cb { background:var(--accent2); border-color:var(--accent2); color:#0d0f14; font-size:11px; }
+.multisel-item-name { font-size:13px; font-weight:500; flex:1; }
+.multisel-item-sub { font-size:11px; color:var(--muted); font-family:var(--mono); }
+.multisel-item-price { font-size:12px; font-family:var(--mono); color:var(--accent2); white-space:nowrap; }
+.multisel-footer { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-top:1px solid var(--border); background:var(--surface); border-radius:0 0 8px 8px; }
+.multisel-count { font-size:12px; color:var(--muted); font-family:var(--mono); }
+/* SUMMARY CARD */
     .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; position:sticky; top:88px; }
-    .summary-title { font-size:15px; font-weight:600; margin-bottom:16px; }
-    .summary-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
-    .summary-row:last-of-type { border-bottom:none; }
-    .summary-key { color:var(--muted); }
-    .summary-val { font-family:var(--mono); font-weight:500; }
-    .summary-total { font-size:20px; font-weight:600; color:var(--accent2); font-family:var(--mono); }
-    .summary-divider { height:1px; background:var(--border); margin:12px 0; }
-
-    /* STATUS PILLS */
+.summary-title { font-size:15px; font-weight:600; margin-bottom:16px; }
+.summary-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
+.summary-row:last-of-type { border-bottom:none; }
+.summary-key { color:var(--muted); }
+.summary-val { font-family:var(--mono); font-weight:500; }
+.summary-total { font-size:20px; font-weight:600; color:var(--accent2); font-family:var(--mono); }
+.summary-divider { height:1px; background:var(--border); margin:12px 0; }
+/* STATUS PILLS */
     .status-group { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:16px; }
-    .status-pill { padding:8px; border-radius:7px; text-align:center; cursor:pointer; font-size:12px; font-weight:600; border:1px solid var(--border); color:var(--muted); background:var(--bg); transition:all .2s; }
-    .status-pill.active-selesai { background:rgba(56,217,169,0.12); color:var(--accent2); border-color:rgba(56,217,169,0.4); }
-    .status-pill.active-pending { background:rgba(247,146,79,0.12); color:var(--accent3); border-color:rgba(247,146,79,0.4); }
-    .status-pill.active-batal   { background:rgba(248,113,113,0.12); color:var(--danger); border-color:rgba(248,113,113,0.4); }
-
-    .table-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
-
-    input[type="date"] { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:12px; padding:9px 12px; cursor:pointer; outline:none; }
-    input[type="date"]:focus { border-color:var(--accent); }
-
-
-    .expand-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px; transition:transform .2s,color .2s; }
-    .expand-btn:hover { color:var(--accent); }
-    .expand-btn.open { transform:rotate(90deg); color:var(--accent); }
-
-    .detail-row { display:none; }
-    .detail-row.open { display:table-row; }
-    .detail-inner { padding:12px 16px 16px 36px; background: var(--surface2); }
-    .detail-items-table { width:100%; border-collapse:collapse; font-size:12px; }
-    .detail-items-table th { font-size:10px; padding:6px 10px; }
-    .detail-items-table td { padding:7px 10px; border-bottom: 1px solid var(--border); }
-
-    .detail-kv { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
-    .detail-kv:last-child { border-bottom:none; }
-    .detail-k { color:var(--muted); min-width:140px; font-family:var(--mono); font-size:12px; }
-    .detail-v { color:var(--text); flex:1; }
-
-    .btn-success { background:rgba(56,217,169,0.15); color:var(--accent2); border:1px solid rgba(56,217,169,0.3); }
-    .btn-success:hover { background:rgba(56,217,169,0.25); }
-    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-
-    .deleted-label { font-size:10px; font-family:var(--mono); color:var(--danger); background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:4px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
-    .confirm-body { padding:20px 24px 22px; font-size:14px; color:var(--muted); line-height:1.6; }
-    .confirm-body strong { color:var(--text); }
-
-    /* ACTION MORE MENU */
+.status-pill { padding:8px; border-radius:7px; text-align:center; cursor:pointer; font-size:12px; font-weight:600; border:1px solid var(--border); color:var(--muted); background:var(--bg); transition:all .2s; }
+.status-pill.active-selesai { background:rgba(56,217,169,0.12); color:var(--accent2); border-color:rgba(56,217,169,0.4); }
+.status-pill.active-pending { background:rgba(247,146,79,0.12); color:var(--accent3); border-color:rgba(247,146,79,0.4); }
+.status-pill.active-batal   { background:rgba(248,113,113,0.12); color:var(--danger); border-color:rgba(248,113,113,0.4); }
+input[type="date"] { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:12px; padding:9px 12px; cursor:pointer; outline:none; }
+input[type="date"]:focus { border-color:var(--accent); }
+.expand-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px; transition:transform .2s,color .2s; }
+.expand-btn:hover { color:var(--accent); }
+.expand-btn.open { transform:rotate(90deg); color:var(--accent); }
+.detail-row { display:none; }
+.detail-row.open { display:table-row; }
+.detail-inner { padding:12px 16px 16px 36px; background: var(--surface2); }
+.detail-items-table { width:100%; border-collapse:collapse; font-size:12px; }
+.detail-items-table th { font-size:10px; padding:6px 10px; }
+.detail-items-table td { padding:7px 10px; border-bottom: 1px solid var(--border); }
+.detail-kv { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
+.detail-kv:last-child { border-bottom:none; }
+.detail-k { color:var(--muted); min-width:140px; font-family:var(--mono); font-size:12px; }
+.detail-v { color:var(--text); flex:1; }
+.btn-success { background:rgba(56,217,169,0.15); color:var(--accent2); border:1px solid rgba(56,217,169,0.3); }
+.btn-success:hover { background:rgba(56,217,169,0.25); }
+.btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+.deleted-label { font-size:10px; font-family:var(--mono); color:var(--danger); background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:4px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
+/* ACTION MORE MENU */
     .action-more-wrap { position:relative; display:inline-block; }
-    .action-more-btn {
+.action-more-btn {
       width:30px; height:30px; border-radius:6px; border:1px solid var(--border);
       background:var(--surface); color:var(--muted); cursor:pointer;
       display:flex; align-items:center; justify-content:center; font-size:16px;
       transition:all .15s; line-height:1;
     }
-    .action-more-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.06); }
-    .action-more-btn:active { transform:scale(0.9); }
-    .action-more-menu {
+.action-more-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.06); }
+.action-more-btn:active { transform:scale(0.9); }
+.action-more-menu {
       display:none; position:fixed; z-index:500;
       background:var(--surface2); border:1px solid var(--border); border-radius:8px;
       padding:5px; min-width:140px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
     }
-    .action-more-menu.open { display:block; }
-    .action-more-item {
+.action-more-menu.open { display:block; }
+.action-more-item {
       display:flex; align-items:center; gap:8px; padding:8px 12px;
       border-radius:5px; cursor:pointer; font-size:12px; transition:background .12s;
       color:var(--text); text-decoration:none; width:100%; background:none; border:none; text-align:left;
     }
-    .action-more-item:hover { background:rgba(79,142,247,0.08); }
-    .action-more-item.danger { color:var(--danger); }
-    .action-more-item.danger:hover { background:rgba(248,113,113,0.08); }
-    .date-quick-btn { padding:6px 8px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-    .date-quick-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .date-quick-btn.active { background:rgba(79,142,247,0.12); border-color:var(--accent); color:var(--accent); }
-    th:hover { color:var(--text); }
-    th.sorted { color:var(--accent); }
-
-    /* Global :active press feedback for all .btn variants */
-    .btn:active        { transform: scale(0.96); }
-    .btn-primary:active { filter: brightness(0.9); }
-    .btn-danger:active  { filter: brightness(0.9); }
-
-    /* Detail overlay entrance animation */
+.action-more-item:hover { background:rgba(79,142,247,0.08); }
+.action-more-item.danger { color:var(--danger); }
+.action-more-item.danger:hover { background:rgba(248,113,113,0.08); }
+.btn-primary:active { filter: brightness(0.9); }
+.btn-danger:active  { filter: brightness(0.9); }
+/* Detail overlay entrance animation */
     #detailOverlay .modal {
       transition: transform .2s cubic-bezier(.34,1.3,.7,1), opacity .2s ease;
     }
-    #detailOverlay:not(.show) .modal {
+#detailOverlay:not(.show) .modal {
       transform: translateY(12px) scale(0.98);
       opacity: 0;
     }
-    #detailOverlay.show .modal {
+#detailOverlay.show .modal {
       transform: translateY(0) scale(1);
       opacity: 1;
     }
-
-    @media (max-width:1100px) { .form-layout { grid-template-columns:1fr; } .summary-card { position:static; } }
-    @media (max-width:768px) {
-      .field-row { grid-template-columns:1fr; }
+@media (max-width:1100px) { .form-layout { grid-template-columns:1fr; } .summary-card { position:static; } }
+@media (max-width:768px) {
       .item-row,.item-header { grid-template-columns:1fr 70px 100px 70px 24px; }
     }
-    /* Dipakai oleh switchTab untuk hide brandSelect sidebar di tab Riwayat & Cari Barang */
+/* Dipakai oleh switchTab untuk hide brandSelect sidebar di tab Riwayat & Cari Barang */
     .sidebar-brand-hidden { display: none !important; }
-  </style>
+</style>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -256,7 +215,7 @@
                     <div id="vendorComboBtn" onclick="toggleVendorDropdown()"
                       style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s;min-height:38px;user-select:none"
                       onmouseover="this.style.borderColor='var(--accent)'"
-                      onmouseout="if(!window._vendorOpen)this.style.borderColor='var(--border)'">
+                      onmouseout="if(!PageState.vendorOpen)this.style.borderColor='var(--border)'">
                       <span id="vendorComboLabel" style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Pilih vendor...</span>
                       <span style="font-size:10px;color:var(--muted);flex-shrink:0;transition:transform .2s" id="vendorComboArrow">▾</span>
                     </div>
@@ -489,7 +448,7 @@
           <button class="brand-mfilter-btn" id="rBrandFilterBtn" onclick="toggleRBrandDropdown(event)"
             style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans)"
             onmouseover="this.style.borderColor='var(--accent)'"
-            onmouseout="if(!(window._rSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
+            onmouseout="if(!(PageState.rSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
             <span id="rBrandFilterLabel">🏷 Semua Brand</span>
             <span id="rBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
             <span style="font-size:10px;color:var(--muted)">▾</span>
@@ -605,7 +564,7 @@
           <button id="cbBrandFilterBtn" onclick="toggleCbBrandDropdown(event)"
             style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans)"
             onmouseover="this.style.borderColor='var(--accent)'"
-            onmouseout="if(!(window._cbSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
+            onmouseout="if(!(PageState.cbSelectedBrands||[]).length)this.style.borderColor='var(--border)'">
             <span id="cbBrandFilterLabel">🏷 Semua Brand</span>
             <span id="cbBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
             <span style="font-size:10px;color:var(--muted)">▾</span>
@@ -770,9 +729,34 @@
       <div class="field-row" style="margin-bottom:14px">
         <div class="field">
           <label>Vendor</label>
-          <select id="eFVendor" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none">
-            <option value="">— Pilih Vendor —</option>
-          </select>
+          <div style="position:relative">
+            <!-- Trigger tombol (tampilan seperti select) -->
+            <div id="eVendorComboBtn" onclick="toggleEditVendorDropdown()"
+              style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s;min-height:38px;user-select:none"
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="if(!PageState.editVendorOpen)this.style.borderColor='var(--border)'">
+              <span id="eVendorComboLabel" style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">Pilih vendor...</span>
+              <span style="font-size:10px;color:var(--muted);flex-shrink:0;transition:transform .2s" id="eVendorComboArrow">▾</span>
+            </div>
+            <input type="hidden" id="eFVendor" />
+            <!-- Dropdown panel -->
+            <div id="eVendorDropdownPanel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden">
+              <div style="padding:8px 8px 4px">
+                <div style="position:relative">
+                  <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>
+                  <input type="text" id="eVendorSearch"
+                    placeholder="Cari vendor..."
+                    autocomplete="off"
+                    oninput="onEditVendorSearch()"
+                    style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 10px 8px 32px;outline:none;transition:border-color .2s"
+                    onfocus="this.style.borderColor='var(--accent)'"
+                    onblur="this.style.borderColor='var(--border)'"
+                  />
+                </div>
+              </div>
+              <div id="eVendorDropdown" class="item-dropdown" style="display:block;position:static;max-height:220px;overflow-y:auto;border:none;border-radius:0;box-shadow:none;background:transparent"></div>
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>Tanggal</label>
@@ -846,16 +830,65 @@
 
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
   /* ── SUPABASE INIT ── */
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
-renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+  renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()');
+  /* ══════════════════════════════════════════
+     PAGE STATE — objek terpusat untuk semua state halaman ini.
+     Ganti semua window._xxx yang spesifik ke halaman ini.
+     State shared (window._sb, window._ppnRate, dll.) tetap di window.
+  ══════════════════════════════════════════ */
+  const PageState = {
+    /* Master data */
+    allBrands   : [],
+    allVendors  : [],
+    allBarang   : [],
+    hargaCache  : {},
+    diskonCache : {},
+    vendorMap   : {},
+
+    /* Vendor combo */
+    vendorOptions : [],
+    vendorOpen    : false,
+
+    /* Brand filter options (dipakai multi-select riwayat & cari barang) */
+    brandOptions  : [],
+
+    /* Tab Riwayat */
+    rSelectedBrands  : [],
+    riwayatData      : [],
+    riwayatPageData  : [],
+    riwayatTotal     : 0,
+    riwayatGhostCache: {},
+
+    /* Tab Cari Barang */
+    cbSelectedBrands : [],
+    cbData    : [],
+    cbFiltered: [],
+    cbPage    : 1,
+    cbInited  : false,
+    cbTimer   : null,
+    cbSortField: 'totalExc',
+    cbSortDir  : 'desc',
+  };
+  window.PageState = PageState;
+
+  /* Alias backward-compat — kode lain masih pakai window.allBrands dll.
+     Pointer ke objek yang sama; tidak perlu sync manual. */
+  Object.defineProperties(window, {
+    allBrands  : { get: () => PageState.allBrands,   set: v => { PageState.allBrands   = v; }, configurable: true },
+    allVendors : { get: () => PageState.allVendors,  set: v => { PageState.allVendors  = v; }, configurable: true },
+    allBarang  : { get: () => PageState.allBarang,   set: v => { PageState.allBarang   = v; }, configurable: true },
+    hargaCache : { get: () => PageState.hargaCache,  set: v => { PageState.hargaCache  = v; }, configurable: true },
+    diskonCache: { get: () => PageState.diskonCache, set: v => { PageState.diskonCache = v; }, configurable: true },
+    vendorMap  : { get: () => PageState.vendorMap,   set: v => { PageState.vendorMap   = v; }, configurable: true },
+  });
+
   /* ── CACHE HELPERS (TTL-based localStorage) ── */
   const CACHE_TTL = { brands: 7200e3, vendors: 300e3, barang: 300e3, harga: 900e3 };
   function _saveCache(key, data) {
@@ -899,7 +932,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     const katSel = document.getElementById('cbFilterKategori');
     if (katSel) { const fo = katSel.querySelector('option'); katSel.innerHTML = ''; if(fo) katSel.appendChild(fo); }
     /* Allow cbInit to run again with fresh data */
-    if (typeof _cbInited !== 'undefined') window._cbInited = false;
+    PageState.cbInited = false;
     await loadMasterData();
     if (typeof _afterLoadMasterData === 'function') await _afterLoadMasterData();
     if (btn) { btn.disabled = false; btn.innerHTML = '⟳ Refresh Data'; }
@@ -1191,21 +1224,21 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
 
   function populateVendorSelect(brandId) {
-    window._vendorOptions = (window.allVendors || []);
+    PageState.vendorOptions = (window.allVendors || []);
   }
 
   /* ══════════════════════════════════════════
      VENDOR COMBO BOX (searchable dropdown)
   ══════════════════════════════════════════ */
-  window._vendorOpen = false;
+  PageState.vendorOpen = false;
 
   function toggleVendorDropdown() {
-    if (window._vendorOpen) { closeVendorPanel(); return; }
+    if (PageState.vendorOpen) { closeVendorPanel(); return; }
     openVendorPanel();
   }
 
   function openVendorPanel() {
-    window._vendorOpen = true;
+    PageState.vendorOpen = true;
     const panel = document.getElementById('vendorDropdownPanel');
     const btn   = document.getElementById('vendorComboBtn');
     const arrow = document.getElementById('vendorComboArrow');
@@ -1220,7 +1253,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
 
   function closeVendorPanel() {
-    window._vendorOpen = false;
+    PageState.vendorOpen = false;
     const panel = document.getElementById('vendorDropdownPanel');
     const btn   = document.getElementById('vendorComboBtn');
     const arrow = document.getElementById('vendorComboArrow');
@@ -1234,7 +1267,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   function renderVendorList(q) {
     const dd   = document.getElementById('vendorDropdown');
     if (!dd) return;
-    const list = (window._vendorOptions || []).filter(v =>
+    const list = (PageState.vendorOptions || []).filter(v =>
       !q || v.nama.toLowerCase().includes(q) || (v.kode || '').toLowerCase().includes(q)
     );
     const curId = document.getElementById('fVendor').value;
@@ -1276,7 +1309,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   /* Tutup vendor panel saat klik di luar */
   document.addEventListener('mousedown', e => {
-    if (!window._vendorOpen) return;
+    if (!PageState.vendorOpen) return;
     const panel = document.getElementById('vendorDropdownPanel');
     const btn   = document.getElementById('vendorComboBtn');
     if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
@@ -1294,12 +1327,99 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   window.clearVendorSearch     = clearVendorSearch;
 
   /* ══════════════════════════════════════════
+     EDIT VENDOR COMBO BOX (searchable dropdown)
+     Sama persis dengan vendor combo form, tapi pakai elemen ID berbeda
+     agar tidak konflik saat edit modal dibuka.
+  ══════════════════════════════════════════ */
+  PageState.editVendorOpen = false;
+
+  function toggleEditVendorDropdown() {
+    if (PageState.editVendorOpen) { closeEditVendorPanel(); return; }
+    openEditVendorPanel();
+  }
+
+  function openEditVendorPanel() {
+    PageState.editVendorOpen = true;
+    const panel = document.getElementById('eVendorDropdownPanel');
+    const btn   = document.getElementById('eVendorComboBtn');
+    const arrow = document.getElementById('eVendorComboArrow');
+    if (panel) panel.style.display = 'block';
+    if (btn)   btn.style.borderColor = 'var(--accent)';
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    renderEditVendorList('');
+    setTimeout(() => {
+      const inp = document.getElementById('eVendorSearch');
+      if (inp) { inp.value = ''; inp.focus(); }
+    }, 30);
+  }
+
+  function closeEditVendorPanel() {
+    PageState.editVendorOpen = false;
+    const panel = document.getElementById('eVendorDropdownPanel');
+    const btn   = document.getElementById('eVendorComboBtn');
+    const arrow = document.getElementById('eVendorComboArrow');
+    if (panel) panel.style.display = 'none';
+    if (btn)   btn.style.borderColor = 'var(--border)';
+    if (arrow) arrow.style.transform = '';
+    const inp = document.getElementById('eVendorSearch');
+    if (inp) inp.value = '';
+  }
+
+  function renderEditVendorList(q) {
+    const dd = document.getElementById('eVendorDropdown');
+    if (!dd) return;
+    const list = (window.allVendors || []).filter(v =>
+      !q || v.nama.toLowerCase().includes(q) || (v.kode || '').toLowerCase().includes(q)
+    );
+    const curId = document.getElementById('eFVendor').value;
+    if (!list.length) {
+      dd.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--muted);text-align:center">Tidak ditemukan</div>';
+      return;
+    }
+    dd.innerHTML = list.map(v =>
+      `<div class="item-option" style="${v.id===curId?'background:rgba(79,142,247,0.1);color:var(--accent)':''}"
+        onmousedown="selectEditVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
+        <div class="item-option-name">${v.nama}${v.id===curId?' ✓':''}</div>
+        <div class="item-option-sub">${v.kode||''}${v.kota?' · '+v.kota:''}</div>
+      </div>`
+    ).join('');
+  }
+
+  function onEditVendorSearch() {
+    const q = (document.getElementById('eVendorSearch').value || '').toLowerCase().trim();
+    renderEditVendorList(q);
+  }
+
+  function selectEditVendor(id, nama) {
+    document.getElementById('eFVendor').value = id;
+    const lbl = document.getElementById('eVendorComboLabel');
+    if (lbl) { lbl.textContent = nama; lbl.style.color = 'var(--text)'; }
+    closeEditVendorPanel();
+  }
+
+  /* Tutup edit vendor panel saat klik di luar */
+  document.addEventListener('mousedown', e => {
+    if (!PageState.editVendorOpen) return;
+    const panel = document.getElementById('eVendorDropdownPanel');
+    const btn   = document.getElementById('eVendorComboBtn');
+    if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+      closeEditVendorPanel();
+    }
+  });
+
+  window.toggleEditVendorDropdown = toggleEditVendorDropdown;
+  window.openEditVendorPanel      = openEditVendorPanel;
+  window.closeEditVendorPanel     = closeEditVendorPanel;
+  window.onEditVendorSearch       = onEditVendorSearch;
+  window.selectEditVendor         = selectEditVendor;
+
+  /* ══════════════════════════════════════════
      MULTI-BRAND FILTER — Riwayat & Cari Barang
      (tidak berlaku di form Catat Pembelian)
   ══════════════════════════════════════════ */
   const _BRAND_COLORS = ['#4f8ef7','#38d9a9','#f7924f','#a78bfa','#f472b6','#facc15','#34d399','#fb923c'];
-  window._rSelectedBrands  = []; // untuk tab Riwayat
-  window._cbSelectedBrands = []; // untuk tab Cari Barang
+  PageState.rSelectedBrands  = []; // untuk tab Riwayat
+  PageState.cbSelectedBrands = []; // untuk tab Cari Barang
 
   function _buildBrandOptions(brands) {
     return brands.map((b, i) => {
@@ -1312,7 +1432,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   function buildRBrandOptions() {
     const list = document.getElementById('rBrandOptionsList');
     if (!list) return;
-    const brands = window._brandOptions || [];
+    const brands = PageState.brandOptions || [];
     list.innerHTML = brands.map(b =>
       `<div data-rbrand="${b.id}" onclick="toggleRBrand(event,'${b.id}')"
         style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
@@ -1338,23 +1458,23 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   function toggleRBrand(e, id) {
     e.stopPropagation();
-    const idx = window._rSelectedBrands.indexOf(id);
-    if (idx === -1) window._rSelectedBrands.push(id);
-    else            window._rSelectedBrands.splice(idx, 1);
+    const idx = PageState.rSelectedBrands.indexOf(id);
+    if (idx === -1) PageState.rSelectedBrands.push(id);
+    else            PageState.rSelectedBrands.splice(idx, 1);
     updateRBrandUI();
     _syncRFilterBrand();
     rPage = 1; fetchRiwayatPage();
   }
 
   function rSelectAllBrands() {
-    window._rSelectedBrands = [];
+    PageState.rSelectedBrands = [];
     updateRBrandUI();
     _syncRFilterBrand();
     rPage = 1; fetchRiwayatPage();
   }
 
   function updateRBrandUI() {
-    const sel   = window._rSelectedBrands;
+    const sel   = PageState.rSelectedBrands;
     const isAll = sel.length === 0;
     const allChk = document.getElementById('rChkAllBrands');
     if (allChk) allChk.checked = isAll;
@@ -1371,7 +1491,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
       if (count) count.style.display = 'none';
       if (btn)   btn.style.borderColor = 'var(--border)';
     } else if (sel.length === 1) {
-      const found = (window._brandOptions||[]).find(b=>b.id===sel[0]);
+      const found = (PageState.brandOptions||[]).find(b=>b.id===sel[0]);
       if (lbl)   { lbl.textContent = '🏷 ' + (found?.nama || sel[0]); }
       if (count) count.style.display = 'none';
       if (btn)   btn.style.borderColor = 'var(--accent)';
@@ -1384,7 +1504,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   function _syncRFilterBrand() {
     /* Sync ke hidden select — single value jika 1 brand dipilih, '' jika multi/all */
-    const sel = window._rSelectedBrands;
+    const sel = PageState.rSelectedBrands;
     const el  = document.getElementById('rFilterBrand');
     if (el) el.value = sel.length === 1 ? sel[0] : '';
   }
@@ -1392,7 +1512,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   /* ── Override _buildRiwayatQuery untuk multi-brand ── */
   const _origBuildRiwayatQuery = _buildRiwayatQuery;
   window._buildRiwayatQuery = function() {
-    const sel      = window._rSelectedBrands || [];
+    const sel      = PageState.rSelectedBrands || [];
     const status   = document.getElementById('rFilterStatus').value;
     const dateFrom = document.getElementById('rDateFrom').value;
     const dateTo   = document.getElementById('rDateTo').value;
@@ -1406,7 +1526,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   };
   const _origBuildCountQuery = _buildCountQuery;
   window._buildCountQuery = function() {
-    const sel      = window._rSelectedBrands || [];
+    const sel      = PageState.rSelectedBrands || [];
     const status   = document.getElementById('rFilterStatus').value;
     const dateFrom = document.getElementById('rDateFrom').value;
     const dateTo   = document.getElementById('rDateTo').value;
@@ -1423,7 +1543,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   function buildCbBrandOptions() {
     const list = document.getElementById('cbBrandOptionsList');
     if (!list) return;
-    const brands = window._brandOptions || [];
+    const brands = PageState.brandOptions || [];
     list.innerHTML = brands.map(b =>
       `<div data-cbbrand="${b.id}" onclick="toggleCbBrand(event,'${b.id}')"
         style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
@@ -1449,23 +1569,23 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   function toggleCbBrand(e, id) {
     e.stopPropagation();
-    const idx = window._cbSelectedBrands.indexOf(id);
-    if (idx === -1) window._cbSelectedBrands.push(id);
-    else            window._cbSelectedBrands.splice(idx, 1);
+    const idx = PageState.cbSelectedBrands.indexOf(id);
+    if (idx === -1) PageState.cbSelectedBrands.push(id);
+    else            PageState.cbSelectedBrands.splice(idx, 1);
     updateCbBrandUI();
     _syncCbFilterBrand();
     if (typeof cbFetch === 'function') cbFetch();
   }
 
   function cbSelectAllBrands() {
-    window._cbSelectedBrands = [];
+    PageState.cbSelectedBrands = [];
     updateCbBrandUI();
     _syncCbFilterBrand();
     if (typeof cbFetch === 'function') cbFetch();
   }
 
   function updateCbBrandUI() {
-    const sel   = window._cbSelectedBrands;
+    const sel   = PageState.cbSelectedBrands;
     const isAll = sel.length === 0;
     const allChk = document.getElementById('cbChkAllBrands');
     if (allChk) allChk.checked = isAll;
@@ -1482,7 +1602,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
       if (count) count.style.display = 'none';
       if (btn)   btn.style.borderColor = 'var(--border)';
     } else if (sel.length === 1) {
-      const found = (window._brandOptions||[]).find(b=>b.id===sel[0]);
+      const found = (PageState.brandOptions||[]).find(b=>b.id===sel[0]);
       if (lbl)   { lbl.textContent = '🏷 ' + (found?.nama || sel[0]); }
       if (count) count.style.display = 'none';
       if (btn)   btn.style.borderColor = 'var(--accent)';
@@ -1494,7 +1614,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
 
   function _syncCbFilterBrand() {
-    const sel = window._cbSelectedBrands;
+    const sel = PageState.cbSelectedBrands;
     const el  = document.getElementById('cbFilterBrand');
     if (el) el.value = sel.length === 1 ? sel[0] : '';
   }
@@ -1519,7 +1639,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
      PENTING: jangan re-declare loadMasterData karena menyebabkan infinite recursion.
      Sebagai gantinya, panggil _afterLoadMasterData() di akhir init setelah loadMasterData selesai. */
   async function _afterLoadMasterData() {
-    window._brandOptions = _buildBrandOptions(window.allBrands || []);
+    PageState.brandOptions = _buildBrandOptions(window.allBrands || []);
     buildRBrandOptions();
     buildCbBrandOptions();
   }
@@ -1535,7 +1655,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   /* ── LOAD RIWAYAT ── */
   /* ── Normalisasi baris dari Supabase ── */
   function _normalizeRow(r) {
-    const ghostCache = window._riwayatGhostCache || {};
+    const ghostCache = PageState.riwayatGhostCache || {};
     const vid = r.vendor_id;
     let vendor_nama = '—', vendor_deleted = false;
     if (vid) {
@@ -1614,7 +1734,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     /* Ghost cache untuk vendor yang sudah dihapus */
     const ghostCache = JSON.parse(localStorage.getItem('vendorGhostCache') || '{}');
     (window.allVendors || []).forEach(v => { ghostCache[v.id] = v.nama; });
-    window._riwayatGhostCache = ghostCache;
+    PageState.riwayatGhostCache = ghostCache;
 
     await loadRiwayatStats();
     await fetchRiwayatPage();
@@ -1653,7 +1773,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
         totalCount = filtered.length;
         const pageFrom = (rPage - 1) * R_PER_PAGE;
         display = filtered.slice(pageFrom, pageFrom + R_PER_PAGE);
-        window.riwayatData = filtered; /* untuk openDetail/openEdit */
+        PageState.riwayatData = filtered; /* untuk openDetail/openEdit */
       } else {
         /* Normal mode: server-side pagination */
         const pageFrom = (rPage - 1) * R_PER_PAGE;
@@ -1667,11 +1787,11 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
         const { count } = await _buildCountQuery();
         totalCount = count || 0;
         display = (riwayatRaw || []).map(_normalizeRow);
-        window.riwayatData = display;
+        PageState.riwayatData = display;
       }
 
-      window.riwayatPageData = display;
-      window._riwayatTotal   = totalCount;
+      PageState.riwayatPageData = display;
+      PageState.riwayatTotal   = totalCount;
 
       _renderRiwayatRows(display);
       renderRPagin(totalCount);
@@ -1686,7 +1806,9 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
 <script>
   /* ══════════════════════════════════════════
-     STATE
+     STATE — variabel lokal yang tidak perlu di-expose ke luar.
+     State yang perlu diakses lintas fungsi disimpan di PageState (deklarasi
+     di blok script pertama). Variabel di sini hanya untuk scope script ini.
   ══════════════════════════════════════════ */
   let items       = [];    /* [{barang_id, nama, sku, satuan, qty, harga_satuan}] */
   let formStatus  = 'selesai';
@@ -1758,10 +1880,6 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     updateBrandLabel();
   }
 
-  function onContentBrandChange() {
-    /* Tidak dipakai lagi — filter brand kini lewat multi-select dropdown */
-    rPage = 1; fetchRiwayatPage();
-  }
 
   function onBrandChange() {
     const val = document.getElementById('brandSelect').value;
@@ -2187,9 +2305,10 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
                 style="background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:3px 4px;outline:none;cursor:pointer;max-width:90px">${satuanOpts}</select>`
             : `<span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan || ''}</span>`}
         </div>
-        <input class="item-input" type="number" min="0" step="any"
+        <input class="item-input" type="text" inputmode="decimal" min="0" step="any"
           value="${item.harga_satuan}"
-          oninput="updateItemHarga(${i}, this.value)"
+          oninput="this.value=this.value.replace(',','.');updateItemHarga(${i}, this.value)"
+          onblur="this.value=parseFloat(this.value)||''"
           title="Harga satuan (Rp, per ${item.satuan})"/>
         <div class="item-subtotal">${formatRpShort(item.qty * item.faktor * item.harga_satuan)}</div>
         <button class="item-del" onclick="removeItem(${i})" title="Hapus">✕</button>
@@ -2233,7 +2352,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
       const sub = rows[idx].querySelector('.item-subtotal');
       if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));
       /* Update tooltip harga input */
-      const hargaInput = rows[idx].querySelector('input[type="number"]');
+      const hargaInput = rows[idx].querySelector('input.item-input[inputmode="decimal"]');
       if (hargaInput) hargaInput.title = 'Harga satuan (Rp, per ' + items[idx].satuan + ')';
     }
     updateSummary();
@@ -2485,7 +2604,6 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
       hint.style.display = (data && data.length) ? '' : 'none';
     }, 400);
   }
-  window.checkDuplikatFaktur = checkDuplikatFaktur;
 
   function resetForm() {
     items = [];
@@ -2517,7 +2635,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   /* getRFiltered — hanya untuk export (ambil data halaman aktif + filter teks) */
   function getRFiltered() {
     const search = document.getElementById('rSearch').value.toLowerCase().trim();
-    const data   = window.riwayatPageData || [];
+    const data   = PageState.riwayatPageData || [];
     if (!search) return data;
     return data.filter(r =>
       (r.nomor_faktur || '').toLowerCase().includes(search) ||
@@ -2668,7 +2786,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
         const info = document.getElementById('rSearchResultInfo');
         if (!info) return;
         if (q) {
-          const total = window._riwayatTotal || 0;
+          const total = PageState.riwayatTotal || 0;
           info.style.display = '';
           info.textContent   = total
             ? `Ditemukan ${total} transaksi untuk "${q}"`
@@ -2682,7 +2800,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   /* ── DETAIL MODAL ── */
   function openDetail(id) {
-    const r = (window.riwayatData || []).find(x => x.id === id);
+    const r = (PageState.riwayatData || []).find(x => x.id === id);
     if (!r) return;
     document.getElementById('detailTitle').textContent = r.nomor_faktur || 'Detail Pembelian';
     const tgl    = r.tanggal_js.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -2752,7 +2870,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   /* helper: hapus dari baris tabel (hanya pakai id) */
   function hapusRiwayatById(id) {
-    const r = (window.riwayatData || []).find(x => x.id === id);
+    const r = (PageState.riwayatData || []).find(x => x.id === id);
     const label = r?.nomor_faktur || 'transaksi ini';
     hapusRiwayat(id, label);
   }
@@ -2769,7 +2887,6 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
   function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('show'); }
   window.showConfirmModal = showConfirmModal;
-  window.closeConfirm     = closeConfirm;
 
   /* ── HAPUS RIWAYAT ── */
   async function hapusRiwayat(id, label) {
@@ -2811,7 +2928,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   }
 
   function openEdit(id) {
-    const r = (window.riwayatData || []).find(x => x.id === id);
+    const r = (PageState.riwayatData || []).find(x => x.id === id);
     if (!r) return;
 
     document.getElementById('eRiwayatId').value = id;
@@ -2825,15 +2942,21 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
     /* Tanggal — r.tanggal is already 'YYYY-MM-DD' */
     document.getElementById('eFTanggal').value = r.tanggal || '';
 
-    /* Vendor select */
-    const vendorSel = document.getElementById('eFVendor');
-    vendorSel.innerHTML = '<option value="">— Pilih Vendor —</option>';
-    (window.allVendors || []).forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.id; opt.textContent = v.nama;
-      if (v.id === r.vendor_id) opt.selected = true;
-      vendorSel.appendChild(opt);
-    });
+    /* Vendor combo — set value hidden input + update label */
+    const vendorObj = (window.allVendors || []).find(v => v.id === r.vendor_id);
+    document.getElementById('eFVendor').value = r.vendor_id || '';
+    const eLbl = document.getElementById('eVendorComboLabel');
+    if (eLbl) {
+      if (vendorObj) {
+        eLbl.textContent = vendorObj.nama;
+        eLbl.style.color = 'var(--text)';
+      } else {
+        eLbl.textContent = 'Pilih vendor...';
+        eLbl.style.color = 'var(--muted)';
+      }
+    }
+    /* Pastikan panel tertutup saat modal dibuka */
+    closeEditVendorPanel();
 
     /* Detect PPN mode dari transaksi — items simpan harga_satuan sebagai exc PPN */
     const itemPpnIncluded = (r.items || [])[0]?.ppn_included ?? r.ppn_included ?? false;
@@ -2857,6 +2980,11 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
   function closeEdit() {
     document.getElementById('editOverlay').classList.remove('show');
+    closeEditVendorPanel();
+    /* Reset vendor combo label */
+    const eLbl = document.getElementById('eVendorComboLabel');
+    if (eLbl) { eLbl.textContent = 'Pilih vendor...'; eLbl.style.color = 'var(--muted)'; }
+    document.getElementById('eFVendor').value = '';
     editItems   = [];
     editPpnMode = 'exc';
   }
@@ -2887,9 +3015,10 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
             style="width:60px" title="Qty"/>
           <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan||''}</span>
         </div>
-        <input class="item-input" type="number" min="0" step="any"
+        <input class="item-input" type="text" inputmode="decimal" min="0" step="any"
           value="${displayHarga}"
-          oninput="onEditHargaInput(${i}, parseFloat(this.value)||0)"
+          oninput="this.value=this.value.replace(',','.');onEditHargaInput(${i}, parseFloat(this.value)||0)"
+          onblur="this.value=parseFloat(this.value)||''"
           title="Harga satuan (Rp)"/>
         <div class="item-subtotal">${formatRpShort(subtotal)}</div>
         <button class="item-del" onclick="editItems.splice(${i},1);renderEditItems();updateEditSummary()" title="Hapus">✕</button>
@@ -2992,7 +3121,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
 
       /* Add new riwayat_harga entries for edit — delete old ones first */
       await window._sb.from('riwayat_harga').delete().eq('beli_id', id).eq('sumber', 'pembelian');
-      const origBrandId = window.riwayatData?.find(x => x.id === id)?.brand_id || '';
+      const origBrandId = PageState.riwayatData?.find(x => x.id === id)?.brand_id || '';
       const hargaPayloads = newItems.map(item => ({
         barang_id:     item.barang_id || '',
         barang_nama:   item.nama || '',
@@ -3135,7 +3264,7 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
   window.selectAllMulti=selectAllMulti; window.clearMultiSel=clearMultiSel;
   window.addMultiItems=addMultiItems; window.onItemFocus=onItemFocus; window.onVendorChange=onVendorChange;
   window.onFormBrandChange=onFormBrandChange; window.updateBrandLabel=updateBrandLabel;
-  window.setStatus=setStatus; window.onItemSearch=onItemSearch; window.onItemFocus=onItemFocus;
+  window.setStatus=setStatus; window.onItemSearch=onItemSearch;
   window.addItem=addItem; window.removeItem=removeItem;
   window.updateItemQty=updateItemQty; window.updateItemHarga=updateItemHarga;
   window.updateSummary=updateSummary; window.simpanPembelian=simpanPembelian;
@@ -3158,9 +3287,9 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
       let data;
       const search = document.getElementById('rSearch').value.toLowerCase().trim();
 
-      if (search && window.riwayatData && window.riwayatData.length >= 0) {
+      if (search && PageState.riwayatData && PageState.riwayatData.length >= 0) {
         /* Search aktif: pakai data hasil filter yang sudah ada di memory */
-        data = window.riwayatData;
+        data = PageState.riwayatData;
       } else {
         /* Tidak ada search: fetch semua data dengan filter tanggal/brand/status */
         const { data: allData, error } = await _buildRiwayatQuery()
@@ -3238,20 +3367,15 @@ renderSidebar('pembelian.html', 'Brand aktif', 'onBrandChange()')
    TAB 3 — CARI BARANG
    Agregasi pembelian per barang dari riwayat_beli_items
    ═══════════════════════════════════════════════════ */
-let _cbData      = [];
-let _cbFiltered  = [];
-let _cbPage      = 1;
+/* State Tab Cari Barang disimpan di PageState (cbData, cbFiltered, cbPage,
+   cbInited, cbTimer, cbSortField, cbSortDir) — deklarasi di blok script pertama. */
 const CB_PER_PAGE = 20;
-let _cbInited    = false;
-let _cbTimer     = null;
-let _cbSortField = 'totalExc';
-let _cbSortDir   = 'desc';
 
 /* ─── Date picker state ─── */
 
 function cbInit() {
-  if (_cbInited) return;
-  _cbInited = true;
+  if (PageState.cbInited) return;
+  PageState.cbInited = true;
 
   // Isi dropdown brand
   const sel = document.getElementById('cbFilterBrand');
@@ -3280,8 +3404,8 @@ function cbInit() {
 
 /* ─── Search / clear ─── */
 function cbOnSearch() {
-  clearTimeout(_cbTimer);
-  _cbTimer = setTimeout(cbApplySearch, 200);
+  clearTimeout(PageState.cbTimer);
+  PageState.cbTimer = setTimeout(cbApplySearch, 200);
 }
 function cbToggleClear() {
   const v = document.getElementById('cbSearch').value;
@@ -3295,11 +3419,11 @@ function cbClearSearch() {
 
 /* ─── Sort ─── */
 function cbSortBy(field) {
-  if (_cbSortField === field) {
-    _cbSortDir = _cbSortDir === 'asc' ? 'desc' : 'asc';
+  if (PageState.cbSortField === field) {
+    PageState.cbSortDir = PageState.cbSortDir === 'asc' ? 'desc' : 'asc';
   } else {
-    _cbSortField = field;
-    _cbSortDir   = 'desc';
+    PageState.cbSortField = field;
+    PageState.cbSortDir   = 'desc';
   }
   // Reset sort indicators
   ['nama','sku','brand','kategori','totalQty','totalExc','totalInc','transaksi'].forEach(f => {
@@ -3307,25 +3431,25 @@ function cbSortBy(field) {
     if (el) el.textContent = '↕';
   });
   const el = document.getElementById('cbsort-' + field);
-  if (el) el.textContent = _cbSortDir === 'asc' ? '↑' : '↓';
-  _cbFiltered.sort(_cbSortFn());
-  _cbPage = 1;
+  if (el) el.textContent = PageState.cbSortDir === 'asc' ? '↑' : '↓';
+  PageState.cbFiltered.sort(_cbSortFn());
+  PageState.cbPage = 1;
   cbRender();
 }
 function _cbSortFn() {
   return (a, b) => {
     let va, vb;
-    if (_cbSortField === 'brand') {
+    if (PageState.cbSortField === 'brand') {
       va = (window.allBrands || []).find(x => x.id === a.brand_id)?.nama || '';
       vb = (window.allBrands || []).find(x => x.id === b.brand_id)?.nama || '';
     } else {
-      va = a[_cbSortField] ?? '';
-      vb = b[_cbSortField] ?? '';
+      va = a[PageState.cbSortField] ?? '';
+      vb = b[PageState.cbSortField] ?? '';
     }
     if (typeof va === 'string') va = va.toLowerCase();
     if (typeof vb === 'string') vb = vb.toLowerCase();
-    if (va < vb) return _cbSortDir === 'asc' ? -1 : 1;
-    if (va > vb) return _cbSortDir === 'asc' ? 1 : -1;
+    if (va < vb) return PageState.cbSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return PageState.cbSortDir === 'asc' ? 1 : -1;
     return 0;
   };
 }
@@ -3390,7 +3514,7 @@ async function cbFetch() {
       map[key].transaksi += 1;
     });
 
-    _cbData = Object.values(map).sort((a, b) => b.totalExc - a.totalExc);
+    PageState.cbData = Object.values(map).sort((a, b) => b.totalExc - a.totalExc);
     cbApplySearch();
 
   } catch(e) {
@@ -3403,20 +3527,20 @@ function cbApplySearch() {
   const q    = (document.getElementById('cbSearch').value || '').toLowerCase().trim();
   const kat  = document.getElementById('cbFilterKategori').value;
 
-  _cbFiltered = _cbData.filter(r => {
+  PageState.cbFiltered = PageState.cbData.filter(r => {
     const matchQ   = !q   || (r.nama||'').toLowerCase().includes(q) || (r.sku||'').toLowerCase().includes(q);
     const matchKat = !kat || r.kategori === kat;
     return matchQ && matchKat;
   });
 
-  _cbFiltered.sort(_cbSortFn());
-  _cbPage = 1;
+  PageState.cbFiltered.sort(_cbSortFn());
+  PageState.cbPage = 1;
   cbRender();
 }
 
 function cbRender() {
   const tbody = document.getElementById('cbTableBody');
-  const total = _cbFiltered.length;
+  const total = PageState.cbFiltered.length;
 
   const info = document.getElementById('cbInfo');
   if (total > 0) {
@@ -3445,8 +3569,8 @@ const _cbFmt    = v => 'Rp ' + Math.round(v).toLocaleString('id-ID');
 const _cbFmtQty = v => v % 1 === 0 ? v : v.toFixed(2);
 
 function cbRenderFlat(tbody, total) {
-  const start = (_cbPage - 1) * CB_PER_PAGE;
-  const slice = _cbFiltered.slice(start, start + CB_PER_PAGE);
+  const start = (PageState.cbPage - 1) * CB_PER_PAGE;
+  const slice = PageState.cbFiltered.slice(start, start + CB_PER_PAGE);
 
   tbody.innerHTML = slice.map(r => {
     const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
@@ -3474,7 +3598,7 @@ function cbRenderPagin(total) {
   const pages = Math.ceil(total / CB_PER_PAGE) || 1;
 
   wrap.style.display = pages <= 1 ? 'none' : '';
-  info.textContent = `Menampilkan ${Math.min((_cbPage-1)*CB_PER_PAGE+1,total||1)}–${Math.min(_cbPage*CB_PER_PAGE,total)} dari ${total} barang`;
+  info.textContent = `Menampilkan ${Math.min((PageState.cbPage-1)*CB_PER_PAGE+1,total||1)}–${Math.min(PageState.cbPage*CB_PER_PAGE,total)} dari ${total} barang`;
   pb.innerHTML = '';
 
   const add = (lbl, pg, dis, act) => {
@@ -3484,24 +3608,24 @@ function cbRenderPagin(total) {
     b.onclick = () => cbGoPage(pg);
     pb.appendChild(b);
   };
-  add('««', 1,     _cbPage === 1,     false);
-  add('‹',  _cbPage - 1, _cbPage === 1,     false);
-  for (let p = Math.max(1, _cbPage - 2); p <= Math.min(pages, _cbPage + 2); p++)
-    add(p, p, false, p === _cbPage);
-  add('›',  _cbPage + 1, _cbPage === pages, false);
-  add('»»', pages, _cbPage === pages, false);
+  add('««', 1,     PageState.cbPage === 1,     false);
+  add('‹',  PageState.cbPage - 1, PageState.cbPage === 1,     false);
+  for (let p = Math.max(1, PageState.cbPage - 2); p <= Math.min(pages, PageState.cbPage + 2); p++)
+    add(p, p, false, p === PageState.cbPage);
+  add('›',  PageState.cbPage + 1, PageState.cbPage === pages, false);
+  add('»»', pages, PageState.cbPage === pages, false);
 }
 
 function cbGoPage(p) {
-  const pages = Math.ceil(_cbFiltered.length / CB_PER_PAGE);
+  const pages = Math.ceil(PageState.cbFiltered.length / CB_PER_PAGE);
   if (p < 1 || p > pages) return;
-  _cbPage = p;
+  PageState.cbPage = p;
   cbRender();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function cbExport() {
-  if (!_cbFiltered.length) { showToast('Tidak ada data untuk diexport', 'error'); return; }
+  if (!PageState.cbFiltered.length) { showToast('Tidak ada data untuk diexport', 'error'); return; }
   showToast('Menyiapkan export...', 'success');
   try {
     const wb = XLSX.utils.book_new();
@@ -3511,7 +3635,7 @@ async function cbExport() {
     const rows = [
       ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Exc PPN)','Total Nilai (Inc PPN)','Jumlah Transaksi']
     ];
-    _cbFiltered.forEach(r => {
+    PageState.cbFiltered.forEach(r => {
       const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
       rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalExc, r.totalInc, r.transaksi]);
     });
@@ -3521,7 +3645,7 @@ async function cbExport() {
     XLSX.utils.book_append_sheet(wb, ws, 'Rekap Barang');
     const tgl = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `rekap_barang_${dateFrom}_sd_${dateTo}_${tgl}.xlsx`);
-    showToast(`✓ Export ${_cbFiltered.length} barang berhasil`, 'success');
+    showToast(`✓ Export ${PageState.cbFiltered.length} barang berhasil`, 'success');
   } catch(e) {
     showToast('Gagal export: ' + e.message, 'error');
   }

@@ -8,122 +8,7 @@
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
-  <style>
-    /* View toggle */
-    .view-toggle { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
-    .view-btn { width: 32px; height: 30px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; transition: background .2s, color .2s; display: flex; align-items: center; justify-content: center; }
-    .view-btn.active { background: var(--surface2); color: var(--text); }
-
-    /* ── CARD VIEW ── */
-    .vendor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .vendor-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color .2s, transform .15s; animation: fadeUp .3s ease both; display: flex; flex-direction: column; }
-    .vendor-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(79,142,247,0.12); }
-    .vc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .vc-avatar { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
-    .vc-title { flex: 1; min-width: 0; }
-    .vc-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
-    .vc-name { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
-    .vc-kode { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .vc-info { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; flex: 1; }
-    .vc-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
-    .vc-row.empty { display: none; }
-    .vc-row span:first-child { font-size: 13px; width: 18px; text-align: center; flex-shrink: 0; }
-    .vc-row a { color: var(--accent); text-decoration: none; }
-    .vc-row a:hover { text-decoration: underline; }
-    .vc-footer { border-top: 1px solid var(--border); padding-top: 12px; display: flex; gap: 8px; margin-top: auto; }
-
-    /* Avatar colors */
-    .av-blue   { background: linear-gradient(135deg, #4f8ef7, #3b7de8); }
-    .av-green  { background: linear-gradient(135deg, #38d9a9, #20c997); }
-    .av-orange { background: linear-gradient(135deg, #f7924f, #e8763a); }
-    .av-purple { background: linear-gradient(135deg, #a78bfa, #8b5cf6); }
-    .av-pink   { background: linear-gradient(135deg, #f472b6, #ec4899); }
-
-    /* Detail panel */
-    .detail-modal { max-width: 480px; }
-    .detail-section { margin-bottom: 20px; }
-    .detail-row { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(37,40,48,0.5); font-size: 13px; }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-key { color: var(--muted); min-width: 130px; font-family: var(--mono); font-size: 12px; }
-    .detail-val { color: var(--text); flex: 1; }
-    .detail-val a { color: var(--accent); text-decoration: none; }
-
-    /* Toggle */
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(37,40,48,0.5); }
-    .toggle-label { font-size: 14px; }
-    .toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .toggle { position: relative; width: 40px; height: 22px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 11px; transition: background .2s; cursor: pointer; }
-    .toggle input:checked + .toggle-track { background: var(--accent2); }
-    .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; pointer-events: none; }
-    .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
-
-    .section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 6px 0 10px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
-    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .action-group { display: flex; gap: 6px; }
-    .badge-red    { background: rgba(248,113,113,0.15); color: var(--danger); }
-    .badge-purple { background: rgba(167,139,250,0.15); color: #a78bfa; }
-    th:hover { color: var(--text); }
-    th.sorted { color: var(--accent); }
-
-    /* Table row hover */
-    #tableBody tr { transition: background .1s; }
-    #tableBody tr:hover td { background: rgba(255,255,255,0.015); }
-
-    /* Btn icon (trash) di tabel */
-    /* ACTION MENU DROPDOWN */
-    .action-more-wrap { position:relative; display:inline-block; }
-    .action-more-btn {
-      width:30px; height:30px; border-radius:6px; border:1px solid var(--border);
-      background:var(--surface); color:var(--muted); cursor:pointer;
-      display:flex; align-items:center; justify-content:center; font-size:16px;
-      transition:all .15s; line-height:1;
-    }
-    .action-more-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.06); }
-    .action-more-btn:active { transform: scale(0.9); }
-    .action-more-menu {
-      display:none; position:fixed; z-index:500;
-      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      padding:5px; min-width:160px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
-    }
-    .action-more-menu.open { display:block; }
-    .action-more-item {
-      display:flex; align-items:center; gap:8px; padding:8px 12px;
-      border-radius:5px; cursor:pointer; font-size:12px; transition:background .12s;
-      color:var(--text); text-decoration:none; width:100%; background:none; border:none; text-align:left; font-family:var(--sans);
-    }
-    .action-more-item:hover { background:rgba(79,142,247,0.08); }
-    .action-more-item.danger { color:var(--danger); }
-    .action-more-item.danger:hover { background:rgba(248,113,113,0.08); }
-
-    /* Card footer buttons feedback */
-    .vc-footer .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-    .vc-footer .btn-ghost:active { transform: scale(0.95); }
-
-    /* Nama vendor di kartu — hover underline hint */
-    .vc-name { transition: color .15s; }
-
-    @media (max-width: 768px) {
-      .field-row, .field-row-3 { grid-template-columns: 1fr; }
-      .vendor-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Scrollable barang list in detail */
-    #detailBarangList {
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    #detailBarangList::-webkit-scrollbar { width: 5px; }
-    #detailBarangList::-webkit-scrollbar-track { background: transparent; }
-    #detailBarangList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-    #detailBarangList::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-    /* Active press feedback for modal footer buttons */
-    .btn:active { transform: scale(0.96); }
-    .btn-primary:active { filter: brightness(0.9); }
-    .btn-ghost:active { filter: brightness(0.9); }
-  </style>
+  <!-- Semua style halaman ini ada di style.css bagian "Vendor page" -->
 </head>
 <body>
 
@@ -150,7 +35,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
-        <div class="action-more-menu" id="exportMenu" style="right:0;left:auto;min-width:190px">
+        <div class="action-more-menu" id="exportMenu" style="position:absolute;right:0;left:auto;min-width:190px;top:calc(100% + 4px)">
           <button class="action-more-item" onclick="closeExportMenu();exportVendorExcel()">📊 Export Excel (.xlsx)</button>
           <button class="action-more-item" onclick="closeExportMenu();exportVendorPDF()">🖨 Export PDF / Print</button>
         </div>
@@ -270,9 +155,8 @@
       </div>
 
       <div class="field">
-        <label>Brand * <span style="font-size:10px;color:var(--muted)">(pilih satu atau lebih)</span></label>
+        <label>Brand <span style="font-size:10px;color:var(--muted)">(opsional, pilih satu atau lebih)</span></label>
         <div id="brandCheckboxArea" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;min-height:42px;"></div>
-        <div id="brandNoneMsg" style="display:none;font-size:11px;color:var(--danger);margin-top:4px">Pilih minimal satu brand.</div>
       </div>
       <div class="field">
         <label>Kategori Produk</label>
@@ -372,7 +256,7 @@
 
 <!-- ── MODAL DETAIL ── -->
 <div class="modal-overlay" id="detailOverlay">
-  <div class="modal detail-modal">
+  <div class="modal vendor-detail-modal">
     <div class="modal-header">
       <span class="modal-title" id="detailTitle">Detail Vendor</span>
       <button class="modal-close" onclick="closeDetail()">✕</button>
@@ -426,15 +310,43 @@
 <!-- ── SUPABASE ── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
   /* ── SUPABASE INIT ── */
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+  /* ── STATE TERPUSAT ── */
+  const PageState = {
+    // Data cache
+    allData:   [],
+    allBrands: [],
+    allBarang: [],
+    // Pagination & sort
+    currentPage:      1,
+    sortField:        'nama',
+    sortDir:          'asc',
+    pageBeforeSearch: null,
+    // UI state
+    deleteId:    null,
+    viewMode:    'table',
+    searchTimer: null,
+    activeMenuId: null,
+    toastTimer:  null,
+    avMap:       {},
+    avIdx:       0,
+  };
+  window.PageState = PageState;
+
+  /* Proxy agar kode yang pakai variabel lepas / window._xxx tetap jalan */
+  Object.defineProperties(window, {
+    allData:   { get: () => PageState.allData,   set: v => { PageState.allData = v; },   configurable: true },
+    allBrands: { get: () => PageState.allBrands, set: v => { PageState.allBrands = v; }, configurable: true },
+    allBarang: { get: () => PageState.allBarang, set: v => { PageState.allBarang = v; }, configurable: true },
+    _userRole: { get: () => PageState.userRole,  set: v => { PageState.userRole = v; },  configurable: true },
+  });
 
   /* ── AUTH CHECK ── */
   (async () => {
@@ -540,19 +452,27 @@
 </script>
 
 <script>
-  let currentPage = 1;
+  /* ── STATE SHORTHAND (pakai PageState) ── */
   const PER_PAGE      = 10;
   const PER_PAGE_CARD = 12;
-  let sortField   = 'nama';
-  let sortDir     = 'asc';
-  let deleteId    = null;
-  let viewMode    = 'table';
-  let searchTimer = null;
+
+  /* Getter/setter shorthand agar kode render tidak perlu tulis PageState.xxx setiap saat */
+  const getCP  = ()  => PageState.currentPage;
+  const setCP  = v   => { PageState.currentPage = v; };
+  Object.defineProperty(window, 'currentPage', { get: getCP, set: setCP, configurable: true });
+  Object.defineProperty(window, 'sortField',   { get: () => PageState.sortField,   set: v => { PageState.sortField = v; },   configurable: true });
+  Object.defineProperty(window, 'sortDir',     { get: () => PageState.sortDir,     set: v => { PageState.sortDir = v; },     configurable: true });
+  Object.defineProperty(window, 'deleteId',    { get: () => PageState.deleteId,    set: v => { PageState.deleteId = v; },    configurable: true });
+  Object.defineProperty(window, 'viewMode',    { get: () => PageState.viewMode,    set: v => { PageState.viewMode = v; },    configurable: true });
+  Object.defineProperty(window, 'searchTimer', { get: () => PageState.searchTimer, set: v => { PageState.searchTimer = v; }, configurable: true });
+  Object.defineProperty(window, '_activeMenuId', { get: () => PageState.activeMenuId, set: v => { PageState.activeMenuId = v; }, configurable: true });
+  Object.defineProperty(window, 'toastTimer',  { get: () => PageState.toastTimer,  set: v => { PageState.toastTimer = v; },  configurable: true });
+  Object.defineProperty(window, 'avMap',       { get: () => PageState.avMap,       set: v => { PageState.avMap = v; },       configurable: true });
+  Object.defineProperty(window, 'avIdx',       { get: () => PageState.avIdx,       set: v => { PageState.avIdx = v; },       configurable: true });
+  Object.defineProperty(window, '_pageBeforeSearch', { get: () => PageState.pageBeforeSearch, set: v => { PageState.pageBeforeSearch = v; }, configurable: true });
 
   /* ── AVATAR COLORS ── */
   const AV_COLORS = ['av-blue','av-green','av-orange','av-purple','av-pink'];
-  const avMap = {};
-  let avIdx = 0;
   function getAv(id) {
     if (!avMap[id]) avMap[id] = AV_COLORS[avIdx++ % AV_COLORS.length];
     return avMap[id];
@@ -781,8 +701,6 @@
     currentPage=1; renderView();
   }
 
-  let _pageBeforeSearch = null;
-
   function toggleSearchClear() {
     const val = document.getElementById('searchInput').value;
     document.getElementById('searchClearBtn').style.display = val ? 'block' : 'none';
@@ -864,8 +782,7 @@
     } else {
       document.getElementById('modalTitle').textContent='Tambah Vendor';
       ['fId','fNama','fKode','fKategori','fPic','fTelp','fEmail','fWebsite','fKota','fProvinsi','fAlamat','fNpwp','fCatatan'].forEach(id=>document.getElementById(id).value='');
-      const act = localStorage.getItem('activeBrand');
-      buildBrandCheckboxes(act && act!=='all' ? [act] : (window.allBrands||[]).map(b=>b.id));
+      buildBrandCheckboxes([]);
       document.getElementById('fTermin').value = '';
       document.getElementById('fAktif').checked= true;
     }
@@ -883,8 +800,6 @@
     if (!requireAdmin(showToast)) return;
 
     if(!nama)  return showModalError('Nama vendor wajib diisi.');
-    if(!brandIds.length){ document.getElementById('brandNoneMsg').style.display='block'; return showModalError('Pilih minimal satu brand.'); }
-    document.getElementById('brandNoneMsg').style.display='none';
 
     const btn=document.getElementById('btnSave');
     btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Menyimpan...';
@@ -962,7 +877,7 @@
         .order('tanggal', { ascending: false });
       (hRows || []).forEach(h => {
         if (hargaMap[h.barang_id] !== undefined) return; // ambil terbaru
-        const exc = h.harga_exc_ppn || (h.ppn_included ? Math.round(h.harga / 1.11) : h.harga) || 0;
+        const exc = h.harga_exc_ppn || (h.ppn_included ? toExcPPN(h.harga) : h.harga) || 0;
         if (exc > 0) hargaMap[h.barang_id] = exc;
       });
     } catch(e) { console.warn('Gagal fetch harga vendor:', e); }
@@ -1016,7 +931,7 @@
                 <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px">${b.sku||'—'} · ${b.satuan||'—'} · ${brandNames}</div>
               </div>
               <div style="font-family:var(--mono);font-size:13px;color:var(--accent2);text-align:right;flex-shrink:0;margin-left:12px">
-                ${harga ? `<div>Rp ${Math.round(harga*(1+(window._ppnRate||11)/100)).toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted)">inc PPN · exc: Rp ${Math.round(harga).toLocaleString('id-ID')}</div>` : '<span style="color:var(--muted)">—</span>'}
+                ${harga ? `<div>Rp ${toIncPPN(harga).toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted)">inc PPN · exc: Rp ${Math.round(harga).toLocaleString('id-ID')}</div>` : '<span style="color:var(--muted)">—</span>'}
               </div>
             </div>`;
           }).join('')}
@@ -1034,7 +949,7 @@
     if (window._userRole) applyRoleUI(window._userRole);
   }
 
-    function closeDetail() { document.getElementById('detailOverlay').classList.remove('show'); }
+  function closeDetail() { document.getElementById('detailOverlay').classList.remove('show'); }
 
   /* ── DELETE ── */
   function openConfirm(id, nama) {
@@ -1085,7 +1000,6 @@
   function showModalError(msg) { const el=document.getElementById('modalError'); el.textContent=msg; el.classList.add('show'); }
   function clearModalError()   { document.getElementById('modalError').classList.remove('show'); }
 
-  let toastTimer;
   function showToast(msg, type='success') {
     const t=document.getElementById('toast');
     t.className='toast '+type;
@@ -1126,7 +1040,6 @@
     chk.checked = !chk.checked;
     lbl.style.background  = chk.checked ? 'rgba(79,142,247,0.12)' : 'var(--surface)';
     lbl.style.borderColor = chk.checked ? 'var(--accent)' : 'var(--border)';
-    document.getElementById('brandNoneMsg').style.display = 'none';
   }
   function getCheckedBrands() {
     return [...document.querySelectorAll('#brandCheckboxArea input[type=checkbox]:checked')].map(el=>el.dataset.brand);
@@ -1159,8 +1072,6 @@
   window.getBrandName=getBrandName; window.getBrandWarna=getBrandWarna; window.renderBrandTags=renderBrandTags;
 
   /* ── ACTION DROPDOWN MENU (portal pattern) ── */
-  let _activeMenuId = null;
-
   function toggleActionMenu(e, menuId) {
     e.stopPropagation();
     if (_activeMenuId === menuId) { closeAllMenus(); return; }
@@ -1210,197 +1121,8 @@
   window.clearSearch      = clearSearch;
   window.toggleSearchClear = toggleSearchClear;
 
-  /* ── EXPORT MENU ── */
-  function toggleExportMenu(e) {
-    e.stopPropagation();
-    const menu = document.getElementById('exportMenu');
-    const isOpen = menu.classList.contains('open');
-    closeExportMenu();
-    if (!isOpen) {
-      menu.classList.add('open');
-      setTimeout(() => document.addEventListener('click', closeExportMenu), 0);
-    }
-  }
-  function closeExportMenu() {
-    document.getElementById('exportMenu')?.classList.remove('open');
-    document.removeEventListener('click', closeExportMenu);
-  }
-
-  /* ── EXPORT EXCEL ── */
-  async function exportVendorExcel() {
-    const data = getFiltered();
-    if (!data.length) return showToast('Tidak ada data untuk diexport', 'error');
-    showToast('Menyiapkan export...', 'success');
-
-    const ppn = window._ppnRate || 11;
-    const terminMap = {cash:'Tunai',net7:'Net 7 hari',net14:'Net 14 hari',net30:'Net 30 hari',net60:'Net 60 hari'};
-
-    /* Sheet 1: Daftar Vendor */
-    const sheet1 = [
-      ['Nama Vendor','Kode','Brand','Kategori','PIC / Kontak','Telepon','Email','Website','Kota','Provinsi','Alamat','NPWP','Termin Pembayaran','Catatan','Status']
-    ];
-    data.forEach(v => {
-      const brandNames = (Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])
-        .map(id => getBrandName(id)).join(', ');
-      sheet1.push([
-        v.nama||'', v.kode||'', brandNames, v.kategori||'',
-        v.pic||'', v.telp||v.telepon||'', v.email||'', v.website||'',
-        v.kota||'', v.provinsi||'', v.alamat||'', v.npwp||'',
-        terminMap[v.termin]||v.termin||'', v.catatan||'',
-        v.aktif!==false?'Aktif':'Non-Aktif'
-      ]);
-    });
-
-    /* Sheet 2: Harga Satuan per Vendor per Barang (dari riwayat_harga) */
-    const sheet2 = [
-      ['Nama Vendor', 'Nama Barang', 'SKU', 'Satuan', `Harga Exc PPN`, `Harga Inc PPN (${ppn}%)`, 'Tanggal Harga Terakhir']
-    ];
-
-    try {
-      const vendorIds = data.map(v => v.id);
-      const calcExc = h => {
-        if (h.harga_exc_ppn) return h.harga_exc_ppn;
-        if (h.harga_inc_ppn) return Math.round(h.harga_inc_ppn / (1 + ppn/100));
-        if (h.harga) return h.ppn_included ? Math.round(h.harga / (1 + ppn/100)) : h.harga;
-        return 0;
-      };
-      const CHUNK = 30;
-      /* hargaPerVendorBarang: { vendor_id: { barang_id: { exc, inc, tgl, nama, sku, satuan } } } */
-      const hargaPerVendor = {};
-      for (let i = 0; i < vendorIds.length; i += CHUNK) {
-        const chunk = vendorIds.slice(i, i + CHUNK);
-        const { data: rows } = await window._sb
-          .from('riwayat_harga')
-          .select('vendor_id, barang_id, harga, harga_exc_ppn, harga_inc_ppn, ppn_included, tanggal')
-          .in('vendor_id', chunk)
-          .order('tanggal', { ascending: false });
-        (rows || []).forEach(h => {
-          if (!h.vendor_id || !h.barang_id) return;
-          if (!hargaPerVendor[h.vendor_id]) hargaPerVendor[h.vendor_id] = {};
-          if (hargaPerVendor[h.vendor_id][h.barang_id]) return; // ambil terbaru saja
-          const exc = calcExc(h);
-          const inc = h.harga_inc_ppn || (exc ? Math.round(exc * (1 + ppn/100)) : 0);
-          if (exc > 0) hargaPerVendor[h.vendor_id][h.barang_id] = { exc, inc, tgl: h.tanggal };
-        });
-      }
-
-      /* Gabungkan dengan data barang */
-      const barangMap = {};
-      (window.allBarang || []).forEach(b => { barangMap[b.id] = b; });
-
-      data.forEach(v => {
-        const vHarga = hargaPerVendor[v.id] || {};
-        Object.entries(vHarga).forEach(([barangId, h]) => {
-          const b = barangMap[barangId];
-          sheet2.push([
-            v.nama||'',
-            b?.nama||barangId,
-            b?.sku||'',
-            b?.satuan||'',
-            h.exc,
-            h.inc,
-            h.tgl||''
-          ]);
-        });
-      });
-    } catch(e) {
-      console.warn('Gagal fetch harga vendor:', e);
-    }
-
-    const wb = XLSX.utils.book_new();
-
-    const ws1 = XLSX.utils.aoa_to_sheet(sheet1);
-    ws1['!cols'] = [22,12,18,16,18,16,24,22,14,16,28,16,14,24,10].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb, ws1, 'Daftar Vendor');
-
-    if (sheet2.length > 1) {
-      const ws2 = XLSX.utils.aoa_to_sheet(sheet2);
-      ws2['!cols'] = [22,26,14,12,16,16,14].map(w=>({wch:w}));
-      /* Format kolom harga sebagai number */
-      const hargaCols = [4, 5];
-      for (let r = 1; r < sheet2.length; r++) {
-        hargaCols.forEach(c => {
-          const cell = ws2[XLSX.utils.encode_cell({r, c})];
-          if (cell && typeof cell.v === 'number') { cell.z = '#,##0'; cell.t = 'n'; }
-        });
-      }
-      XLSX.utils.book_append_sheet(wb, ws2, 'Harga Satuan per Vendor');
-    }
-
-    XLSX.writeFile(wb, `vendor_${new Date().toISOString().slice(0,10)}.xlsx`);
-    showToast(`✓ Export ${data.length} vendor berhasil`, 'success');
-  }
-
-  /* ── EXPORT PDF ── */
-  function exportVendorPDF() {
-    const data = getFiltered();
-    if (!data.length) return showToast('Tidak ada data untuk diexport', 'error');
-
-    const terminMap = {cash:'Tunai',net7:'Net 7 hari',net14:'Net 14 hari',net30:'Net 30 hari',net60:'Net 60 hari'};
-    const filterInfo = [];
-    const fBrand  = document.getElementById('filterBrand');
-    const fStatus = document.getElementById('filterStatus');
-    const fKota   = document.getElementById('filterKota');
-    const fSearch = document.getElementById('searchInput');
-    if (fBrand.value)  filterInfo.push('Brand: ' + fBrand.options[fBrand.selectedIndex].text);
-    if (fStatus.value) filterInfo.push('Status: ' + fStatus.options[fStatus.selectedIndex].text);
-    if (fKota.value)   filterInfo.push('Kota: ' + fKota.value);
-    if (fSearch.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
-
-    const rows = data.map((v,i) => {
-      const brandNames = (Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])
-        .map(id => getBrandName(id)).join(', ');
-      const aktif = v.aktif !== false;
-      return `<tr>
-        <td style="text-align:center;color:#888">${i+1}</td>
-        <td><strong>${v.nama||'—'}</strong>${v.kategori?`<br><span style="color:#888;font-size:11px">${v.kategori}</span>`:''}</td>
-        <td style="font-family:monospace;font-size:12px;color:#2563eb">${v.kode||'—'}</td>
-        <td>${brandNames||'—'}</td>
-        <td>${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</td>
-        <td>${v.pic?v.pic+'<br>':''}${v.telp||v.telepon?`<span style="color:#555;font-size:12px">${v.telp||v.telepon}</span>`:''}${v.email?`<br><a href="mailto:${v.email}" style="color:#2563eb;font-size:12px">${v.email}</a>`:''}</td>
-        <td><span style="background:${aktif?'#dcfce7':'#fee2e2'};color:${aktif?'#166534':'#991b1b'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${aktif?'Aktif':'Non-Aktif'}</span></td>
-        <td style="font-size:12px">${terminMap[v.termin]||v.termin||'—'}</td>
-      </tr>`;
-    }).join('');
-
-    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
-    <title>Daftar Vendor — PurchaseOS</title>
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1a1a1a; padding: 32px; }
-      h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-      .meta { color: #666; font-size: 12px; margin-bottom: 6px; }
-      .filters { font-size: 11px; color: #2563eb; margin-bottom: 18px; font-style: italic; }
-      table { width: 100%; border-collapse: collapse; }
-      th { background: #1e293b; color: #fff; font-size: 11px; font-weight: 600; padding: 9px 10px; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; }
-      td { padding: 9px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      .footer { margin-top: 20px; font-size: 11px; color: #888; text-align: right; }
-      @media print { body { padding: 16px; } }
-    </style></head><body>
-    <h1>Daftar Vendor — PurchaseOS</h1>
-    <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} vendor</div>
-    ${filterInfo.length ? `<div class="filters">Filter aktif: ${filterInfo.join(' | ')}</div>` : ''}
-    <table>
-      <thead><tr>
-        <th>#</th><th>Nama Vendor</th><th>Kode</th><th>Brand</th>
-        <th>Kota</th><th>Kontak</th><th>Status</th><th>Termin</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="footer">PurchaseOS · ${new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
-    <script>window.onload=()=>window.print()<\/script>
-    </body></html>`;
-
-    const w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
-  }
-
-  window.toggleExportMenu = toggleExportMenu;
-  window.closeExportMenu  = closeExportMenu;
-  window.exportVendorExcel = exportVendorExcel;
-  window.exportVendorPDF  = exportVendorPDF;
+  /* ── EXPORT MENU & EXPORT EXCEL/PDF ── */
+  /* Dipindah ke vendor-export.js */
 
   window.filterDetailBarang = function() {
     const q = (document.getElementById('detailBarangSearch')?.value || '').toLowerCase().trim();
@@ -1425,5 +1147,6 @@
   window.doLogout=doLogout; window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
   window.buildBrandCheckboxes=buildBrandCheckboxes; window.toggleBrandCheck=toggleBrandCheck; window.getCheckedBrands=getCheckedBrands;
 </script>
+<script src="vendor-export.js"></script>
 </body>
 </html>

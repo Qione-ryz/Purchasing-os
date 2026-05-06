@@ -89,9 +89,7 @@ async function initWebPush(sb, opts = {}) {
 
   try {
     // 1. Register / ambil Service Worker yang sudah ada
-    const swPath = location.pathname.replace(/\/[^/]*$/, '/sw.js'); // support subfolder
-    const swScope = location.pathname.replace(/\/[^/]*$/, '/');
-    const registration = await navigator.serviceWorker.register(swPath, { scope: swScope });
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
     console.log('[Push] Service Worker siap ✓');
 
@@ -143,7 +141,7 @@ async function initWebPush(sb, opts = {}) {
  */
 async function disableWebPush(sb) {
   try {
-    const registration  = await navigator.serviceWorker.getRegistration(location.pathname.replace(/\/[^/]*$/, '/'));
+    const registration  = await navigator.serviceWorker.getRegistration('/');
     if (!registration) return;
     const subscription  = await registration.pushManager.getSubscription();
     if (!subscription)  return;

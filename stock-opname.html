@@ -7,110 +7,13 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="logger.js"></script>
+  <script src="ppn.js"></script>
   <script src="sidebar.js"></script>
-  <style>
-    /* Page-specific overrides only — all shared components live in style.css */
-
-    /* Month label as clickable button */
-    button.month-label {
-      cursor: pointer;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 6px 14px;
-      transition: border-color .2s, background .2s;
-    }
-    button.month-label:hover { border-color: var(--accent); background: var(--surface2); }
-    button.month-label::after { content: ' ▾'; font-size: 10px; color: var(--muted); }
-
-    /* Month picker grid buttons */
-    .picker-month-btn {
-      padding: 8px 4px; border: 1px solid var(--border); border-radius: 7px;
-      background: var(--surface2); color: var(--muted); font-family: var(--mono);
-      font-size: 12px; cursor: pointer; transition: all .15s; text-align: center;
-    }
-    .picker-month-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.08); }
-    .picker-month-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-    .grpby-btn { padding:5px 11px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; transition:all .15s; }
-    .grpby-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
-    .grpby-btn:hover:not(.active) { border-color:var(--accent); color:var(--text); }
-
-    /* ── Progress bar ── */
-    .progress-wrap { margin-bottom:12px; }
-    .progress-label { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:5px; }
-    .progress-label strong { color:var(--text); }
-    .progress-bar-track { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
-    .progress-bar-fill  { height:100%; border-radius:3px; background:var(--accent2); transition:width .4s ease; }
-
-    /* ── Hide empty rows toggle ── */
-    .hide-empty-active tr.empty-data-row { display:none; }
-
-    /* ── Input affordance — cell inputs ── */
-    .cell-input {
-      border: 1.5px solid var(--border);
-      background: var(--surface2);
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--text);
-      text-align: right;
-      width: 90px;
-      outline: none;
-      transition: border-color .15s, background .15s;
-    }
-    .cell-input:focus  { border-color: var(--accent); background: rgba(79,142,247,0.06); }
-    .cell-input.changed { border-color: var(--accent3); background: rgba(247,146,79,0.08); }
-    .cell-input-wrap   { text-align:right; }
-
-    /* ── Highlight baris yang sudah terisi ── */
-    tr.row-filled td { background: rgba(56,217,169,0.04); }
-
-    /* ── Modal pilih barang ── */
-    .item-select-overlay {
-      position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400;
-      display:flex; align-items:center; justify-content:center;
-      opacity:0; pointer-events:none; transition:opacity .2s;
-    }
-    .item-select-overlay.show { opacity:1; pointer-events:all; }
-    .item-select-modal {
-      background:var(--surface); border:1px solid var(--border); border-radius:14px;
-      width:min(720px,95vw); max-height:80vh; display:flex; flex-direction:column;
-      box-shadow:0 20px 60px rgba(0,0,0,0.6);
-      transform:translateY(16px); transition:transform .2s;
-    }
-    .item-select-overlay.show .item-select-modal { transform:translateY(0); }
-    .item-select-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .item-select-body   { flex:1; overflow-y:auto; padding:14px 22px; }
-    .item-select-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .item-select-list   { display:flex; flex-direction:column; gap:2px; }
-    .item-select-row {
-      display:flex; align-items:center; gap:12px; padding:9px 12px;
-      border-radius:7px; cursor:pointer; transition:background .12s; user-select:none;
-    }
-    .item-select-row:hover { background:rgba(79,142,247,0.07); }
-    .item-select-row.checked { background:rgba(56,217,169,0.08); }
-    .item-select-cb {
-      width:17px; height:17px; border:1.5px solid var(--border); border-radius:4px;
-      flex-shrink:0; display:flex; align-items:center; justify-content:center;
-      font-size:11px; transition:all .12s; background:var(--bg);
-    }
-    .item-select-row.checked .item-select-cb { background:var(--accent2); border-color:var(--accent2); color:#0d0f14; }
-    .item-select-nama { font-size:13px; font-weight:500; flex:1; }
-    .item-select-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
-    .item-select-group { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; padding:12px 12px 4px; }
-
-    /* ── Tombol kelola barang — digantikan btn btn-ghost btn-sm ── */
-    .btn-kelola { padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap; }
-    .btn-kelola:hover { border-color:var(--accent); color:var(--accent); }
-
-    /* Button active press feedback */
-    .btn:active        { transform: scale(0.96); }
-    .btn-primary:active { filter: brightness(0.9); }
-    .btn-ghost:active   { filter: brightness(0.9); }
-
-  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -440,16 +343,8 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="auth.js"></script>
-<script src="logger.js"></script>
-<script src="ppn.js"></script>
 <script>
-  window._sb = supabase.createClient(
-    'https://jpfqysbaygcvlkxcecdo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg'
-  );
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
   renderSidebar('stock-opname.html', 'Brand aktif', 'onBrandChange()')
   
@@ -457,40 +352,103 @@
   const MONTHS_ID    = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
-  let curYear  = new Date().getFullYear();
-  let curMonth = new Date().getMonth();
-  let activeTab = 'opname';
-  let allBrands  = [];
-  let allBarang  = [];
-  let filterBrandId = '';
+  const PageState = {
+    curYear:            new Date().getFullYear(),
+    curMonth:           new Date().getMonth(),
+    activeTab:          'opname',
+    allBrands:          [],
+    allBarang:          [],
+    filterBrandId:      '',
+    stockData:          {}, // { "YYYY-MM": { barang_id: qty } }
+    purchaseData:       {}, // { "YYYY-MM": { barang_id: qty } }
+    planData:           {}, // { "YYYY-MM": { barang_id: qty } }
+    opnameDraft:        {},
+    opnameChanged:      false,
+    planDraft:          null,
+    hideEmptyMode:      false,
+    soBarangConfig:     {}, // key: brandId, val: Set<barang_id> — sync via Supabase
+    collapseEmptyGroups:{}, // key: groupKey, val: boolean
+    groupByMode:        'brand', // 'brand' | 'kategori'
+    pickerYear:         new Date().getFullYear(),
+    _itemSelectTemp:    null, // Set sementara saat modal terbuka
+  };
+  window.PageState = PageState;
 
-  let stockData    = {}; // { "YYYY-MM": { barang_id: qty } }
-  let purchaseData = {}; // { "YYYY-MM": { barang_id: qty } }
-  let planData     = {}; // { "YYYY-MM": { barang_id: qty } }
+  // Proxy agar fungsi lintas file tetap bisa akses via window.varName
+  Object.defineProperties(window, {
+    curYear:             { get: () => PageState.curYear,             set: v => { PageState.curYear = v; },             configurable: true },
+    curMonth:            { get: () => PageState.curMonth,            set: v => { PageState.curMonth = v; },            configurable: true },
+    activeTab:           { get: () => PageState.activeTab,           set: v => { PageState.activeTab = v; },           configurable: true },
+    allBrands:           { get: () => PageState.allBrands,           set: v => { PageState.allBrands = v; },           configurable: true },
+    allBarang:           { get: () => PageState.allBarang,           set: v => { PageState.allBarang = v; },           configurable: true },
+    filterBrandId:       { get: () => PageState.filterBrandId,       set: v => { PageState.filterBrandId = v; },       configurable: true },
+    stockData:           { get: () => PageState.stockData,           set: v => { PageState.stockData = v; },           configurable: true },
+    purchaseData:        { get: () => PageState.purchaseData,        set: v => { PageState.purchaseData = v; },        configurable: true },
+    planData:            { get: () => PageState.planData,            set: v => { PageState.planData = v; },            configurable: true },
+    opnameDraft:         { get: () => PageState.opnameDraft,         set: v => { PageState.opnameDraft = v; },         configurable: true },
+    opnameChanged:       { get: () => PageState.opnameChanged,       set: v => { PageState.opnameChanged = v; },       configurable: true },
+    planDraft:           { get: () => PageState.planDraft,           set: v => { PageState.planDraft = v; },           configurable: true },
+    hideEmptyMode:       { get: () => PageState.hideEmptyMode,       set: v => { PageState.hideEmptyMode = v; },       configurable: true },
+    soBarangConfig:      { get: () => PageState.soBarangConfig,      set: v => { PageState.soBarangConfig = v; },      configurable: true },
+    collapseEmptyGroups: { get: () => PageState.collapseEmptyGroups, set: v => { PageState.collapseEmptyGroups = v; }, configurable: true },
+    groupByMode:         { get: () => PageState.groupByMode,         set: v => { PageState.groupByMode = v; },         configurable: true },
+    pickerYear:          { get: () => PageState.pickerYear,          set: v => { PageState.pickerYear = v; },          configurable: true },
+    _itemSelectTemp:     { get: () => PageState._itemSelectTemp,     set: v => { PageState._itemSelectTemp = v; },     configurable: true },
+  });
 
-  let opnameDraft   = {};
-  let opnameChanged = false;
-  let planDraft     = null;
-  let hideEmptyMode = false;  // sembunyikan baris tanpa data
-
-  /* Set barang yang masuk daftar SO per brand — key: brandId, val: Set<barang_id>
-     null = semua barang brand tsb (default) */
-  let soBarangConfig = {};  // dimuat dari localStorage
-
-  function loadSoConfig() {
+  async function loadSoConfig() {
+    /* Baca semua config SO user ini dari DB.
+       Schema: so_barang_config(id, user_id, brand_id, included_ids text[])
+       Baris tidak ada = semua barang brand tersebut aktif (default). */
     try {
-      const raw = localStorage.getItem('soBarangConfig');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        Object.keys(parsed).forEach(k => { soBarangConfig[k] = new Set(parsed[k]); });
-      }
-    } catch(e) {}
+      const { data, error } = await window._sb
+        .from('so_barang_config')
+        .select('brand_id, included_ids');
+      if (error) throw error;
+      soBarangConfig = {};
+      (data || []).forEach(row => {
+        if (row.included_ids && row.included_ids.length) {
+          soBarangConfig[row.brand_id] = new Set(row.included_ids);
+        }
+      });
+    } catch(e) {
+      console.warn('loadSoConfig gagal, fallback ke localStorage:', e.message);
+      /* Fallback: baca dari localStorage kalau DB belum ada / error */
+      try {
+        const raw = localStorage.getItem('soBarangConfig');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          Object.keys(parsed).forEach(k => { soBarangConfig[k] = new Set(parsed[k]); });
+        }
+      } catch(_) {}
+    }
   }
 
-  function saveSoConfig() {
-    const plain = {};
-    Object.keys(soBarangConfig).forEach(k => { plain[k] = [...soBarangConfig[k]]; });
-    localStorage.setItem('soBarangConfig', JSON.stringify(plain));
+  async function saveSoConfig(brandId) {
+    /* Simpan config untuk satu brand saja (bukan semua sekaligus). */
+    const cfg = soBarangConfig[brandId];
+    try {
+      if (!cfg) {
+        /* Semua barang aktif → hapus baris supaya kembali ke default */
+        const { error } = await window._sb
+          .from('so_barang_config')
+          .delete()
+          .eq('brand_id', brandId);
+        if (error) throw error;
+      } else {
+        /* Upsert array id yang diaktifkan */
+        const { error } = await window._sb
+          .from('so_barang_config')
+          .upsert({ brand_id: brandId, included_ids: [...cfg] }, { onConflict: 'brand_id' });
+        if (error) throw error;
+      }
+    } catch(e) {
+      showToast('⚠ Gagal simpan config ke DB: ' + e.message, 'error');
+      /* Tetap simpan lokal sebagai fallback */
+      const plain = {};
+      Object.keys(soBarangConfig).forEach(k => { plain[k] = [...soBarangConfig[k]]; });
+      localStorage.setItem('soBarangConfig', JSON.stringify(plain));
+    }
   }
 
   function getActiveBarang() {
@@ -577,8 +535,6 @@
   }
 
   /* Group by kategori */
-  let groupByMode = 'brand'; // 'brand' | 'kategori'
-
   function groupByKategori(list) {
     const map = {}, order = [];
     list.forEach(b => {
@@ -634,7 +590,7 @@
     });
     const role = await getUserRole(); applyRoleUI(role);
     window._userRole = role;
-    loadSoConfig();
+    await loadSoConfig();
     await loadBrands();
     await loadBarang();
     updateMonthLabel();
@@ -770,26 +726,23 @@
       notice.innerHTML = 'ℹ️ Belum ada stock opname untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Input nilai di kolom "Stok Bulan Ini" lalu klik Simpan.';
     } else { notice.style.display = 'none'; }
 
-    let rows = '', filled = 0;
-    grps.forEach(function(g) {
-      rows += groupHeaderRow(g, 6);
-      g.items.forEach(function(b) {
-        const prevQty = getStock(p.y, p.m, b.id);
-        const rawQty  = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
-        const currQty = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
-        const diff    = prevQty != null && currQty != null ? currQty - prevQty : null;
-        const isDraft = opnameDraft[b.id] !== undefined;
-        const isFilled = currQty != null;
-        if (isFilled) filled++;
+    function buildOpnameRow(b) {
+      const prevQty  = getStock(p.y, p.m, b.id);
+      const rawQty   = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
+      const currQty  = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
+      const diff     = prevQty != null && currQty != null ? currQty - prevQty : null;
+      const isDraft  = opnameDraft[b.id] !== undefined;
+      const isFilled = currQty != null;
 
-        const diffHtml = diff == null
-          ? '<span style="color:var(--muted)">—</span>'
-          : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
-          : diff < 0 ? '<span style="color:var(--danger)">'  + fmt(diff) + '</span>'
-          : '<span style="color:var(--muted)">0</span>';
+      const diffHtml = diff == null
+        ? '<span style="color:var(--muted)">—</span>'
+        : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
+        : diff < 0 ? '<span style="color:var(--danger)">'   + fmt(diff) + '</span>'
+        : '<span style="color:var(--muted)">0</span>';
 
-        const rowClass = isFilled ? 'row-filled' : 'empty-data-row';
-        rows += '<tr class="' + rowClass + '">'
+      return {
+        isFilled,
+        html: '<tr class="' + (isFilled ? 'row-filled' : 'empty-data-row') + '">'
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
@@ -803,8 +756,51 @@
               : '<td style="text-align:right;font-family:var(--mono)">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + '<td style="text-align:right;font-family:var(--mono)" data-diff="' + b.id + '">' + diffHtml + '</td>'
-          + '</tr>';
+          + '</tr>'
+      };
+    }
+
+    let rows = '', filled = 0;
+    grps.forEach(function(g) {
+      const filledRows = [], emptyRows = [];
+      g.items.forEach(function(b) {
+        const built = buildOpnameRow(b);
+        if (built.isFilled) { filled++; filledRows.push(built.html); }
+        else emptyRows.push(built.html);
       });
+
+      rows += groupHeaderRow(g, 6);
+      rows += filledRows.join('');
+
+      /* Separator collapsible antara terisi dan belum terisi */
+      if (emptyRows.length > 0) {
+        const gKey      = g.brandId || g.groupKey || 'default';
+        const collapsed = !!collapseEmptyGroups[gKey];
+        const arrow     = collapsed ? '▸' : '▾';
+        const labelTxt  = collapsed
+          ? arrow + ' ' + emptyRows.length + ' barang belum diisi (tersembunyi)'
+          : arrow + ' ' + emptyRows.length + ' barang belum diisi';
+
+        rows += '<tr class="so-separator-row" data-gkey="' + gKey + '">'
+          + '<td colspan="6">'
+          + '<div class="so-separator-inner">'
+          + '<button class="so-sep-toggle" onclick="toggleCollapseEmpty(\'' + gKey + '\')">'
+          + labelTxt
+          + '</button>'
+          + (window._userRole === 'admin'
+            ? '<button class="so-sep-hide-btn" onclick="hideEmptyToConfig(\'' + gKey + '\')" title="Sembunyikan barang kosong ini dari daftar opname">'
+              + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+              + ' Kelola Barang'
+              + '</button>'
+            : '')
+          + '</div>'
+          + '</td>'
+          + '</tr>';
+
+        if (!collapsed) {
+          rows += emptyRows.join('');
+        }
+      }
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="6">Tidak ada barang ditemukan.</td></tr>';
@@ -818,6 +814,58 @@
     const tbody2 = document.getElementById('opnameTableBody');
     if (tbody2) tbody2.closest('table').classList.toggle('hide-empty-active', hideEmptyMode);
   }
+
+  function toggleCollapseEmpty(gKey) {
+    collapseEmptyGroups[gKey] = !collapseEmptyGroups[gKey];
+    renderOpname();
+  }
+  window.toggleCollapseEmpty = toggleCollapseEmpty;
+
+  async function hideEmptyToConfig(gKey) {
+    if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
+
+    /* Kumpulkan barang yang belum terisi di bulan ini untuk group ini */
+    const curr        = mk(curYear, curMonth);
+    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+
+    /* Filter ke group yang dimaksud */
+    const groupItems  = getGroups(allForBrand).find(function(g) {
+      return (g.brandId || g.groupKey || 'default') === gKey;
+    });
+    if (!groupItems) return;
+
+    const emptyIds = groupItems.items
+      .filter(function(b) {
+        const rawQty = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
+        const val    = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
+        return val == null;
+      })
+      .map(function(b) { return b.id; });
+
+    if (!emptyIds.length) { showToast('Tidak ada barang kosong untuk disembunyikan', 'error'); return; }
+
+    /* Update soBarangConfig: ambil set yang sudah ada (atau semua), lalu hapus emptyIds */
+    const currentSet = soBarangConfig[filterBrandId]
+      ? new Set([...soBarangConfig[filterBrandId]])
+      : new Set(allForBrand.map(function(b) { return b.id; }));
+
+    emptyIds.forEach(function(id) { currentSet.delete(id); });
+
+    if (currentSet.size >= allForBrand.length) {
+      delete soBarangConfig[filterBrandId];
+    } else {
+      soBarangConfig[filterBrandId] = currentSet;
+    }
+
+    try {
+      await saveSoConfig(filterBrandId);
+      renderTab();
+      showToast('✓ ' + emptyIds.length + ' barang kosong disembunyikan dari daftar opname', 'success');
+    } catch(e) {
+      showToast('❌ Gagal menyimpan: ' + e.message, 'error');
+    }
+  }
+  window.hideEmptyToConfig = hideEmptyToConfig;
 
   function onOpnameInput(el, barangId, val) {
     opnameDraft[barangId] = (val === '' || val === null || val === undefined) ? null : Number(val);
@@ -1144,48 +1192,57 @@
   /* ── EXPORT ── */
   function exportExcel() {
     if (typeof XLSX === 'undefined') { showToast('Library Excel belum dimuat.', 'error'); return; }
-    const wb   = XLSX.utils.book_new();
-    const curr = mk(curYear, curMonth);
-    const prev = prevYM(curYear, curMonth);
+    const wb      = XLSX.utils.book_new();
+    const curr    = mk(curYear, curMonth);
+    const prev    = prevYM(curYear, curMonth);
 
-    const soRows = [['Nama Barang','SKU','Satuan','Brand','Stok Bulan Lalu','Stok Bulan Ini','Selisih']];
-    allBarang.forEach(function(b) {
+    /* Hanya barang yang aktif di brand + soBarangConfig saat ini */
+    const barangList = getActiveBarang();
+    const brandNama  = (allBrands.find(function(b){ return b.id === filterBrandId; }) || {}).nama || '';
+
+    /* Label bulan untuk header kolom */
+    const lblCurr = MONTHS_ID[curMonth]      + ' ' + curYear;
+    const lblPrev = MONTHS_ID[prev.m] + ' ' + prev.y;
+
+    /* ── Sheet 1: Stock Opname ── */
+    const soRows = [['Nama Barang','SKU','Satuan','Stok ' + lblPrev,'Stok ' + lblCurr,'Selisih']];
+    barangList.forEach(function(b) {
       const s0 = getStock(prev.y, prev.m, b.id);
       const s1 = getStock(curYear, curMonth, b.id);
-      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
-      soRows.push([b.nama, b.sku||'', b.satuan||'', br, s0??'', s1??'', s0!=null&&s1!=null?s1-s0:'']);
+      soRows.push([b.nama, b.sku||'', b.satuan||'', s0??'', s1??'', s0!=null&&s1!=null ? s1-s0 : '']);
     });
     const ws1 = XLSX.utils.aoa_to_sheet(soRows);
-    ws1['!cols'] = [28,14,10,16,14,14,10].map(function(w){return{wch:w};});
+    ws1['!cols'] = [28,14,10,14,14,10].map(function(w){ return {wch:w}; });
     XLSX.utils.book_append_sheet(wb, ws1, 'Stock Opname');
 
-    const pkRows = [['Nama Barang','SKU','Satuan','Brand','Stok Awal','Pembelian','Stok Akhir','Pemakaian']];
-    allBarang.forEach(function(b) {
+    /* ── Sheet 2: Pemakaian ── */
+    const pkRows = [['Nama Barang','SKU','Satuan','Stok Awal (' + lblPrev + ')','Pembelian (' + lblPrev + ')','Stok Akhir (' + lblCurr + ')','Pemakaian']];
+    barangList.forEach(function(b) {
       const s0 = getStock(prev.y, prev.m, b.id);
       const pu = getPurchase(prev.y, prev.m, b.id);
       const s1 = getStock(curYear, curMonth, b.id);
-      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
-      pkRows.push([b.nama, b.sku||'', b.satuan||'', br, s0??'', pu, s1??'', s0!=null&&s1!=null?s0+pu-s1:'']);
+      pkRows.push([b.nama, b.sku||'', b.satuan||'', s0??'', pu, s1??'', s0!=null&&s1!=null ? s0+pu-s1 : '']);
     });
     const ws2 = XLSX.utils.aoa_to_sheet(pkRows);
-    ws2['!cols'] = [28,14,10,16,12,12,12,12].map(function(w){return{wch:w};});
+    ws2['!cols'] = [28,14,10,12,12,12,12].map(function(w){ return {wch:w}; });
     XLSX.utils.book_append_sheet(wb, ws2, 'Pemakaian');
 
-    const prRows = [['Nama Barang','SKU','Satuan','Brand','Purchase Plan','Pembelian Aktual','Selisih','Status']];
-    allBarang.forEach(function(b) {
+    /* ── Sheet 3: Plan & Realisasi ── */
+    const prRows = [['Nama Barang','SKU','Satuan','Purchase Plan (' + lblCurr + ')','Pembelian Aktual (' + lblCurr + ')','Selisih','Status']];
+    barangList.forEach(function(b) {
       const plan   = planData[curr]     ? (planData[curr][b.id]     ?? '') : '';
       const actual = purchaseData[curr] ? (purchaseData[curr][b.id] ?? '') : '';
       const diff   = plan!==''&&actual!=='' ? actual-plan : '';
       const status = diff==='' ? '—' : diff>0 ? 'Lebih' : diff<0 ? 'Kurang' : 'Sesuai';
-      const br = (allBrands.find(function(x){ return (b.brand_ids||[]).includes(x.id); }) || {}).nama || '';
-      prRows.push([b.nama, b.sku||'', b.satuan||'', br, plan, actual, diff, status]);
+      prRows.push([b.nama, b.sku||'', b.satuan||'', plan, actual, diff, status]);
     });
     const ws3 = XLSX.utils.aoa_to_sheet(prRows);
-    ws3['!cols'] = [28,14,10,16,14,16,12,10].map(function(w){return{wch:w};});
+    ws3['!cols'] = [28,14,10,14,16,12,10].map(function(w){ return {wch:w}; });
     XLSX.utils.book_append_sheet(wb, ws3, 'Plan & Realisasi');
 
-    XLSX.writeFile(wb, 'stock_opname_' + curr + '.xlsx');
-    showToast('✓ Export berhasil', 'success');
+    const brandSuffix = brandNama ? '_' + brandNama.replace(/\s+/g, '-') : '';
+    XLSX.writeFile(wb, 'stock_opname_' + curr + brandSuffix + '.xlsx');
+    showToast('✓ Export berhasil — ' + barangList.length + ' barang', 'success');
   }
 
   function onBrandChange() {
@@ -1205,13 +1262,14 @@
     const sbs = document.getElementById('brandSelect');
     if (sbs && filterBrandId) sbs.value = filterBrandId;
     localStorage.setItem('activeBrand', filterBrandId);
+    updateBrandLabel();
     renderTab();
   }
 
   function updateBrandLabel() {
-    const sbf = document.getElementById('soFilterBrand');
-    const txt = sbf && sbf.options[sbf.selectedIndex] ? sbf.options[sbf.selectedIndex].text : '';
-    document.getElementById('activeBrandLabel').textContent = txt || 'Stock Opname';
+    const brand = allBrands.find(b => b.id === filterBrandId);
+    const txt = brand ? brand.nama : (filterBrandId ? filterBrandId : 'Semua Brand');
+    document.getElementById('activeBrandLabel').textContent = txt;
   }
 
   /* ── UTILS ── */
@@ -1240,8 +1298,6 @@
   }
 
   /* ── MONTH PICKER ── */
-  let pickerYear = new Date().getFullYear();
-
   function toggleMonthPicker() {
     const popup = document.getElementById('monthPickerPopup');
     if (popup.style.display !== 'none') { closeMonthPicker(); return; }
@@ -1328,8 +1384,6 @@
   /* ══════════════════════════════════════════
      MODAL PILIH BARANG STOCK OPNAME
   ══════════════════════════════════════════ */
-  let _itemSelectTemp = null; // Set sementara saat modal terbuka
-
   function openItemSelectModal() {
     if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
     const overlay = document.getElementById('itemSelectOverlay');
@@ -1434,20 +1488,28 @@
     renderItemSelectList();
   }
 
-  function saveItemSelection() {
-    if (!_itemSelectTemp || !filterBrandId) return;
-    const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
-    /* Jika semua dipilih → hapus config (default = semua) */
-    if (_itemSelectTemp.size === allForBrand.length) {
-      delete soBarangConfig[filterBrandId];
-    } else {
-      soBarangConfig[filterBrandId] = new Set([..._itemSelectTemp]);
+  async function saveItemSelection() {
+    if (!_itemSelectTemp || !filterBrandId) {
+      showToast('Pilih brand terlebih dahulu', 'error'); return;
     }
-    saveSoConfig();
-    closeItemSelectModal();
-    renderTab();
-    const cnt = _itemSelectTemp ? _itemSelectTemp.size : allForBrand.length;
-    showToast('✓ Daftar stock opname diperbarui: ' + cnt + ' barang', 'success');
+    const btn = document.querySelector('#itemSelectOverlay .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+    try {
+      const allForBrand = allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
+      /* Jika semua dipilih → hapus config (default = semua) */
+      if (_itemSelectTemp.size >= allForBrand.length) {
+        delete soBarangConfig[filterBrandId];
+      } else {
+        soBarangConfig[filterBrandId] = new Set([..._itemSelectTemp]);
+      }
+      await saveSoConfig(filterBrandId);
+      const cnt = soBarangConfig[filterBrandId] ? soBarangConfig[filterBrandId].size : allForBrand.length;
+      closeItemSelectModal();
+      renderTab();
+      showToast('✓ Daftar stock opname diperbarui: ' + cnt + ' barang', 'success');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Pilihan'; }
+    }
   }
 
   window.onFilterChange=onFilterChange; window.goMonth=goMonth;
@@ -1462,6 +1524,5 @@
   window.exportExcel=exportExcel; window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
