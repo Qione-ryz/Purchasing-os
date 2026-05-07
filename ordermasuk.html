@@ -1358,33 +1358,12 @@ async function _runFifoSync(barangIds) {
     .eq('riwayat_beli.status', 'selesai')
     .is('order_item_id', null);  // ← hanya record tanpa order_item_id (FIFO lama / legacy)
 
-  // Earliest order per barang+brand
-  const earliestOrderPerKey = {};
-  fifoCompetitors.forEach(ci => {
-    const brandId = ci.orders?.brand_id || '';
-    const key = ci.barang_id + '::' + brandId;
-    const t = ci.orders?.created_at || '';
-    if (!earliestOrderPerKey[key] || t < earliestOrderPerKey[key]) {
-      earliestOrderPerKey[key] = t;
-    }
-  });
-
-  // Total beli FIFO per barang+brand (hanya setelah order pertama masuk)
-  const beliTotalPerKey = {};
+  // beliTotalPerBarang dipakai UI untuk tahu apakah ada data beli sama sekali
+  // (menentukan apakah progress bar dirender atau tidak)
+  const beliTotalPerBarang = {};
   (allBeliItems || []).forEach(bi => {
     if (!bi.barang_id || !bi.qty) return;
-    const brandId = bi.riwayat_beli?.brand_id || '';
-    const key = bi.barang_id + '::' + brandId;
-    const earliest = earliestOrderPerKey[key];
-    const beliTgl  = bi.riwayat_beli?.tanggal;
-    if (earliest && beliTgl && beliTgl < earliest.substring(0, 10)) return;
-    beliTotalPerKey[key] = (beliTotalPerKey[key] || 0) + bi.qty;
-  });
-
-  const beliTotalPerBarang = {};
-  Object.entries(beliTotalPerKey).forEach(([key, qty]) => {
-    const barangId = key.split('::')[0];
-    beliTotalPerBarang[barangId] = (beliTotalPerBarang[barangId] || 0) + qty;
+    beliTotalPerBarang[bi.barang_id] = (beliTotalPerBarang[bi.barang_id] || 0) + bi.qty;
   });
 
   // 4. FIFO distribution — hanya untuk item yang belum diinput manual
@@ -1396,7 +1375,15 @@ async function _runFifoSync(barangIds) {
 
   for (const key of barangBrandKeys) {
     const [barangId, brandId] = key.split('::');
-    let sisaBeli = beliTotalPerKey[key] || 0;
+
+    // Ambil semua record beli FIFO untuk key ini, lengkap dengan tanggal
+    // agar bisa dibandingkan per-order (Pendekatan 2)
+    const beliItems = (allBeliItems || []).filter(bi => {
+      if (!bi.barang_id || !bi.qty) return false;
+      const bBrandId = bi.riwayat_beli?.brand_id || '';
+      return bi.barang_id === barangId && bBrandId === brandId;
+    });
+
     const competitors = fifoCompetitors
       .filter(ci => ci.barang_id === barangId && (ci.orders?.brand_id || '') === brandId)
       .sort((a, b) => {
@@ -1404,29 +1391,68 @@ async function _runFifoSync(barangIds) {
         return tA < tB ? -1 : tA > tB ? 1 : 0;
       });
 
-    if (sisaBeli <= 0) {
-      competitors.forEach(ci => { fifoResultMap[ci.id] = 0; });
-      continue;
-    }
+    if (competitors.length === 0) continue;
 
-    // Pass 1: item selesai manual kurangi sisaBeli dulu
-    for (const ci of competitors) {
-      if ((ci.status_item || 'pending') !== 'selesai') continue;
-      const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
-      const sudahDapat = Math.min(ci.qty_terpenuhi || kebutuhan, kebutuhan);
-      fifoResultMap[ci.id] = sudahDapat;
-      sisaBeli = Math.max(0, sisaBeli - sudahDapat);
-    }
+    // Distribusi FIFO — Pendekatan 2 final
+    //
+    // Aturan: order X hanya bisa mendapat stok dari pembelian yang
+    // tanggalnya >= created_at order X.
+    //
+    // Konsumsi order lebih tua hanya mengurangi pool order yang lebih muda
+    // JIKA pembelian yang dikonsumsi juga terlihat oleh order yang lebih muda
+    // (irisan pool). Dengan ini:
+    // - Order A (tgl 4) selesai manual dari beli tgl 4 → tidak mengurangi pool Order B (tgl 5+)
+    // - Order A (tgl 4) dapat 9.5 dari beli tgl 4 → Order B (tgl 5) pool-nya = beli tgl 5+
+    // - Beli tgl 6 (10kg) → Order B dapat 10kg penuh ✓
 
-    // Pass 2: distribusikan sisa stok ke item non-selesai secara FIFO
+    // Track berapa yang sudah diklaim per order (urut tua ke muda)
+    const klaimPerOrder = {}; // {ci.id: qty diklaim}
+
     for (const ci of competitors) {
-      if ((ci.status_item || 'pending') === 'selesai') continue;
       const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
-      const dapat = Math.min(sisaBeli, kebutuhan);
+      const orderTgl  = (ci.orders?.created_at || '').substring(0, 10);
+
+      if ((ci.status_item || 'pending') === 'selesai') {
+        const sudahDapat = Math.min(ci.qty_terpenuhi || kebutuhan, kebutuhan);
+        fifoResultMap[ci.id] = sudahDapat;
+        klaimPerOrder[ci.id] = sudahDapat;
+        continue;
+      }
+
+      // Pool untuk order ini = semua beli dengan tanggal >= orderTgl
+      const poolCi = beliItems
+        .filter(bi => (bi.riwayat_beli?.tanggal || '') >= orderTgl)
+        .reduce((s, bi) => s + (bi.qty || 0), 0);
+
+      // Kurangi klaim order-order lebih tua, tapi hanya bagian yang
+      // berasal dari pembelian yang juga terlihat oleh order ini (irisan)
+      let sudahDiklaim = 0;
+      for (const prev of competitors) {
+        if (prev.id === ci.id) break;
+        const klaim = klaimPerOrder[prev.id] || 0;
+        if (klaim <= 0) continue;
+
+        const prevOrderTgl = (prev.orders?.created_at || '').substring(0, 10);
+
+        // Beli yang HANYA terlihat oleh prev (tgl antara prevOrderTgl dan orderTgl-1)
+        // = beli yang tidak masuk pool ci, jadi konsumsinya tidak mengurangi pool ci
+        const hanyaMilikPrev = beliItems
+          .filter(bi => {
+            const t = bi.riwayat_beli?.tanggal || '';
+            return t >= prevOrderTgl && t < orderTgl;
+          })
+          .reduce((s, bi) => s + (bi.qty || 0), 0);
+
+        // Bagian klaim prev yang berasal dari pool bersama (terlihat oleh ci juga)
+        const klaimShared = Math.max(0, klaim - hanyaMilikPrev);
+        sudahDiklaim += klaimShared;
+      }
+
+      const dapat = Math.min(Math.max(0, poolCi - sudahDiklaim), kebutuhan);
       fifoResultMap[ci.id] = dapat;
-      sisaBeli -= dapat;
-      if (sisaBeli <= 0) break;
+      klaimPerOrder[ci.id] = dapat;
     }
+
     competitors.forEach(ci => {
       if (fifoResultMap[ci.id] === undefined) fifoResultMap[ci.id] = 0;
     });
