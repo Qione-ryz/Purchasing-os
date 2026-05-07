@@ -573,7 +573,7 @@
 
     // Stat: pembelian & nilai
     try {
-      let q = window._sb.from('riwayat_beli').select('brand_id,total');
+      let q = window._sb.from('riwayat_beli').select('brand_id,total').eq('status','selesai');
       if (fromVal) q = q.gte('tanggal', fromVal);
       if (toVal)   q = q.lte('tanggal', toVal);
       if (!fromVal && !toVal) {
@@ -615,6 +615,7 @@
     let rows = [];
     try {
       const { data } = await window._sb.from('riwayat_beli').select('tanggal,brand_id,total')
+        .eq('status','selesai')
         .gte('tanggal', startStr).lt('tanggal', endStr);
       rows = data || [];
     } catch { /* silent — nilai bulan akan 0 */ }
@@ -665,7 +666,7 @@
     const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelPembelian');
     const { fromVal, toVal } = getDateRange();
     try {
-      let q = window._sb.from('riwayat_beli').select('id,tanggal,vendor_id,brand_id,total,status').order('tanggal',{ascending:false}).limit(50);
+      let q = window._sb.from('riwayat_beli').select('id,tanggal,vendor_id,brand_id,total,status').eq('status','selesai').order('tanggal',{ascending:false}).limit(50);
       if (fromVal) q = q.gte('tanggal', fromVal); if (toVal) q = q.lte('tanggal', toVal);
       const { data: rows } = await q;
       const filtered = (rows||[]).filter(r => isAll || selectedBrands.includes(r.brand_id)).slice(0,6);
@@ -720,7 +721,7 @@
     document.getElementById('titleTopBarang').textContent = `Barang Paling ${sortBy==='freq'?'Sering Dibeli':'Total Belanja Terbesar'}`;
     document.getElementById('topBarangPeriodBadge').textContent = label;
     try {
-      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)');
+      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)').eq('status','selesai');
       if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
       const { data: beliData } = await q;
       const agg = {};
@@ -747,7 +748,7 @@
     const tbody = document.getElementById('tabelTopSpend'), { fromVal, toVal } = getDateRange();
     document.getElementById('topSpendPeriodBadge').textContent = document.getElementById('dashDateLabel').textContent;
     try {
-      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)');
+      let q = window._sb.from('riwayat_beli').select('brand_id,riwayat_beli_items(barang_id,nama,qty,harga_satuan,brand_id)').eq('status','selesai');
       if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
       const { data: beliData } = await q;
       const agg = {};
@@ -783,7 +784,7 @@
     const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelVendorKasta'), { fromVal, toVal } = getDateRange();
     document.getElementById('vendorKastaPeriodBadge').textContent = document.getElementById('dashDateLabel').textContent;
     try {
-      let q = window._sb.from('riwayat_beli').select('vendor_id,brand_id,total');
+      let q = window._sb.from('riwayat_beli').select('vendor_id,brand_id,total').eq('status','selesai');
       if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
       const { data: rows } = await q;
       const agg = {};
@@ -818,7 +819,7 @@
   async function loadActivity(selectedBrands) {
     const isAll = !selectedBrands?.length, list = document.getElementById('activityList'), card = document.getElementById('activityCard'), emptyBadge = document.getElementById('activityEmptyBadge');
     try {
-      const { data: rows } = await window._sb.from('riwayat_beli').select('id,tanggal,created_at,vendor_id,brand_id,total,riwayat_beli_items(id)').order('created_at',{ascending:false}).limit(30);
+      const { data: rows } = await window._sb.from('riwayat_beli').select('id,tanggal,created_at,vendor_id,brand_id,total,riwayat_beli_items(id)').eq('status','selesai').order('created_at',{ascending:false}).limit(30);
       const filtered = (rows||[]).filter(r=>isAll||selectedBrands.includes(r.brand_id)).slice(0,5);
       if (!filtered.length) {
         list.innerHTML=''; list.style.display='none';

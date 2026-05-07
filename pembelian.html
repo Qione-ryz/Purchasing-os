@@ -209,7 +209,14 @@ input[type="date"]:focus { border-color:var(--accent); }
                   <select id="fBrand" onchange="onFormBrandChange()"><option value="">— Pilih Brand —</option></select>
                 </div>
                 <div class="field">
-                  <label>Vendor *</label>
+                  <label style="display:flex;align-items:center;justify-content:space-between">
+                    Vendor *
+                    <button type="button" class="admin-only" onclick="openQuickAddVendor('form')"
+                      title="Tambah vendor baru"
+                      style="font-size:11px;padding:2px 8px;height:22px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
+                      ＋ Vendor baru
+                    </button>
+                  </label>
                   <div class="item-search-wrap" style="position:relative">
                     <!-- Trigger tombol (tampilan seperti select) -->
                     <div id="vendorComboBtn" onclick="toggleVendorDropdown()"
@@ -728,7 +735,14 @@ input[type="date"]:focus { border-color:var(--accent); }
 
       <div class="field-row" style="margin-bottom:14px">
         <div class="field">
-          <label>Vendor</label>
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            Vendor
+            <button type="button" class="admin-only" onclick="openQuickAddVendor('edit')"
+              title="Tambah vendor baru"
+              style="font-size:11px;padding:2px 8px;height:22px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
+              ＋ Vendor baru
+            </button>
+          </label>
           <div style="position:relative">
             <!-- Trigger tombol (tampilan seperti select) -->
             <div id="eVendorComboBtn" onclick="toggleEditVendorDropdown()"
@@ -1864,7 +1878,8 @@ input[type="date"]:focus { border-color:var(--accent); }
   window.todayLocal = todayLocal;
 
   function setDefaultDate() {
-    document.getElementById('fTanggal').value = todayLocal();
+    const el = document.getElementById('fTanggal');
+    if (!el.value) el.value = todayLocal();
   }
 
   function onFormBrandChange() {
@@ -1947,7 +1962,16 @@ input[type="date"]:focus { border-color:var(--accent); }
 
     const results = getFilteredBarang(q, 15);
     if (!results.length) {
-      dd.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--muted)">Tidak ada barang ditemukan</div>';
+      const q2 = document.getElementById('itemSearch').value.trim();
+      const adminBtn = window._userRole === 'admin'
+        ? `<div onmousedown="openQuickAddBarang('${q2.replace(/'/g,"\\'")}'); event.preventDefault()"
+            style="padding:8px 14px;font-size:12px;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);transition:background .15s"
+            onmouseover="this.style.background='rgba(79,142,247,0.08)'"
+            onmouseout="this.style.background=''">
+            <span style="font-size:14px">＋</span> Tambah barang baru${q2 ? ` "<b>${q2}</b>"` : ''}
+          </div>`
+        : '';
+      dd.innerHTML = `<div style="padding:12px 14px;font-size:12px;color:var(--muted)">Tidak ada barang ditemukan</div>${adminBtn}`;
       positionItemDropdown(); dd.style.display = 'block'; return;
     }
 
@@ -3278,6 +3302,177 @@ input[type="date"]:focus { border-color:var(--accent); }
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
   window.closeConfirm=closeConfirm; window.checkDuplikatFaktur=checkDuplikatFaktur;
   window.toggleActionMenu=toggleActionMenu; window.closeAllMenus=closeAllMenus;
+
+  /* ══════════════════════════════════════════
+     QUICK-ADD VENDOR
+  ══════════════════════════════════════════ */
+  let _qaVendorTarget = 'form'; /* 'form' | 'edit' — combo mana yang di-autofill setelah simpan */
+
+  function openQuickAddVendor(target = 'form') {
+    if (!requireAdmin(showToast)) return;
+    _qaVendorTarget = target;
+    document.getElementById('qaVendorNama').value = '';
+    const errEl = document.getElementById('qaVendorError');
+    errEl.textContent = ''; errEl.style.display = 'none';
+    document.getElementById('qaVendorSaveBtn').disabled = false;
+    document.getElementById('qaVendorSaveBtn').textContent = 'Simpan';
+    document.getElementById('qaVendorOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('qaVendorNama').focus(), 80);
+  }
+
+  function closeQuickAddVendor() {
+    document.getElementById('qaVendorOverlay').classList.remove('show');
+  }
+
+  async function saveQuickAddVendor() {
+    const nama  = document.getElementById('qaVendorNama').value.trim();
+    const errEl = document.getElementById('qaVendorError');
+    const btn   = document.getElementById('qaVendorSaveBtn');
+    errEl.textContent = ''; errEl.style.display = 'none';
+
+    if (!nama) {
+      errEl.textContent = 'Nama vendor wajib diisi.';
+      errEl.style.display = 'block'; return;
+    }
+
+    /* Cek duplikat di data lokal dulu (cepat, tanpa round-trip) */
+    const dupLokal = (window.allVendors || []).find(
+      v => v.nama.toLowerCase() === nama.toLowerCase()
+    );
+    if (dupLokal) {
+      errEl.textContent = `Vendor "${dupLokal.nama}" sudah terdaftar.`;
+      errEl.style.display = 'block'; return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try {
+      /* Cek duplikat di DB (antisipasi data stale) */
+      const { data: existing } = await window._sb
+        .from('vendor').select('id, nama')
+        .ilike('nama', nama).limit(1);
+      if (existing && existing.length) {
+        errEl.textContent = `Vendor "${existing[0].nama}" sudah terdaftar.`;
+        errEl.style.display = 'block'; return;
+      }
+
+      const { data: inserted, error } = await window._sb
+        .from('vendor').insert({ nama, aktif: true }).select().single();
+      if (error) throw error;
+
+      /* Invalidate cache vendor & reload master data */
+      _invalidateAllCache();
+      await loadMasterData();
+
+      /* Auto-select vendor yang baru dibuat di combo yang tepat */
+      if (_qaVendorTarget === 'form') {
+        selectVendor(inserted.id, inserted.nama);
+      } else {
+        selectEditVendor(inserted.id, inserted.nama);
+      }
+
+      closeQuickAddVendor();
+      showToast(`✓ Vendor "${inserted.nama}" berhasil ditambahkan`, 'success');
+    } catch(e) {
+      errEl.textContent = 'Gagal menyimpan: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Simpan';
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     QUICK-ADD BARANG
+  ══════════════════════════════════════════ */
+  function openQuickAddBarang(prefillNama = '') {
+    if (!requireAdmin(showToast)) return;
+    document.getElementById('qaBarangNama').value   = prefillNama;
+    document.getElementById('qaBarangSatuan').value = '';
+    const errEl = document.getElementById('qaBarangError');
+    errEl.textContent = ''; errEl.style.display = 'none';
+    document.getElementById('qaBarangSaveBtn').disabled = false;
+    document.getElementById('qaBarangSaveBtn').textContent = 'Simpan';
+    document.getElementById('qaBarangOverlay').classList.add('show');
+    /* Fokus ke satuan jika nama sudah terisi, ke nama jika kosong */
+    setTimeout(() => {
+      const target = prefillNama
+        ? document.getElementById('qaBarangSatuan')
+        : document.getElementById('qaBarangNama');
+      target.focus();
+    }, 80);
+  }
+
+  function closeQuickAddBarang() {
+    document.getElementById('qaBarangOverlay').classList.remove('show');
+  }
+
+  async function saveQuickAddBarang() {
+    const nama   = document.getElementById('qaBarangNama').value.trim();
+    const satuan = document.getElementById('qaBarangSatuan').value.trim();
+    const errEl  = document.getElementById('qaBarangError');
+    const btn    = document.getElementById('qaBarangSaveBtn');
+    errEl.textContent = ''; errEl.style.display = 'none';
+
+    if (!nama) {
+      errEl.textContent = 'Nama barang wajib diisi.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!satuan) {
+      errEl.textContent = 'Satuan wajib diisi.';
+      errEl.style.display = 'block'; return;
+    }
+
+    /* Cek duplikat di data lokal */
+    const dupLokal = (window.allBarang || []).find(
+      b => b.nama.toLowerCase() === nama.toLowerCase()
+    );
+    if (dupLokal) {
+      errEl.textContent = `Barang "${dupLokal.nama}" sudah terdaftar.`;
+      errEl.style.display = 'block'; return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try {
+      /* Cek duplikat di DB */
+      const { data: existing } = await window._sb
+        .from('barang').select('id, nama')
+        .ilike('nama', nama).limit(1);
+      if (existing && existing.length) {
+        errEl.textContent = `Barang "${existing[0].nama}" sudah terdaftar.`;
+        errEl.style.display = 'block'; return;
+      }
+
+      const { data: inserted, error } = await window._sb
+        .from('barang').insert({ nama, satuan }).select().single();
+      if (error) throw error;
+
+      /* Invalidate cache barang & reload master data */
+      _invalidateAllCache();
+      await loadMasterData();
+
+      /* Langsung isi item search dengan nama barang baru, lalu trigger search */
+      const searchInput = document.getElementById('itemSearch');
+      if (searchInput) {
+        searchInput.value = inserted.nama;
+        onItemSearch();
+        toggleItemSearchClear();
+      }
+
+      closeQuickAddBarang();
+      showToast(`✓ Barang "${inserted.nama}" berhasil ditambahkan`, 'success');
+    } catch(e) {
+      errEl.textContent = 'Gagal menyimpan: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Simpan';
+    }
+  }
+
+  window.openQuickAddVendor  = openQuickAddVendor;
+  window.closeQuickAddVendor = closeQuickAddVendor;
+  window.saveQuickAddVendor  = saveQuickAddVendor;
+  window.openQuickAddBarang  = openQuickAddBarang;
+  window.closeQuickAddBarang = closeQuickAddBarang;
+  window.saveQuickAddBarang  = saveQuickAddBarang;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -3661,5 +3856,67 @@ window.cbSortBy          = cbSortBy;
 window.cbGoPage          = cbGoPage;
 window.cbExport          = cbExport;
 </script>
+<!-- ═══════════════════════════════════════════
+     MODAL QUICK-ADD VENDOR
+     ═══════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     MODAL QUICK-ADD VENDOR
+     ═══════════════════════════════════════════ -->
+<div id="qaVendorOverlay" class="modal-overlay" onclick="if(event.target===this)closeQuickAddVendor()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">＋ Tambah Vendor Baru</span>
+      <button class="modal-close" onclick="closeQuickAddVendor()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nama Vendor <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="qaVendorNama" placeholder="cth: PT. Sumber Makmur"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')saveQuickAddVendor()"
+        />
+      </div>
+      <div id="qaVendorError" style="display:none;font-size:12px;color:var(--danger);margin-top:-8px;margin-bottom:8px;padding:8px 12px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeQuickAddVendor()" class="btn btn-ghost">Batal</button>
+      <button onclick="saveQuickAddVendor()" id="qaVendorSaveBtn" class="btn btn-primary" style="min-width:100px">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL QUICK-ADD BARANG
+     ═══════════════════════════════════════════ -->
+<div id="qaBarangOverlay" class="modal-overlay" onclick="if(event.target===this)closeQuickAddBarang()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">＋ Tambah Barang Baru</span>
+      <button class="modal-close" onclick="closeQuickAddBarang()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nama Barang <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="qaBarangNama" placeholder="cth: Kertas HVS A4 80gr"
+          autocomplete="off"
+        />
+      </div>
+      <div class="field">
+        <label>Satuan <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="qaBarangSatuan" placeholder="cth: rim, pcs, box, kg"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')saveQuickAddBarang()"
+        />
+        <div class="field-hint">Gunakan satuan terkecil, misal: pcs, rim, kg, box</div>
+      </div>
+      <div id="qaBarangError" style="display:none;font-size:12px;color:var(--danger);margin-top:-8px;margin-bottom:8px;padding:8px 12px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeQuickAddBarang()" class="btn btn-ghost">Batal</button>
+      <button onclick="saveQuickAddBarang()" id="qaBarangSaveBtn" class="btn btn-primary" style="min-width:100px">Simpan</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
