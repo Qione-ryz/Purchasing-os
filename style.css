@@ -3,6 +3,8 @@
    Canonical source: barang.html with standardization applied
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,8 +20,8 @@
   --text:     #e8eaf0;
   --muted:    #6b7280;
   --danger:   #f87171;
-  --mono:     'DM Mono', monospace;
-  --sans:     'DM Sans', sans-serif;
+  --mono:     'JetBrains Mono', 'DM Mono', monospace;
+  --sans:     'Inter', 'DM Sans', sans-serif;
   --radius:   12px;
   --sidebar:  220px;
 
@@ -36,6 +38,8 @@
 /* ── BODY ── */
 body {
   font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -418,16 +422,16 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 
 /* ── FIX ICON DATE PICKER (DARK MODE) ── */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: none;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 0.9;
-}
-
 input[type="date"] {
   padding-right: 28px;
+  color-scheme: dark;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.9;
 }
 
 /* ── TAB BAR ── */
@@ -515,7 +519,7 @@ input[type="date"] {
   opacity: 0.8;
 }
 /* ── GLOBAL SELECT CARET FIX ── */
-/* Hapus caret bawaan browser, inject caret SVG sendiri agar posisinya terkontrol */
+/* Hapus caret bawaan browser, inject caret SVG ▼ */
 select {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -524,6 +528,16 @@ select {
   background-repeat: no-repeat !important;
   background-position: right 10px center !important;
   padding-right: 32px !important;
+}
+
+/* Caret untuk custom combo (<div> dropdown) — pakai class ini di span arrow */
+.combo-arrow {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform .2s;
+  font-style: normal;
 }
 
 /* ══════════════════════════════════════════
@@ -942,7 +956,7 @@ th.sorted { color: var(--accent); }
   font-size:12px; padding:9px 12px; outline:none; transition:border-color .2s;
 }
 .filter-bar select:focus, .filter-bar input:focus { border-color:var(--accent); }
-input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.4); cursor:pointer; }
+input[type="date"] { color-scheme: dark; }
 
 /* ── STATS ROW ── */
 .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
@@ -1389,3 +1403,60 @@ tr.so-separator-row > td {
 
 .btn-download { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.3); border-radius:7px; color:var(--accent); font-size:12px; font-family:var(--mono); cursor:pointer; text-decoration:none; transition:all .15s; }
 .btn-download:hover { background:rgba(79,142,247,0.2); }
+
+
+/* ============================================================
+   TYPOGRAPHY SCALE — Inter 14px + JetBrains Mono
+   Semua override font-size dikumpulkan di sini.
+   Body base sudah 14px di selector body di atas.
+   ============================================================ */
+
+/* ── Nav & sidebar ── */
+.nav-item        { font-size: 14px; }
+.user-name       { font-size: 14px; }
+.user-role       { font-size: 12px; }
+
+/* ── Page header ── */
+.page-title      { font-size: 21px; }
+.page-sub        { font-size: 13px; }
+
+/* ── Tombol — sedikit lebih kecil dari body, proporsional ── */
+.btn             { font-size: 13px; }
+.btn-sm          { font-size: 12px; }
+
+/* ── Tabel ── */
+th               { font-size: 11px; }   /* header tetap compact */
+td               { font-size: 14px; }
+.table-card td   { font-size: 14px; }
+
+/* ── Form ── */
+label            { font-size: 12px; }   /* label form tetap compact */
+input, select, textarea { font-size: 14px; }
+.field-hint      { font-size: 12px; }
+
+/* ── Search & filter ── */
+.search-input    { font-size: 14px; }
+.filter-select   { font-size: 13px; }
+
+/* ── Badge — tetap mini ── */
+.badge           { font-size: 11px; }
+
+/* ── Stat cards ── */
+.mini-stat-val   { font-size: 19px; }
+.mini-stat-label { font-size: 12px; }
+
+/* ── Pagination ── */
+.pagination      { font-size: 13px; }
+.page-btn        { font-size: 13px; }
+
+/* ── Mono angka di tabel — naik ke 13px agar terbaca ── */
+td[style*="font-family:var(--mono)"],
+td[style*="font-family: var(--mono)"] { font-size: 13px; }
+
+/* ── Dashboard: quick action & activity (dipindah dari dashboard.html) ── */
+.qa-label      { font-size: 13px; font-weight: 600; }
+.activity-text { font-size: 13px; line-height: 1.5; }
+
+/* ── Dashboard: sort select kecil & rank label ── */
+.select-sm     { font-size: 11px; padding: 4px 8px; }
+.rank-label    { font-size: 12px; font-weight: 600; }
