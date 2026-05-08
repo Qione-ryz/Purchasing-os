@@ -721,6 +721,24 @@
     return soItemGroups.filter(g => g.brand_id === filterBrandId);
   }
 
+  /* Helper: gabungkan barang individual + grup jadi satu list sort abjad
+     Setiap item: { type:'barang'|'grup', nama, sortKey, barang?, grp? } */
+  function buildMergedList(q) {
+    const barangList = filterSearch(getFilteredBarang(), q);
+    const grpList    = getActiveGroups().filter(function(grp) {
+      return !q || grp.nama.toLowerCase().includes(q.toLowerCase());
+    });
+    const merged = [];
+    barangList.forEach(function(b) {
+      merged.push({ type: 'barang', nama: b.nama, sortKey: b.nama.toLowerCase(), barang: b });
+    });
+    grpList.forEach(function(grp) {
+      merged.push({ type: 'grup', nama: grp.nama, sortKey: grp.nama.toLowerCase(), grp: grp });
+    });
+    merged.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey, 'id', { sensitivity: 'base' }); });
+    return merged;
+  }
+
   /* Helper: total pembelian semua member grup di periode tertentu */
   function getGroupPurchase(grp, y, m) {
     return grp.members.reduce((sum, bid) => sum + getPurchase(y, m, bid), 0);
@@ -1157,45 +1175,38 @@
   function renderPemakaian() {
     const q    = document.getElementById('pemakaianSearch').value;
     const prev = prevYM(curYear, curMonth);
-    const list = filterSearch(getFilteredBarang(), q);
-    const grps = getGroups(list);
+    const merged = buildMergedList(q);
     const tbody = document.getElementById('pemakaianTableBody');
-
     let totalUsage = 0, countOk = 0, countMissing = 0, rows = '';
 
-    /* ── Baris grup ── */
-    getActiveGroups().filter(function(grp) {
-      return !q || grp.nama.toLowerCase().includes(q.toLowerCase());
-    }).forEach(function(grp) {
-      const s0 = getStock(prev.y, prev.m, grp.primer_barang_id);
-      const pu = grp.members.reduce(function(sum, bid) { return sum + getPurchase(curYear, curMonth, bid); }, 0);
-      const s1 = getStock(curYear, curMonth, grp.primer_barang_id);
-      const u  = s0 != null && s1 != null ? s0 + pu - s1 : null;
-      if (u != null) { totalUsage += u; countOk++; } else countMissing++;
-      const satuanPrimer = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan||'—';
-      rows += '<tr style="background:var(--surface2)">'
-        + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
-        + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
-        + grp.nama + '</div></td>'
-        + '<td><span class="item-meta">—</span></td>'
-        + '<td><span class="item-meta">' + satuanPrimer + '</span></td>'
-        + '<td class="td-num">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
-        + '<td class="td-num">' + fmt(pu) + '</td>'
-        + '<td class="td-num">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
-        + '<td style="text-align:right">'
-        + (u != null ? '<strong class="so-num-ok">' + fmt(u) + '</strong>' : '<span class="so-data-kurang">Data kurang</span>')
-        + '</td></tr>';
-    });
-
-    grps.forEach(function(g) {
-      rows += groupHeaderRow(g, 7);
-      g.items.forEach(function(b) {
+    merged.forEach(function(item) {
+      if (item.type === 'grup') {
+        const grp = item.grp;
+        const s0  = getStock(prev.y, prev.m, grp.primer_barang_id);
+        const pu  = grp.members.reduce(function(sum, bid) { return sum + getPurchase(curYear, curMonth, bid); }, 0);
+        const s1  = getStock(curYear, curMonth, grp.primer_barang_id);
+        const u   = s0 != null && s1 != null ? s0 + pu - s1 : null;
+        if (u != null) { totalUsage += u; countOk++; } else countMissing++;
+        const satuan = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan||'—';
+        rows += '<tr>'
+          + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
+          + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
+          + grp.nama + '</div></td>'
+          + '<td><span class="item-meta">—</span></td>'
+          + '<td><span class="item-meta">' + satuan + '</span></td>'
+          + '<td class="td-num">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num">' + fmt(pu) + '</td>'
+          + '<td class="td-num">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="text-align:right">'
+          + (u != null ? '<strong class="so-num-ok">' + fmt(u) + '</strong>' : '<span class="so-data-kurang">Data kurang</span>')
+          + '</td></tr>';
+      } else {
+        const b  = item.barang;
         const s0 = getStock(prev.y, prev.m, b.id);
         const pu = getPurchase(curYear, curMonth, b.id);
         const s1 = getStock(curYear, curMonth, b.id);
         const u  = s0 != null && s1 != null ? s0 + pu - s1 : null;
         if (u != null) { totalUsage += u; countOk++; } else countMissing++;
-
         rows += '<tr>'
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
@@ -1206,19 +1217,19 @@
           + '<td style="text-align:right">'
           + (u != null ? '<strong class="so-num-ok">' + fmt(u) + '</strong>' : '<span class="so-data-kurang">Data kurang</span>')
           + '</td></tr>';
-      });
+      }
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
     document.getElementById('statGridPemakaian').innerHTML =
       '<div class="stat-card"><div class="stat-label">Total Pemakaian</div><div class="stat-val green">' + fmt(totalUsage) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
-    + '<div class="stat-card"><div class="stat-label">Barang Terhitung</div><div class="stat-val blue">' + countOk + '</div><div class="stat-sub">dari ' + list.length + ' barang</div></div>'
-    + '<div class="stat-card"><div class="stat-label">Data Kurang</div><div class="stat-val ' + (countMissing > 0 ? 'orange' : 'green') + '">' + countMissing + '</div><div class="stat-sub">barang belum lengkap</div></div>';
+    + '<div class="stat-card"><div class="stat-label">Barang Terhitung</div><div class="stat-val blue">' + countOk + '</div><div class="stat-sub">dari ' + merged.length + ' item</div></div>'
+    + '<div class="stat-card"><div class="stat-label">Data Kurang</div><div class="stat-val ' + (countMissing > 0 ? 'orange' : 'green') + '">' + countMissing + '</div><div class="stat-sub">item belum lengkap</div></div>';
 
     const notice = document.getElementById('noticePemakaian');
     if (countMissing > 0) {
       notice.style.display = 'flex';
-      notice.innerHTML = '⚠️ ' + countMissing + ' barang belum memiliki data stok lengkap. Pastikan stock opname bulan lalu dan bulan ini sudah diisi.';
+      notice.innerHTML = '⚠️ ' + countMissing + ' item belum memiliki data stok lengkap. Pastikan stock opname bulan lalu dan bulan ini sudah diisi.';
     } else notice.style.display = 'none';
   }
 
@@ -1251,35 +1262,61 @@
       document.getElementById('planDraftBadge').innerHTML = '';
     }
 
+    const merged = buildMergedList(q);
     let rows = '';
-    grps.forEach(function(g) {
-      rows += groupHeaderRow(g, 7);
-      g.items.forEach(function(b) {
-        // Stok akhir bulan lalu
-        const stokAkhirLalu = getStock(prevM.y, prevM.m, b.id);
 
-        // Rata-rata pemakaian 3 bulan terakhir
+    merged.forEach(function(item) {
+      if (item.type === 'grup') {
+        const grp    = item.grp;
+        const satuan = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan||'—';
+        const stokAkhirLalu = getStock(prevM.y, prevM.m, grp.primer_barang_id);
+        const last3  = getUsageLast3(grp.primer_barang_id);
+        const vals   = last3.map(function(v){return v.val;});
+        const avg    = vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
+        const avgRound = avg != null ? Math.round(avg) : null;
+        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
+        const savedVal = _currPlanData[grp.primer_barang_id] != null ? _currPlanData[grp.primer_barang_id] : null;
+        const editVal  = planDraft
+          ? (planDraft[grp.primer_barang_id] != null ? planDraft[grp.primer_barang_id] : (rekomen != null ? rekomen : ''))
+          : (savedVal != null ? savedVal : '');
+        const isChanged = planDraft && planDraft[grp.primer_barang_id] != null;
+        const rekomenHtml = rekomen == null ? '<span style="color:var(--muted)">—</span>'
+          : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
+          : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
+        rows += '<tr>'
+          + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
+          + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
+          + grp.nama + '</div></td>'
+          + '<td><span class="item-meta">—</span></td>'
+          + '<td><span class="item-meta">' + satuan + '</span></td>'
+          + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
+          + '<td style="text-align:right">' + rekomenHtml + '</td>'
+          + (window._userRole === 'admin'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+                + ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
+                + ' data-bid="' + grp.primer_barang_id + '"'
+                + ' value="' + editVal + '" placeholder="0"'
+                + ' oninput="onPlanInput(this,\'' + grp.primer_barang_id + '\',this.value)"/></td>'
+              : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
+            )
+          + '</tr>';
+      } else {
+        const b = item.barang;
+        const stokAkhirLalu = getStock(prevM.y, prevM.m, b.id);
         const last3    = getUsageLast3(b.id);
         const vals     = last3.map(function(v) { return v.val; });
         const avg      = vals.length ? vals.reduce(function(s,v){return s+v;},0) / vals.length : null;
         const avgRound = avg != null ? Math.round(avg) : null;
-
-        // Rekomendasi = stok akhir bln lalu - rata-rata pemakaian
-        const rekomen = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
-
-        // Nilai input
+        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
         const savedVal = _currPlanData[b.id] != null ? _currPlanData[b.id] : null;
         const editVal  = planDraft
           ? (planDraft[b.id] != null ? planDraft[b.id] : (rekomen != null ? rekomen : ''))
           : (savedVal != null ? savedVal : '');
         const isChanged = planDraft && planDraft[b.id] != null;
-
-        const rekomenHtml = rekomen == null
-          ? '<span style="color:var(--muted)">—</span>'
-          : rekomen < 0
-            ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
-            : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
-
+        const rekomenHtml = rekomen == null ? '<span style="color:var(--muted)">—</span>'
+          : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
+          : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
         rows += '<tr>'
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
@@ -1296,7 +1333,7 @@
               : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + '</tr>';
-      });
+      }
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
@@ -1363,45 +1400,62 @@
   function renderRealisasi() {
     const q    = document.getElementById('realisasiSearch').value;
     const curr = mk(curYear, curMonth);
-    const list = filterSearch(getFilteredBarang(), q);
-    const grps = getGroups(list);
+    const merged = buildMergedList(q);
     const tbody = document.getElementById('realisasiTableBody');
     const _currPlanData     = (planData[_bkey()]     || {})[curr] || {};
     const _currPurchaseData = (purchaseData[_bkey()] || {})[curr] || {};
 
     let totalPlan = 0, totalActual = 0, countOver = 0, countUnder = 0, countOk = 0, rows = '';
 
-    grps.forEach(function(g) {
-      rows += groupHeaderRow(g, 7);
-      g.items.forEach(function(b) {
-        const plan   = _currPlanData[b.id]     ?? null;
-        const actual = _currPurchaseData[b.id] ?? null;
-        const diff   = plan != null && actual != null ? actual - plan : null;
+    merged.forEach(function(item) {
+      let nama, sku, satuan, plan, actual;
 
-        if (plan   != null) totalPlan   += plan;
-        if (actual != null) totalActual += actual;
+      if (item.type === 'grup') {
+        const grp = item.grp;
+        nama   = grp.nama;
+        sku    = '—';
+        satuan = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan||'—';
+        plan   = _currPlanData[grp.primer_barang_id] ?? null;
+        actual = grp.members.reduce(function(sum, bid) {
+          return sum + (_currPurchaseData[bid] ?? 0);
+        }, 0) || null;
+        // label GRUP
+        nama = '<div class="item-name" style="display:flex;align-items:center;gap:6px">'
+          + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
+          + grp.nama + '</div>';
+      } else {
+        const b = item.barang;
+        nama   = '<div class="item-name">' + b.nama + '</div>';
+        sku    = b.sku    || '—';
+        satuan = b.satuan || '—';
+        plan   = _currPlanData[b.id]     ?? null;
+        actual = _currPurchaseData[b.id] ?? null;
+      }
 
-        let badge = '—', cls = 'badge-null';
-        if (diff !== null) {
-          if      (diff > 0)  { badge = 'Lebih';  cls = 'badge-over';  countOver++; }
-          else if (diff < 0)  { badge = 'Kurang'; cls = 'badge-under'; countUnder++; }
-          else                { badge = 'Sesuai'; cls = 'badge-ok';    countOk++; }
-        }
-        const diffHtml = diff == null ? '—'
-          : diff > 0 ? '<span style="color:var(--danger)">+' + fmt(diff) + '</span>'
-          : diff < 0 ? '<span style="color:var(--accent3)">'  + fmt(diff) + '</span>'
-          : '<span style="color:var(--accent2)">0</span>';
+      const diff = plan != null && actual != null ? actual - plan : null;
+      if (plan   != null) totalPlan   += plan;
+      if (actual != null) totalActual += actual;
 
-        rows += '<tr>'
-          + '<td><div class="item-name">' + b.nama + '</div></td>'
-          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
-          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
-          + '<td class="td-num">' + (plan   != null ? fmt(plan)   : '<span style="color:var(--muted)">Belum ada</span>') + '</td>'
-          + '<td class="td-num">' + (actual != null ? fmt(actual) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td class="td-num">' + diffHtml + '</td>'
-          + '<td style="text-align:center"><span class="badge ' + cls + '">' + badge + '</span></td>'
-          + '</tr>';
-      });
+      let badge = '—', cls = 'badge-null';
+      if (diff !== null) {
+        if      (diff > 0)  { badge = 'Lebih';  cls = 'badge-over';  countOver++; }
+        else if (diff < 0)  { badge = 'Kurang'; cls = 'badge-under'; countUnder++; }
+        else                { badge = 'Sesuai'; cls = 'badge-ok';    countOk++; }
+      }
+      const diffHtml = diff == null ? '—'
+        : diff > 0 ? '<span style="color:var(--danger)">+' + fmt(diff) + '</span>'
+        : diff < 0 ? '<span style="color:var(--accent3)">'  + fmt(diff) + '</span>'
+        : '<span style="color:var(--accent2)">0</span>';
+
+      rows += '<tr>'
+        + '<td>' + nama + '</td>'
+        + '<td><span class="item-meta">' + sku    + '</span></td>'
+        + '<td><span class="item-meta">' + satuan + '</span></td>'
+        + '<td class="td-num">' + (plan   != null ? fmt(plan)   : '<span style="color:var(--muted)">Belum ada</span>') + '</td>'
+        + '<td class="td-num">' + (actual != null ? fmt(actual) : '<span style="color:var(--muted)">—</span>') + '</td>'
+        + '<td class="td-num">' + diffHtml + '</td>'
+        + '<td style="text-align:center"><span class="badge ' + cls + '">' + badge + '</span></td>'
+        + '</tr>';
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
@@ -1413,15 +1467,18 @@
     + '<div class="stat-card"><div class="stat-label">Realisasi</div><div class="stat-val ' + (pctReal==null ? '' : (pctReal>=90&&pctReal<=110 ? 'green' : 'orange')) + '">' + (pctReal != null ? pctReal + '%' : '—') + '</div><div class="stat-sub">dari purchase plan</div></div>'
     + '<div class="stat-card"><div class="stat-label">Sesuai / Lebih / Kurang</div><div class="stat-val">' + countOk + ' / <span style="color:var(--danger)">' + countOver + '</span> / <span style="color:var(--accent3)">' + countUnder + '</span></div><div class="stat-sub">barang</div></div>';
 
-    const hasPlan = list.some(function(b) { return _currPlanData[b.id] != null; });
-    const notice  = document.getElementById('noticeRealisasi');
+    const hasPlan = merged.some(function(item) {
+      return item.type === 'grup'
+        ? _currPlanData[item.grp.primer_barang_id] != null
+        : _currPlanData[item.barang.id] != null;
+    });
+    const notice = document.getElementById('noticeRealisasi');
     if (!hasPlan) {
       notice.style.display = 'flex';
       notice.innerHTML = '⚠️ Belum ada purchase plan untuk bulan ini. Buat di tab <strong>Purchase Plan</strong> terlebih dahulu.';
     } else notice.style.display = 'none';
   }
 
-  /* ── EXPORT ── */
   function exportExcel() {
     if (typeof XLSX === 'undefined') { showToast('Library Excel belum dimuat.', 'error'); return; }
     const wb      = XLSX.utils.book_new();
