@@ -273,6 +273,41 @@ function findLearnedVendor(namaVendorInvoice) {
       color:var(--accent2); border-color:rgba(56,217,169,0.3);
       background:rgba(56,217,169,0.08);
     }
+
+    /* Popup konfirmasi kalikan qty */
+    .scan-qty-popup {
+      position:fixed; z-index:99999;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; padding:10px 12px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.5);
+      min-width:200px;
+      animation:scanZoneIn .12s ease;
+    }
+    .scan-qty-popup-title {
+      font-size:11px; font-family:var(--mono); color:var(--muted);
+      margin-bottom:8px;
+    }
+    .scan-qty-popup-formula {
+      font-size:13px; font-weight:600; color:var(--text);
+      font-family:var(--mono); margin-bottom:10px;
+      padding:6px 8px; background:rgba(79,142,247,0.08);
+      border:1px solid rgba(79,142,247,0.2); border-radius:5px;
+    }
+    .scan-qty-popup-btns {
+      display:flex; gap:6px;
+    }
+    .scan-qty-popup-btn {
+      flex:1; padding:5px 8px; border-radius:5px; font-size:12px;
+      font-family:var(--sans); cursor:pointer; text-align:center;
+      border:1px solid var(--border); background:var(--bg);
+      color:var(--text); transition:all .15s;
+    }
+    .scan-qty-popup-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .scan-qty-popup-btn.primary {
+      background:rgba(79,142,247,0.12); border-color:rgba(79,142,247,0.4);
+      color:var(--accent);
+    }
+    .scan-qty-popup-btn.primary:hover { background:rgba(79,142,247,0.22); }
   `;
   document.head.appendChild(style);
 })();
@@ -743,8 +778,10 @@ let _scanPPNMode   = "exc"; // default exc, user bisa ganti per item
 
 async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
   document.getElementById("scanItemsOverlay")?.remove();
+  closeScanQtyPopup();
   window._scanItems = items;
   _scanMappings     = {};
+  _scanSatuanFaktor = {}; // reset faktor per item
 
   _scanPPNMode = (ppnIncluded === false) ? "exc" : "inc";
 
@@ -848,14 +885,31 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
     const badgeCls= mode === "exact" ? "exact" : mode === "fuzzy" ? "fuzzy" : "manual";
     const badgeTxt= mode === "exact" ? "cocok" : mode === "fuzzy" ? "mirip" : "manual";
 
+    // Bangun opsi satuan: satuan dasar + satuan_order dari master
+    const satuanDasar  = barang?.satuan || "";
+    const satuanOrders = barang?.satuan_order || [];
+    const satuanOpts   = satuanDasar
+      ? [
+          `<option value="${satuanDasar}|1">${satuanDasar}</option>`,
+          ...satuanOrders.map(so =>
+            `<option value="${so.satuan}|${so.faktor}">${so.satuan} (×${so.faktor})</option>`)
+        ].join("")
+      : `<option value="">—</option>`;
+    // Tentukan satuan invoice (dari invoice) untuk label info
+    const satuanInvoice = item.satuan || "";
+    // Inisialisasi faktor awal = 1 (satuan dasar)
+    _scanSatuanFaktor[i] = 1;
+
     return `
-      <tr class="scan-item-row" style="display:flex;align-items:center;padding:10px 8px;gap:8px">
-        <td style="width:20px;flex-shrink:0;text-align:center">
-          <span id="scanIcon_${i}" style="font-size:13px">${icon}</span>
-        </td>
-        <td style="flex:1;min-width:0">
-          <div class="scan-from-invoice">📄 ${item.nama || "—"} ${item.satuan ? `<span style="color:var(--accent3)">[${item.satuan}]</span>` : ""}</div>
-          <div class="scan-suggest-wrap" style="margin-top:5px">
+      <div class="scan-item-row" style="padding:10px 8px">
+        <div class="scan-from-invoice" style="margin-bottom:6px">
+          📄 ${item.nama || "—"} ${satuanInvoice ? `<span style="color:var(--accent3)">[${satuanInvoice}]</span>` : ""}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:20px;flex-shrink:0;text-align:center">
+            <span id="scanIcon_${i}" style="font-size:13px">${icon}</span>
+          </div>
+          <div style="flex:1;min-width:0" class="scan-suggest-wrap">
             <input type="text" class="scan-suggest-input" id="scanSuggest_${i}"
               placeholder="Cari barang dari master..."
               value="${barang ? barang.nama : ""}"
@@ -865,33 +919,45 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
             />
             <div class="scan-suggest-dropdown" id="scanDrop_${i}"></div>
           </div>
-          <div style="margin-top:4px;font-size:11px">
+          <div style="width:70px;flex-shrink:0">
+            <input type="number" class="scan-num-input" id="scanQty_${i}"
+              value="${item.qty || 1}" min="0.001" step="any" style="width:100%;text-align:right"/>
+          </div>
+          <div style="width:100px;flex-shrink:0" id="scanSatuanCell_${i}">
+            <select id="scanSatuan_${i}"
+              onchange="onScanSatuanChange(${i}, this.value)"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 4px;outline:none;cursor:pointer"
+            >${satuanOpts}</select>
+          </div>
+          <div style="width:130px;flex-shrink:0">
+            <input type="number" class="scan-num-input" id="scanHarga_${i}"
+              value="${item.harga_satuan || 0}" min="0" step="any"/>
+          </div>
+          <div style="width:24px;flex-shrink:0;text-align:center">
+            <input type="checkbox" id="scanChk_${i}" checked
+              style="accent-color:var(--accent2);width:15px;height:15px;cursor:pointer"/>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+          <div style="width:20px;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0;font-size:11px">
             <span class="scan-badge ${badgeCls}" id="scanBadge_${i}">${badgeTxt}</span>
             <span style="color:var(--muted);font-family:var(--mono)" id="scanMatchLbl_${i}">
               ${barang ? `${barang.nama}${barang.satuan ? " · " + barang.satuan : ""}` : "ketik untuk cari"}
             </span>
           </div>
-        </td>
-        <td style="width:115px;flex-shrink:0;text-align:right">
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
-            <input type="number" class="scan-num-input" id="scanQty_${i}"
-              value="${item.qty || 1}" min="0.001" step="any" style="width:58px;text-align:right"/>
-            ${item.satuan ? `<span style="font-size:10px;color:var(--accent3);font-family:var(--mono);white-space:nowrap">${item.satuan}</span>` : ""}
+          <div style="width:70px;flex-shrink:0;text-align:right">
+            ${satuanInvoice ? `<div class="scan-satuan-note">invoice: <span style="color:var(--accent3)">${satuanInvoice}</span></div>` : ""}
           </div>
-          ${barang?.satuan && barang.satuan !== item.satuan ? `<div class="scan-satuan-note" style="margin-top:3px">master: <span style="color:var(--accent2)">${barang.satuan}</span></div>` : ""}
-        </td>
-        <td style="width:115px;flex-shrink:0;text-align:right">
-          <input type="number" class="scan-num-input" id="scanHarga_${i}"
-            value="${item.harga_satuan || 0}" min="0" step="any"/>
-          <div id="scanHargaNote_${i}" class="scan-harga-note" style="margin-top:3px">
-            ${_scanPPNMode === "inc" ? "inc PPN" : "exc PPN"}
+          <div style="width:100px;flex-shrink:0"></div>
+          <div style="width:130px;flex-shrink:0;text-align:right">
+            <div id="scanHargaNote_${i}" class="scan-harga-note">
+              ${_scanPPNMode === "inc" ? "inc PPN" : "exc PPN"}
+            </div>
           </div>
-        </td>
-        <td style="width:24px;flex-shrink:0;text-align:center">
-          <input type="checkbox" id="scanChk_${i}" checked
-            style="accent-color:var(--accent2);width:15px;height:15px;cursor:pointer"/>
-        </td>
-      </tr>
+          <div style="width:24px;flex-shrink:0"></div>
+        </div>
+      </div>
     `;
   }).join("");
 
@@ -981,19 +1047,18 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
             <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px">
               ✅ cocok &nbsp;·&nbsp; 🔶 mirip (periksa dulu) &nbsp;·&nbsp; ✏️ tidak ditemukan (pilih manual)
             </div>
-            <div style="overflow-x:auto">
-              <table class="scan-tbl">
-                <thead>
-                  <tr style="display:flex;align-items:center;padding:6px 8px;gap:8px">
-                    <th style="width:20px;flex-shrink:0"></th>
-                    <th style="flex:1;text-align:left;font-weight:500">Barang invoice → master</th>
-                    <th style="width:115px;flex-shrink:0;text-align:right;font-weight:500">Qty</th>
-                    <th style="width:115px;flex-shrink:0;text-align:right;font-weight:500">Harga Satuan</th>
-                    <th style="width:24px;flex-shrink:0;text-align:center;font-weight:500">✓</th>
-                  </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-              </table>
+            <div>
+              <!-- Header -->
+              <div style="display:flex;align-items:center;padding:6px 8px;gap:8px;border-bottom:1px solid var(--border)">
+                <div style="width:20px;flex-shrink:0"></div>
+                <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500">Barang invoice → master</div>
+                <div style="width:70px;flex-shrink:0;text-align:right;font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500">Qty</div>
+                <div style="width:100px;flex-shrink:0;text-align:right;font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500">Satuan</div>
+                <div style="width:130px;flex-shrink:0;text-align:right;font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500">Harga Satuan</div>
+                <div style="width:24px;flex-shrink:0;text-align:center;font-size:10px;font-family:var(--mono);color:var(--muted);font-weight:500">✓</div>
+              </div>
+              <!-- Rows -->
+              <div id="scanItemRows">${rows}</div>
             </div>
           </div>
           <!-- Footer -->
@@ -1154,17 +1219,98 @@ function selectScanBarang(i, barangId) {
   updateScanBadge(i, b, "fuzzy");
   const input = document.getElementById(`scanSuggest_${i}`);
   if (input) input.value = b.nama;
-  // Update note satuan
-  const qtyCell = document.getElementById(`scanQty_${i}`)?.closest("td");
-  if (qtyCell) {
-    const noteDiv = qtyCell.querySelector("div");
-    const item = (window._scanItems || [])[i];
-    if (noteDiv) noteDiv.innerHTML =
-      `${item?.satuan ? `invoice: ${item.satuan}` : ""}<br>master: <span style="color:var(--accent2)">${b.satuan || "—"}</span>`;
+
+  // Rebuild select satuan dengan opsi dari master
+  const satuanCell = document.getElementById(`scanSatuanCell_${i}`);
+  if (satuanCell) {
+    const satuanDasar  = b.satuan || "";
+    const satuanOrders = b.satuan_order || [];
+    const opts = satuanDasar
+      ? [
+          `<option value="${satuanDasar}|1">${satuanDasar}</option>`,
+          ...satuanOrders.map(so =>
+            `<option value="${so.satuan}|${so.faktor}">${so.satuan} (×${so.faktor})</option>`)
+        ].join("")
+      : `<option value="">—</option>`;
+    satuanCell.innerHTML = `
+      <select id="scanSatuan_${i}"
+        onchange="onScanSatuanChange(${i}, this.value)"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 4px;outline:none;cursor:pointer"
+      >${opts}</select>`;
   }
+
   closeScanDropdowns();
 }
 window.selectScanBarang = selectScanBarang;
+
+// Simpan faktor satuan yang dipilih user — dipakai saat "Tambahkan ke Form"
+let _scanSatuanFaktor = {}; // { i: faktor saat ini }
+let _scanQtyPopup     = null; // elemen popup aktif
+
+function closeScanQtyPopup() {
+  if (_scanQtyPopup) { _scanQtyPopup.remove(); _scanQtyPopup = null; }
+}
+
+function onScanSatuanChange(i, val) {
+  closeScanQtyPopup();
+
+  const parts     = (val || "").split("|");
+  const newFaktor = parseFloat(parts[1]) || 1;
+  const oldFaktor = _scanSatuanFaktor[i] !== undefined ? _scanSatuanFaktor[i] : 1;
+
+  _scanSatuanFaktor[i] = newFaktor;
+
+  // Hanya tampilkan popup jika faktor > 1 (bukan satuan dasar)
+  if (newFaktor <= 1) return;
+
+  const qtyInput = document.getElementById(`scanQty_${i}`);
+  if (!qtyInput) return;
+
+  const qtyLama  = parseFloat(qtyInput.value) || 1;
+  const qtyBaru  = qtyLama * newFaktor;
+  const qtyBulat = Number.isInteger(qtyBaru) ? qtyBaru : parseFloat(qtyBaru.toFixed(4));
+
+  // Posisi popup di bawah field qty
+  const rect = qtyInput.getBoundingClientRect();
+
+  const popup = document.createElement("div");
+  popup.className = "scan-qty-popup";
+  popup.style.top  = (rect.bottom + 4) + "px";
+  popup.style.left = rect.left + "px";
+  popup.innerHTML = `
+    <div class="scan-qty-popup-title">Kalikan qty dengan ${newFaktor}?</div>
+    <div class="scan-qty-popup-formula">${qtyLama} × ${newFaktor} = <span style="color:var(--accent)">${qtyBulat}</span></div>
+    <div class="scan-qty-popup-btns">
+      <button class="scan-qty-popup-btn primary" onmousedown="confirmScanQtyMultiply(${i}, ${qtyBulat})">Ya, jadi ${qtyBulat}</button>
+      <button class="scan-qty-popup-btn" onmousedown="closeScanQtyPopup()">Tidak</button>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+  _scanQtyPopup = popup;
+
+  // Tutup popup saat klik di luar
+  setTimeout(() => {
+    document.addEventListener("mousedown", _scanQtyPopupOutsideHandler);
+  }, 0);
+}
+window.onScanSatuanChange = onScanSatuanChange;
+
+function _scanQtyPopupOutsideHandler(e) {
+  if (_scanQtyPopup && !_scanQtyPopup.contains(e.target)) {
+    closeScanQtyPopup();
+    document.removeEventListener("mousedown", _scanQtyPopupOutsideHandler);
+  }
+}
+
+function confirmScanQtyMultiply(i, qtyBaru) {
+  const qtyInput = document.getElementById(`scanQty_${i}`);
+  if (qtyInput) qtyInput.value = qtyBaru;
+  closeScanQtyPopup();
+  document.removeEventListener("mousedown", _scanQtyPopupOutsideHandler);
+}
+window.confirmScanQtyMultiply = confirmScanQtyMultiply;
+window.closeScanQtyPopup      = closeScanQtyPopup;
 
 function updateScanBadge(i, barang, mode) {
   const badge = document.getElementById(`scanBadge_${i}`);
@@ -1251,6 +1397,7 @@ function applyScanItems(count) {
     const barang   = mapping?.barang;
     const qtyVal   = parseFloat(document.getElementById(`scanQty_${i}`)?.value)   || item.qty          || 1;
     const hargaVal = parseFloat(document.getElementById(`scanHarga_${i}`)?.value) || item.harga_satuan || 0;
+    const satuanSelectVal = document.getElementById(`scanSatuan_${i}`)?.value || ""; // format "satuan|faktor"
 
     if (barang && typeof addItem === "function") {
       const idxBefore = document.querySelectorAll("#itemList .item-row").length;
@@ -1259,6 +1406,16 @@ function applyScanItems(count) {
 
       if (idxAfter > idxBefore) {
         const newIdx = idxAfter - 1;
+        // Set satuan order terlebih dahulu (mengubah faktor)
+        if (satuanSelectVal && typeof updateItemSatuan === "function") {
+          updateItemSatuan(newIdx, satuanSelectVal);
+          // Sync select di form item jika ada
+          const rows = document.querySelectorAll("#itemList .item-row");
+          if (rows[newIdx]) {
+            const satuanSelect = rows[newIdx].querySelector('select[title="Satuan"]');
+            if (satuanSelect) satuanSelect.value = satuanSelectVal;
+          }
+        }
         if (typeof updateItemQty   === "function") updateItemQty(newIdx, qtyVal);
         if (typeof updateItemHarga === "function") updateItemHarga(newIdx, hargaVal);
         const rows = document.querySelectorAll("#itemList .item-row");

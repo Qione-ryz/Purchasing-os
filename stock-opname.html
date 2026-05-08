@@ -4,14 +4,14 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Stock Opname</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <!-- Font: harus konsisten dengan style.css -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script src="logger.js"></script>
-  <script src="ppn.js"></script>
   <script src="sidebar.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -30,7 +30,7 @@
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn btn-ghost" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+      <button class="btn btn-ghost so-export-btn" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
       </button>
@@ -52,7 +52,7 @@
       <button class="month-nav-btn" onclick="goMonth(-1)">‹</button>
       <button class="month-label" id="monthLabel" onclick="toggleMonthPicker()" title="Klik untuk pilih bulan">—</button>
       <button class="month-nav-btn" onclick="goMonth(1)">›</button>
-      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="monthSubLabel"></span>
+      <span class="so-month-sub" id="monthSubLabel"></span>
       <div class="brand-filter-row" style="margin-left:auto">
         <label>Brand</label>
         <select class="filter-select" id="soFilterBrand" onchange="onFilterChange()"></select>
@@ -63,7 +63,7 @@
     <div id="monthPickerPopup" style="display:none;position:absolute;z-index:80;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:280px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <button class="month-nav-btn" onclick="pickerChangeYear(-1)">‹</button>
-        <span id="pickerYear" style="font-family:var(--mono);font-size:15px;font-weight:600;"></span>
+        <span id="pickerYear" class="so-picker-year"></span>
         <button class="month-nav-btn" onclick="pickerChangeYear(1)">›</button>
       </div>
       <div id="pickerMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
@@ -91,10 +91,10 @@
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input class="search-input" type="text" id="opnameSearch" placeholder="Cari nama barang atau SKU..." oninput="renderOpname();toggleClear('opnameSearch','opnameClear')"/>
-          <button id="opnameClear" onclick="clearSearch('opnameSearch','opnameClear',renderOpname)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          <button id="opnameClear" onclick="clearSearch('opnameSearch','opnameClear',renderOpname)" class="so-clear-btn" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <span class="so-groupby-label">Group by</span>
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
@@ -106,7 +106,11 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Kelola Barang
         </button>
-        <span id="opnameSaveStatus" style="font-family:var(--mono);font-size:11px;color:var(--accent2);margin-left:auto"></span>
+        <button class="btn btn-ghost btn-sm admin-only" onclick="openGroupModal()" style="display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
+          Kelola Grup
+        </button>
+        <span id="opnameSaveStatus" class="so-save-status"></span>
       </div>
       <div class="table-card anim">
         <div class="card-header">
@@ -132,11 +136,11 @@
       </div>
       <div class="save-bar admin-only" id="opnameSaveBar" style="display:none">
         <span class="unsaved-label">⚠ Ada perubahan yang belum disimpan</span>
-        <button class="btn btn-primary" onclick="saveOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-primary" onclick="saveOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Stock Opname
         </button>
-        <button class="btn btn-ghost" onclick="discardOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-ghost" onclick="discardOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Batal
         </button>
@@ -151,10 +155,10 @@
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input class="search-input" type="text" id="pemakaianSearch" placeholder="Cari nama barang atau SKU..." oninput="renderPemakaian();toggleClear('pemakaianSearch','pemakaianClear')"/>
-          <button id="pemakaianClear" onclick="clearSearch('pemakaianSearch','pemakaianClear',renderPemakaian)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          <button id="pemakaianClear" onclick="clearSearch('pemakaianSearch','pemakaianClear',renderPemakaian)" class="so-clear-btn" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <span class="so-groupby-label">Group by</span>
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
@@ -162,7 +166,7 @@
       <div class="table-card anim">
         <div class="card-header">
           <span class="card-title">Pemakaian — <span id="pemakaianMonthTitle" style="color:var(--accent)">—</span></span>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">= Stok Awal + Pembelian − Stok Akhir</span>
+          <span class="so-formula-hint">= Stok Awal + Pembelian − Stok Akhir</span>
         </div>
         <div class="table-wrap">
           <table>
@@ -189,13 +193,13 @@
     <div id="tabPlan" style="display:none">
       <div class="plan-gen-bar admin-only">
         <label>Generate Plan</label>
-        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">Rekomendasi = Stok Akhir Bln Lalu − Rata-rata Pakai</span>
-        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">+</span>
+        <span class="so-formula-hint">Rekomendasi = Stok Akhir Bln Lalu − Rata-rata Pakai</span>
+        <span class="so-formula-hint">+</span>
         <div style="display:flex;align-items:center;gap:5px">
           <input type="number" id="planBufferPct" value="0" min="0" max="500"
-            style="width:62px;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;text-align:center"
+            class="so-buffer-input"
             oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">% buffer dari rata-rata pakai</span>
+          <span class="so-formula-hint">% buffer dari rata-rata pakai</span>
         </div>
         <button class="btn btn-primary btn-sm" onclick="generatePlan()" style="display:inline-flex;align-items:center;gap:5px">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -207,10 +211,10 @@
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input class="search-input" type="text" id="planSearch" placeholder="Cari nama barang atau SKU..." oninput="renderPlan();toggleClear('planSearch','planClear')"/>
-          <button id="planClear" onclick="clearSearch('planSearch','planClear',renderPlan)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          <button id="planClear" onclick="clearSearch('planSearch','planClear',renderPlan)" class="so-clear-btn" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <span class="so-groupby-label">Group by</span>
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
@@ -242,11 +246,11 @@
       </div>
       <div class="save-bar admin-only" id="planSaveBar" style="display:none">
         <span class="unsaved-label">⚡ Draft plan belum disimpan</span>
-        <button class="btn btn-primary" onclick="savePlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-primary" onclick="savePlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Purchase Plan
         </button>
-        <button class="btn btn-ghost" onclick="discardPlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-ghost" onclick="discardPlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           Buang Draft
         </button>
@@ -261,10 +265,10 @@
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input class="search-input" type="text" id="realisasiSearch" placeholder="Cari nama barang atau SKU..." oninput="renderRealisasi();toggleClear('realisasiSearch','realisasiClear')"/>
-          <button id="realisasiClear" onclick="clearSearch('realisasiSearch','realisasiClear',renderRealisasi)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;line-height:1;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          <button id="realisasiClear" onclick="clearSearch('realisasiSearch','realisasiClear',renderRealisasi)" class="so-clear-btn" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:2px">Group by</span>
+          <span class="so-groupby-label">Group by</span>
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
@@ -300,8 +304,8 @@
   <div class="item-select-modal">
     <div class="item-select-header">
       <div>
-        <div style="font-size:15px;font-weight:600">⚙ Kelola Barang Stock Opname</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--mono)">Pilih barang yang akan masuk daftar stock opname untuk brand ini</div>
+        <div class="modal-title">⚙ Kelola Barang Stock Opname</div>
+        <div class="so-modal-sub">Pilih barang yang akan masuk daftar stock opname untuk brand ini</div>
       </div>
       <button class="modal-close" onclick="closeItemSelectModal()">✕</button>
     </div>
@@ -320,21 +324,69 @@
           Hapus Semua
         </button>
       </div>
-      <div id="itemSelectCountInfo" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px"></div>
+      <div id="itemSelectCountInfo" class="so-count-info"></div>
       <div class="item-select-list" id="itemSelectList"></div>
     </div>
     <div class="item-select-footer">
-      <span id="itemSelectSelected" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
+      <span id="itemSelectSelected" class="so-select-count"></span>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeItemSelectModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-ghost" onclick="closeItemSelectModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Batal
         </button>
-        <button class="btn btn-primary" onclick="saveItemSelection()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-primary" onclick="saveItemSelection()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Pilihan
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KELOLA GRUP BARANG -->
+<div class="item-select-overlay" id="groupModalOverlay" onclick="if(event.target===this)closeGroupModal()">
+  <div class="item-select-modal" style="max-width:600px">
+    <div class="item-select-header">
+      <div>
+        <div class="modal-title">🗂 Kelola Grup Barang SO</div>
+        <div class="so-modal-sub">Gabungkan beberapa barang menjadi 1 baris di Stock Opname</div>
+      </div>
+      <button class="modal-close" onclick="closeGroupModal()">✕</button>
+    </div>
+    <div class="item-select-body" id="groupModalBody" style="padding:16px">
+      <!-- Daftar grup existing -->
+      <div id="groupList" style="margin-bottom:16px"></div>
+      <!-- Form tambah/edit grup -->
+      <div id="groupForm" style="border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px" id="groupFormTitle">+ Tambah Grup Baru</div>
+        <input type="hidden" id="groupFormId"/>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Nama Grup</label>
+            <input type="text" id="groupFormNama" placeholder="cth: Shortplate" class="search-input" style="width:100%;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Anggota Grup (pilih barang)</label>
+            <div class="search-wrap" style="margin-bottom:8px">
+              <span class="search-icon">🔍</span>
+              <input class="search-input" id="groupMemberSearch" type="text" placeholder="Cari barang..." oninput="renderGroupMemberList()"/>
+            </div>
+            <div id="groupMemberList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>
+          </div>
+          <div id="groupPrimerWrap" style="display:none">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Barang Primer (stok disimpan ke sini)</label>
+            <select id="groupFormPrimer" class="filter-select" style="width:100%"></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="resetGroupForm()">Batal</button>
+          <button class="btn btn-primary btn-sm" onclick="saveGroup()" id="groupFormSaveBtn">💾 Simpan Grup</button>
+        </div>
+      </div>
+    </div>
+    <div class="item-select-footer">
+      <span style="font-size:12px;color:var(--muted)" id="groupModalInfo"></span>
+      <button class="btn btn-ghost" onclick="closeGroupModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">Tutup</button>
     </div>
   </div>
 </div>
@@ -371,6 +423,8 @@
     groupByMode:        'brand', // 'brand' | 'kategori'
     pickerYear:         new Date().getFullYear(),
     _itemSelectTemp:    null, // Set sementara saat modal terbuka
+    soItemGroups:       [], // [{ id, brand_id, nama, primer_barang_id, members:[barang_id,...] }]
+    _groupModalState:   null,
   };
   window.PageState = PageState;
 
@@ -394,6 +448,8 @@
     groupByMode:         { get: () => PageState.groupByMode,         set: v => { PageState.groupByMode = v; },         configurable: true },
     pickerYear:          { get: () => PageState.pickerYear,          set: v => { PageState.pickerYear = v; },          configurable: true },
     _itemSelectTemp:     { get: () => PageState._itemSelectTemp,     set: v => { PageState._itemSelectTemp = v; },     configurable: true },
+    soItemGroups:        { get: () => PageState.soItemGroups,        set: v => { PageState.soItemGroups = v; },        configurable: true },
+    _groupModalState:    { get: () => PageState._groupModalState,    set: v => { PageState._groupModalState = v; },    configurable: true },
   });
 
   async function loadSoConfig() {
@@ -453,12 +509,16 @@
 
   function getActiveBarang() {
     /* Barang untuk brand aktif, sudah difilter sesuai konfigurasi SO */
+    /* Barang yang sudah masuk grup tidak ditampilkan individual */
     const byBrand = !filterBrandId
       ? allBarang
       : allBarang.filter(b => (b.brand_ids || []).includes(filterBrandId));
     const cfg = soBarangConfig[filterBrandId];
     const filtered = cfg ? byBrand.filter(b => cfg.has(b.id)) : byBrand;
-    return filtered.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
+    const groupedIds = getGroupedBarangIds();
+    return filtered
+      .filter(b => !groupedIds.has(b.id))
+      .slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
   }
 
   /* ── HELPERS ── */
@@ -482,14 +542,15 @@
     return list.filter(b => b.nama.toLowerCase().includes(lq) || (b.sku||'').toLowerCase().includes(lq));
   }
 
-  function getStock(y, m, bid)    { return (stockData[mk(y,m)]    || {})[bid] ?? null; }
-  function getPurchase(y, m, bid) { return (purchaseData[mk(y,m)] || {})[bid] ?? 0; }
-  function getPlan(y, m, bid)     { return (planData[mk(y,m)]     || {})[bid] ?? null; }
+  function _bkey() { return filterBrandId || '__nobrand__'; }
+  function getStock(y, m, bid)    { return ((stockData[_bkey()]    || {})[mk(y,m)]    || {})[bid] ?? null; }
+  function getPurchase(y, m, bid) { return ((purchaseData[_bkey()] || {})[mk(y,m)]    || {})[bid] ?? 0; }
+  function getPlan(y, m, bid)     { return ((planData[_bkey()]     || {})[mk(y,m)]    || {})[bid] ?? null; }
 
   function calcUsage(y, m, bid) {
     const p = prevYM(y, m);
     const s0 = getStock(p.y, p.m, bid);
-    const pu = getPurchase(p.y, p.m, bid);
+    const pu = getPurchase(y, m, bid);
     const s1 = getStock(y, m, bid);
     if (s0 == null || s1 == null) return null;
     return s0 + pu - s1;
@@ -593,6 +654,7 @@
     await loadSoConfig();
     await loadBrands();
     await loadBarang();
+    await loadItemGroups();
     updateMonthLabel();
     await loadAllData();
     renderTab();
@@ -635,36 +697,98 @@
     }));
   }
 
+  async function loadItemGroups() {
+    const { data: grps } = await window._sb
+      .from('so_item_groups')
+      .select('*, so_item_group_members(barang_id)');
+    soItemGroups = (grps || []).map(g => ({
+      ...g,
+      members: (g.so_item_group_members || []).map(m => m.barang_id)
+    }));
+  }
+
+  /* Helper: set barang_id yang sudah masuk grup (untuk brand aktif) */
+  function getGroupedBarangIds() {
+    const s = new Set();
+    soItemGroups
+      .filter(g => g.brand_id === filterBrandId)
+      .forEach(g => g.members.forEach(id => s.add(id)));
+    return s;
+  }
+
+  /* Helper: ambil grup untuk brand aktif */
+  function getActiveGroups() {
+    return soItemGroups.filter(g => g.brand_id === filterBrandId);
+  }
+
+  /* Helper: total pembelian semua member grup di periode tertentu */
+  function getGroupPurchase(grp, y, m) {
+    return grp.members.reduce((sum, bid) => sum + getPurchase(y, m, bid), 0);
+  }
+
+  /* Helper: stok bulan lalu untuk grup (dari primer) */
+  function getGroupStockPrev(grp, y, m) {
+    const p = prevYM(y, m);
+    return getStock(p.y, p.m, grp.primer_barang_id);
+  }
+
   async function loadAllData() {
-    /* Stock opname */
+    /* Stock opname — dipisah per brand */
     const { data: soRows } = await window._sb.from('stock_opname').select('*');
     (soRows || []).forEach(r => {
-      if (!stockData[r.periode]) stockData[r.periode] = {};
-      stockData[r.periode][r.barang_id] = r.qty;
+      const brandKey = r.brand_id || '__nobrand__';
+      if (!stockData[brandKey])            stockData[brandKey] = {};
+      if (!stockData[brandKey][r.periode]) stockData[brandKey][r.periode] = {};
+      stockData[brandKey][r.periode][r.barang_id] = r.qty;
     });
 
-    /* Purchase plan */
+    /* Purchase plan — dipisah per brand */
     const { data: ppRows } = await window._sb.from('purchase_plan').select('*');
     (ppRows || []).forEach(r => {
-      if (!planData[r.periode]) planData[r.periode] = {};
-      planData[r.periode][r.barang_id] = r.qty;
+      const brandKey = r.brand_id || '__nobrand__';
+      if (!planData[brandKey])            planData[brandKey] = {};
+      if (!planData[brandKey][r.periode]) planData[brandKey][r.periode] = {};
+      planData[brandKey][r.periode][r.barang_id] = r.qty;
     });
 
-    /* Pembelian aktual per barang per bulan */
-    const { data: beliRows } = await window._sb
-      .from('riwayat_beli')
-      .select('tanggal, riwayat_beli_items(barang_id, qty)')
-      .eq('status', 'selesai');
-    (beliRows || []).forEach(r => {
-      if (!r.tanggal) return;
-      const d = new Date(r.tanggal);
-      const period = mk(d.getFullYear(), d.getMonth());
-      (r.riwayat_beli_items || []).forEach(item => {
-        if (!item.barang_id) return;
-        if (!purchaseData[period]) purchaseData[period] = {};
-        purchaseData[period][item.barang_id] = (purchaseData[period][item.barang_id] || 0) + (item.qty || 0);
+    /* Pembelian aktual per barang per bulan — 2 query terpisah lalu join di JS */
+    /* Step 1: ambil semua header riwayat_beli yang selesai */
+    const beliHeaderMap = {};
+    let hdrOffset = 0;
+    while (true) {
+      const { data: hdrRows } = await window._sb
+        .from('riwayat_beli')
+        .select('id, tanggal, brand_id')
+        .eq('status', 'selesai')
+        .range(hdrOffset, hdrOffset + 999);
+      if (!hdrRows || hdrRows.length === 0) break;
+      hdrRows.forEach(r => { beliHeaderMap[r.id] = r; });
+      if (hdrRows.length < 1000) break;
+      hdrOffset += 1000;
+    }
+
+    /* Step 2: ambil semua items, join ke header di JS */
+    let itemOffset = 0;
+    while (true) {
+      const { data: itemRows } = await window._sb
+        .from('riwayat_beli_items')
+        .select('beli_id, barang_id, qty')
+        .range(itemOffset, itemOffset + 999);
+      if (!itemRows || itemRows.length === 0) break;
+      itemRows.forEach(item => {
+        const hdr = beliHeaderMap[item.beli_id];
+        if (!hdr || !hdr.tanggal || !item.barang_id) return;
+        const brandKey = hdr.brand_id || '__nobrand__';
+        const d = new Date(hdr.tanggal + 'T00:00:00');
+        const period = mk(d.getFullYear(), d.getMonth());
+        if (!purchaseData[brandKey])         purchaseData[brandKey] = {};
+        if (!purchaseData[brandKey][period]) purchaseData[brandKey][period] = {};
+        purchaseData[brandKey][period][item.barang_id] =
+          (purchaseData[brandKey][period][item.barang_id] || 0) + (item.qty || 0);
       });
-    });
+      if (itemRows.length < 1000) break;
+      itemOffset += 1000;
+    }
   }
 
   /* ── NAVIGATION ── */
@@ -719,7 +843,8 @@
     const grps = getGroups(list);
     const tbody = document.getElementById('opnameTableBody');
 
-    const hasCurr = list.some(b => stockData[curr] && stockData[curr][b.id] != null);
+    const _currStockData = (stockData[_bkey()] || {})[curr] || {};
+    const hasCurr = list.some(b => _currStockData[b.id] != null);
     const notice  = document.getElementById('noticeOpname');
     if (!hasCurr && list.length > 0 && window._userRole === 'admin') {
       notice.style.display = 'flex';
@@ -728,7 +853,7 @@
 
     function buildOpnameRow(b) {
       const prevQty  = getStock(p.y, p.m, b.id);
-      const rawQty   = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
+      const rawQty   = _currStockData[b.id] ?? null;
       const currQty  = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
       const diff     = prevQty != null && currQty != null ? currQty - prevQty : null;
       const isDraft  = opnameDraft[b.id] !== undefined;
@@ -746,27 +871,82 @@
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + (window._userRole === 'admin'
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
                 +   ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
                 +   ' data-bid="' + b.id + '"'
                 +   ' value="' + (currQty != null ? currQty : '') + '" placeholder="—"'
                 +   ' oninput="onOpnameInput(this,\'' + b.id + '\',this.value)"/></td>'
-              : '<td style="text-align:right;font-family:var(--mono)">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
+              : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
-          + '<td style="text-align:right;font-family:var(--mono)" data-diff="' + b.id + '">' + diffHtml + '</td>'
+          + '<td class="td-num" data-diff="' + b.id + '">' + diffHtml + '</td>'
+          + '</tr>'
+      };
+    }
+
+    /* ── Gabungkan grup + barang individual, sort abjad ── */
+    const activeGroups = getActiveGroups();
+
+    function buildGroupRow(grp) {
+      const primerPrev = getStock(p.y, p.m, grp.primer_barang_id);
+      const rawQty     = _currStockData[grp.primer_barang_id] ?? null;
+      const currQty    = opnameDraft['grp_' + grp.id] !== undefined ? opnameDraft['grp_' + grp.id] : rawQty;
+      const diff       = primerPrev != null && currQty != null ? currQty - primerPrev : null;
+      const isDraft    = opnameDraft['grp_' + grp.id] !== undefined;
+      const isFilled   = currQty != null;
+      const diffHtml = diff == null
+        ? '<span style="color:var(--muted)">—</span>'
+        : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
+        : diff < 0 ? '<span style="color:var(--danger)">'   + fmt(diff) + '</span>'
+        : '<span style="color:var(--muted)">0</span>';
+      const memberNames = grp.members.map(function(mid) {
+        const b = allBarang.find(function(x){ return x.id === mid; });
+        return b ? b.nama : mid;
+      }).join(', ');
+      const satuan = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan || '—';
+      return {
+        isFilled,
+        html: '<tr class="' + (isFilled ? 'row-filled' : 'empty-data-row') + '">'
+          + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
+          + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
+          + grp.nama
+          + '</div><div style="font-size:11px;color:var(--muted);margin-top:2px">' + memberNames + '</div></td>'
+          + '<td><span class="item-meta">—</span></td>'
+          + '<td><span class="item-meta">' + satuan + '</span></td>'
+          + '<td class="td-num">' + (primerPrev != null ? fmt(primerPrev) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + (window._userRole === 'admin'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+                + ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
+                + ' data-grpid="' + grp.id + '"'
+                + ' value="' + (currQty != null ? currQty : '') + '" placeholder="—"'
+                + ' oninput="onOpnameInput(this,\'grp_' + grp.id + '\',this.value,\'' + grp.primer_barang_id + '\')"/></td>'
+              : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
+            )
+          + '<td class="td-num" data-diff="grp_' + grp.id + '">' + diffHtml + '</td>'
           + '</tr>'
       };
     }
 
     let rows = '', filled = 0;
+
     grps.forEach(function(g) {
-      const filledRows = [], emptyRows = [];
+      /* Gabungkan barang individual + grup, lalu sort abjad */
+      const allItems = [];
       g.items.forEach(function(b) {
         const built = buildOpnameRow(b);
-        if (built.isFilled) { filled++; filledRows.push(built.html); }
-        else emptyRows.push(built.html);
+        allItems.push({ sortKey: b.nama.toLowerCase(), isFilled: built.isFilled, html: built.html });
+      });
+      activeGroups.forEach(function(grp) {
+        const built = buildGroupRow(grp);
+        allItems.push({ sortKey: grp.nama.toLowerCase(), isFilled: built.isFilled, html: built.html });
+      });
+      allItems.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey, 'id', { sensitivity: 'base' }); });
+
+      const filledRows = [], emptyRows = [];
+      allItems.forEach(function(item) {
+        if (item.isFilled) { filled++; filledRows.push(item.html); }
+        else emptyRows.push(item.html);
       });
 
       rows += groupHeaderRow(g, 6);
@@ -836,7 +1016,7 @@
 
     const emptyIds = groupItems.items
       .filter(function(b) {
-        const rawQty = stockData[curr] ? (stockData[curr][b.id] ?? null) : null;
+        const rawQty = ((stockData[_bkey()] || {})[curr] || {})[b.id] ?? null;
         const val    = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
         return val == null;
       })
@@ -867,7 +1047,7 @@
   }
   window.hideEmptyToConfig = hideEmptyToConfig;
 
-  function onOpnameInput(el, barangId, val) {
+  function onOpnameInput(el, barangId, val, primerBarangId) {
     opnameDraft[barangId] = (val === '' || val === null || val === undefined) ? null : Number(val);
     opnameChanged = true;
     document.getElementById('opnameSaveBar').style.display = 'flex';
@@ -876,7 +1056,9 @@
     // Update diff cell without re-rendering (preserves focus)
     const curr = mk(curYear, curMonth);
     const p    = prevYM(curYear, curMonth);
-    const prevQty = getStock(p.y, p.m, barangId);
+    // Untuk grup, prevQty pakai primer barang; untuk barang biasa, pakai barangId
+    const lookupId = primerBarangId || barangId;
+    const prevQty = getStock(p.y, p.m, lookupId);
     const currQty = opnameDraft[barangId];
     const diff    = prevQty != null && currQty != null ? currQty - prevQty : null;
     const diffCell = document.querySelector('#opnameTableBody td[data-diff="' + barangId + '"]');
@@ -887,8 +1069,9 @@
       : '<span style="color:var(--muted)">0</span>';
     // Update progress bar
     const list = getFilteredBarang();
+    const _csData = (stockData[_bkey()] || {})[curr] || {};
     const filled = list.filter(b => {
-      const raw = (stockData[curr] || {})[b.id] ?? null;
+      const raw = _csData[b.id] ?? null;
       const v   = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : raw;
       return v != null;
     }).length;
@@ -906,14 +1089,31 @@
     const btn = document.querySelector('#opnameSaveBar .btn-primary');
     btn.disabled = true; btn.textContent = 'Menyimpan...';
     try {
+      if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
       const curr = mk(curYear, curMonth);
+      const bkey = filterBrandId;
       const entries = Object.entries(opnameDraft);
+
+      /* Resolve grp_xxx key ke primer_barang_id */
+      function resolveBarangId(key) {
+        if (key.startsWith('grp_')) {
+          const grp = soItemGroups.find(function(g) { return 'grp_' + g.id === key; });
+          return grp ? grp.primer_barang_id : null;
+        }
+        return key;
+      }
+
       const ups = entries
         .filter(function(e) { return e[1] !== null && e[1] !== undefined; })
-        .map(function(e)    { return { periode: curr, barang_id: e[0], qty: e[1] }; });
+        .map(function(e)    {
+          const bid = resolveBarangId(e[0]);
+          return bid ? { periode: curr, brand_id: bkey, barang_id: bid, qty: e[1] } : null;
+        })
+        .filter(Boolean);
       const delIds = entries
         .filter(function(e) { return e[1] === null || e[1] === undefined; })
-        .map(function(e)    { return e[0]; });
+        .map(function(e)    { return resolveBarangId(e[0]); })
+        .filter(Boolean);
 
       if (!ups.length && !delIds.length) {
         showToast('Tidak ada data yang diubah untuk disimpan.', 'error'); return;
@@ -921,10 +1121,11 @@
 
       // Upsert nilai yang diisi
       if (ups.length) {
-        const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,barang_id' });
+        const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,brand_id,barang_id' });
         if (error) throw error;
-        if (!stockData[curr]) stockData[curr] = {};
-        ups.forEach(function(u) { stockData[curr][u.barang_id] = u.qty; });
+        if (!stockData[bkey])         stockData[bkey] = {};
+        if (!stockData[bkey][curr])   stockData[bkey][curr] = {};
+        ups.forEach(function(u) { stockData[bkey][curr][u.barang_id] = u.qty; });
       }
 
       // Hapus baris yang dikosongkan
@@ -932,10 +1133,11 @@
         const { error: delErr } = await window._sb.from('stock_opname')
           .delete()
           .eq('periode', curr)
+          .eq('brand_id', bkey)
           .in('barang_id', delIds);
         if (delErr) throw delErr;
-        if (stockData[curr]) {
-          delIds.forEach(function(id) { delete stockData[curr][id]; });
+        if (stockData[bkey] && stockData[bkey][curr]) {
+          delIds.forEach(function(id) { delete stockData[bkey][curr][id]; });
         }
       }
 
@@ -961,11 +1163,35 @@
 
     let totalUsage = 0, countOk = 0, countMissing = 0, rows = '';
 
+    /* ── Baris grup ── */
+    getActiveGroups().filter(function(grp) {
+      return !q || grp.nama.toLowerCase().includes(q.toLowerCase());
+    }).forEach(function(grp) {
+      const s0 = getStock(prev.y, prev.m, grp.primer_barang_id);
+      const pu = grp.members.reduce(function(sum, bid) { return sum + getPurchase(curYear, curMonth, bid); }, 0);
+      const s1 = getStock(curYear, curMonth, grp.primer_barang_id);
+      const u  = s0 != null && s1 != null ? s0 + pu - s1 : null;
+      if (u != null) { totalUsage += u; countOk++; } else countMissing++;
+      const satuanPrimer = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan||'—';
+      rows += '<tr style="background:var(--surface2)">'
+        + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
+        + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
+        + grp.nama + '</div></td>'
+        + '<td><span class="item-meta">—</span></td>'
+        + '<td><span class="item-meta">' + satuanPrimer + '</span></td>'
+        + '<td class="td-num">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
+        + '<td class="td-num">' + fmt(pu) + '</td>'
+        + '<td class="td-num">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
+        + '<td style="text-align:right">'
+        + (u != null ? '<strong class="so-num-ok">' + fmt(u) + '</strong>' : '<span class="so-data-kurang">Data kurang</span>')
+        + '</td></tr>';
+    });
+
     grps.forEach(function(g) {
       rows += groupHeaderRow(g, 7);
       g.items.forEach(function(b) {
         const s0 = getStock(prev.y, prev.m, b.id);
-        const pu = getPurchase(prev.y, prev.m, b.id);
+        const pu = getPurchase(curYear, curMonth, b.id);
         const s1 = getStock(curYear, curMonth, b.id);
         const u  = s0 != null && s1 != null ? s0 + pu - s1 : null;
         if (u != null) { totalUsage += u; countOk++; } else countMissing++;
@@ -974,11 +1200,11 @@
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + fmt(pu) + '</td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num">' + (s0 != null ? fmt(s0) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num">' + fmt(pu) + '</td>'
+          + '<td class="td-num">' + (s1 != null ? fmt(s1) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + '<td style="text-align:right">'
-          + (u != null ? '<strong style="font-family:var(--mono);color:var(--accent2)">' + fmt(u) + '</strong>' : '<span style="color:var(--muted);font-size:11px">Data kurang</span>')
+          + (u != null ? '<strong class="so-num-ok">' + fmt(u) + '</strong>' : '<span class="so-data-kurang">Data kurang</span>')
           + '</td></tr>';
       });
     });
@@ -1003,7 +1229,8 @@
     const prevM  = prevYM(curYear, curMonth);
     const list   = filterSearch(getFilteredBarang(), q);
     const grps   = getGroups(list);
-    const hasPlan = list.some(function(b) { return planData[curr] && planData[curr][b.id] != null; });
+    const _currPlanData = (planData[_bkey()] || {})[curr] || {};
+    const hasPlan = list.some(function(b) { return _currPlanData[b.id] != null; });
     const tbody  = document.getElementById('planTableBody');
     const notice = document.getElementById('noticePlan');
 
@@ -1041,7 +1268,7 @@
         const rekomen = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
 
         // Nilai input
-        const savedVal = planData[curr] && planData[curr][b.id] != null ? planData[curr][b.id] : null;
+        const savedVal = _currPlanData[b.id] != null ? _currPlanData[b.id] : null;
         const editVal  = planDraft
           ? (planDraft[b.id] != null ? planDraft[b.id] : (rekomen != null ? rekomen : ''))
           : (savedVal != null ? savedVal : '');
@@ -1050,15 +1277,15 @@
         const rekomenHtml = rekomen == null
           ? '<span style="color:var(--muted)">—</span>'
           : rekomen < 0
-            ? '<span style="font-family:var(--mono);color:var(--danger)">' + fmt(rekomen) + '</span>'
-            : '<span style="font-family:var(--mono);color:var(--accent2)">' + fmt(rekomen) + '</span>';
+            ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
+            : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
 
         rows += '<tr>'
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td style="text-align:right;font-family:var(--mono);color:var(--muted)">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
+          + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
           + (window._userRole === 'admin'
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
@@ -1066,7 +1293,7 @@
                 +   ' data-bid="' + b.id + '"'
                 +   ' value="' + editVal + '" placeholder="0"'
                 +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"/></td>'
-              : '<td style="text-align:right;font-family:var(--mono)">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
+              : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + '</tr>';
       });
@@ -1109,14 +1336,17 @@
     const btn = document.querySelector('#planSaveBar .btn-primary');
     btn.disabled = true; btn.textContent = 'Menyimpan...';
     try {
+      if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
       const curr = mk(curYear, curMonth);
+      const bkey = filterBrandId;
       const ups  = Object.entries(planDraft).map(function(e) {
-        return { periode: curr, barang_id: e[0], qty: e[1] };
+        return { periode: curr, brand_id: bkey, barang_id: e[0], qty: e[1] };
       });
-      const { error } = await window._sb.from('purchase_plan').upsert(ups, { onConflict: 'periode,barang_id' });
+      const { error } = await window._sb.from('purchase_plan').upsert(ups, { onConflict: 'periode,brand_id,barang_id' });
       if (error) throw error;
-      if (!planData[curr]) planData[curr] = {};
-      ups.forEach(function(u) { planData[curr][u.barang_id] = u.qty; });
+      if (!planData[bkey])       planData[bkey] = {};
+      if (!planData[bkey][curr]) planData[bkey][curr] = {};
+      ups.forEach(function(u) { planData[bkey][curr][u.barang_id] = u.qty; });
       planDraft = null;
       showToast('✓ Purchase plan ' + mlabel(curYear, curMonth) + ' disimpan', 'success');
       renderPlan();
@@ -1136,14 +1366,16 @@
     const list = filterSearch(getFilteredBarang(), q);
     const grps = getGroups(list);
     const tbody = document.getElementById('realisasiTableBody');
+    const _currPlanData     = (planData[_bkey()]     || {})[curr] || {};
+    const _currPurchaseData = (purchaseData[_bkey()] || {})[curr] || {};
 
     let totalPlan = 0, totalActual = 0, countOver = 0, countUnder = 0, countOk = 0, rows = '';
 
     grps.forEach(function(g) {
       rows += groupHeaderRow(g, 7);
       g.items.forEach(function(b) {
-        const plan   = planData[curr]    ? (planData[curr][b.id]    ?? null) : null;
-        const actual = purchaseData[curr] ? (purchaseData[curr][b.id] ?? null) : null;
+        const plan   = _currPlanData[b.id]     ?? null;
+        const actual = _currPurchaseData[b.id] ?? null;
         const diff   = plan != null && actual != null ? actual - plan : null;
 
         if (plan   != null) totalPlan   += plan;
@@ -1164,9 +1396,9 @@
           + '<td><div class="item-name">' + b.nama + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (plan   != null ? fmt(plan)   : '<span style="color:var(--muted)">Belum ada</span>') + '</td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + (actual != null ? fmt(actual) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td style="text-align:right;font-family:var(--mono)">' + diffHtml + '</td>'
+          + '<td class="td-num">' + (plan   != null ? fmt(plan)   : '<span style="color:var(--muted)">Belum ada</span>') + '</td>'
+          + '<td class="td-num">' + (actual != null ? fmt(actual) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td class="td-num">' + diffHtml + '</td>'
           + '<td style="text-align:center"><span class="badge ' + cls + '">' + badge + '</span></td>'
           + '</tr>';
       });
@@ -1181,7 +1413,7 @@
     + '<div class="stat-card"><div class="stat-label">Realisasi</div><div class="stat-val ' + (pctReal==null ? '' : (pctReal>=90&&pctReal<=110 ? 'green' : 'orange')) + '">' + (pctReal != null ? pctReal + '%' : '—') + '</div><div class="stat-sub">dari purchase plan</div></div>'
     + '<div class="stat-card"><div class="stat-label">Sesuai / Lebih / Kurang</div><div class="stat-val">' + countOk + ' / <span style="color:var(--danger)">' + countOver + '</span> / <span style="color:var(--accent3)">' + countUnder + '</span></div><div class="stat-sub">barang</div></div>';
 
-    const hasPlan = list.some(function(b) { return planData[curr] && planData[curr][b.id] != null; });
+    const hasPlan = list.some(function(b) { return _currPlanData[b.id] != null; });
     const notice  = document.getElementById('noticeRealisasi');
     if (!hasPlan) {
       notice.style.display = 'flex';
@@ -1219,7 +1451,7 @@
     const pkRows = [['Nama Barang','SKU','Satuan','Stok Awal (' + lblPrev + ')','Pembelian (' + lblPrev + ')','Stok Akhir (' + lblCurr + ')','Pemakaian']];
     barangList.forEach(function(b) {
       const s0 = getStock(prev.y, prev.m, b.id);
-      const pu = getPurchase(prev.y, prev.m, b.id);
+      const pu = getPurchase(curYear, curMonth, b.id);
       const s1 = getStock(curYear, curMonth, b.id);
       pkRows.push([b.nama, b.sku||'', b.satuan||'', s0??'', pu, s1??'', s0!=null&&s1!=null ? s0+pu-s1 : '']);
     });
@@ -1228,10 +1460,12 @@
     XLSX.utils.book_append_sheet(wb, ws2, 'Pemakaian');
 
     /* ── Sheet 3: Plan & Realisasi ── */
+    const _expPlanData     = (planData[_bkey()]     || {})[curr] || {};
+    const _expPurchaseData = (purchaseData[_bkey()] || {})[curr] || {};
     const prRows = [['Nama Barang','SKU','Satuan','Purchase Plan (' + lblCurr + ')','Pembelian Aktual (' + lblCurr + ')','Selisih','Status']];
     barangList.forEach(function(b) {
-      const plan   = planData[curr]     ? (planData[curr][b.id]     ?? '') : '';
-      const actual = purchaseData[curr] ? (purchaseData[curr][b.id] ?? '') : '';
+      const plan   = _expPlanData[b.id]     ?? '';
+      const actual = _expPurchaseData[b.id] ?? '';
       const diff   = plan!==''&&actual!=='' ? actual-plan : '';
       const status = diff==='' ? '—' : diff>0 ? 'Lebih' : diff<0 ? 'Kurang' : 'Sesuai';
       prRows.push([b.nama, b.sku||'', b.satuan||'', plan, actual, diff, status]);
@@ -1512,6 +1746,181 @@
     }
   }
 
+
+  /* ══════════════════════════════════════════
+     KELOLA GRUP BARANG SO
+  ══════════════════════════════════════════ */
+  function openGroupModal() {
+    if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
+    renderGroupList();
+    resetGroupForm();
+    document.getElementById('groupModalInfo').textContent =
+      'Brand: ' + (allBrands.find(b => b.id === filterBrandId)||{}).nama;
+    document.getElementById('groupModalOverlay').classList.add('show');
+  }
+
+  function closeGroupModal() {
+    document.getElementById('groupModalOverlay').classList.remove('show');
+  }
+
+  function renderGroupList() {
+    const groups = getActiveGroups();
+    const el = document.getElementById('groupList');
+    if (!groups.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;margin-bottom:8px">Belum ada grup untuk brand ini.</div>';
+      return;
+    }
+    el.innerHTML = groups.map(function(grp) {
+      const memberNames = grp.members.map(function(mid) {
+        return (allBarang.find(function(x){return x.id===mid;})||{}).nama || '?';
+      }).join(', ');
+      const primerNama = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).nama || '?';
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">'
+        + '<div style="flex:1">'
+        + '<div style="font-weight:600;font-size:13px">' + grp.nama + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Anggota: ' + memberNames + '</div>'
+        + '<div style="font-size:11px;color:var(--accent);margin-top:1px">Primer: ' + primerNama + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0">'
+        + '<button class="btn btn-ghost btn-sm" onclick="editGroup(\'' + grp.id + '\')">✏ Edit</button>'
+        + '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteGroup(\'' + grp.id + '\')">✕</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function resetGroupForm() {
+    document.getElementById('groupFormId').value = '';
+    document.getElementById('groupFormNama').value = '';
+    document.getElementById('groupMemberSearch').value = '';
+    document.getElementById('groupFormTitle').textContent = '+ Tambah Grup Baru';
+    document.getElementById('groupFormSaveBtn').textContent = '💾 Simpan Grup';
+    _groupModalState = { selectedMembers: new Set(), primer: null };
+    renderGroupMemberList();
+    updatePrimerSelect();
+  }
+
+  function editGroup(groupId) {
+    const grp = soItemGroups.find(function(g){ return g.id === groupId; });
+    if (!grp) return;
+    document.getElementById('groupFormId').value = grp.id;
+    document.getElementById('groupFormNama').value = grp.nama;
+    document.getElementById('groupFormTitle').textContent = '✏ Edit Grup';
+    document.getElementById('groupFormSaveBtn').textContent = '💾 Update Grup';
+    _groupModalState = { selectedMembers: new Set(grp.members), primer: grp.primer_barang_id };
+    document.getElementById('groupMemberSearch').value = '';
+    renderGroupMemberList();
+    updatePrimerSelect();
+  }
+
+  function renderGroupMemberList() {
+    if (!_groupModalState) _groupModalState = { selectedMembers: new Set(), primer: null };
+    const q = (document.getElementById('groupMemberSearch').value||'').toLowerCase();
+    const byBrand = allBarang.filter(function(b){ return (b.brand_ids||[]).includes(filterBrandId); });
+    const filtered = q ? byBrand.filter(function(b){ return b.nama.toLowerCase().includes(q)||(b.sku||'').toLowerCase().includes(q); }) : byBrand;
+    const el = document.getElementById('groupMemberList');
+    el.innerHTML = filtered.map(function(b) {
+      const checked = _groupModalState.selectedMembers.has(b.id);
+      return '<div class="item-select-row' + (checked?' checked':'') + '" onclick="toggleGroupMember(\'' + b.id + '\')" style="padding:6px 8px">'
+        + '<div class="item-select-cb">' + (checked?'✓':'') + '</div>'
+        + '<div style="flex:1"><div class="item-select-nama">' + b.nama + '</div>'
+        + '<div class="item-select-meta">' + (b.sku||'—') + ' · ' + (b.satuan||'—') + '</div></div>'
+        + '</div>';
+    }).join('') || '<div style="padding:12px;color:var(--muted);text-align:center">Tidak ada barang</div>';
+    updatePrimerSelect();
+  }
+
+  function toggleGroupMember(barangId) {
+    if (!_groupModalState) return;
+    if (_groupModalState.selectedMembers.has(barangId)) {
+      _groupModalState.selectedMembers.delete(barangId);
+      if (_groupModalState.primer === barangId) _groupModalState.primer = null;
+    } else {
+      _groupModalState.selectedMembers.add(barangId);
+    }
+    renderGroupMemberList();
+  }
+
+  function updatePrimerSelect() {
+    const wrap = document.getElementById('groupPrimerWrap');
+    const sel  = document.getElementById('groupFormPrimer');
+    const members = _groupModalState ? [..._groupModalState.selectedMembers] : [];
+    if (members.length < 2) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    const currentPrimer = _groupModalState.primer;
+    sel.innerHTML = members.map(function(mid) {
+      const b = allBarang.find(function(x){return x.id===mid;});
+      return '<option value="' + mid + '"' + (mid===currentPrimer?' selected':'') + '>' + (b?b.nama:mid) + '</option>';
+    }).join('');
+    if (!currentPrimer || !members.includes(currentPrimer)) {
+      _groupModalState.primer = members[0];
+      sel.value = members[0];
+    }
+  }
+
+  async function saveGroup() {
+    if (!_groupModalState) return;
+    const nama    = (document.getElementById('groupFormNama').value||'').trim();
+    const members = [..._groupModalState.selectedMembers];
+    const primer  = document.getElementById('groupFormPrimer').value || members[0];
+    const editId  = document.getElementById('groupFormId').value;
+
+    if (!nama)          { showToast('Nama grup wajib diisi', 'error'); return; }
+    if (members.length < 2) { showToast('Pilih minimal 2 barang untuk digrup', 'error'); return; }
+    if (!primer)        { showToast('Pilih barang primer', 'error'); return; }
+
+    const btn = document.getElementById('groupFormSaveBtn');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try {
+      if (editId) {
+        /* Update */
+        const { error: e1 } = await window._sb.from('so_item_groups')
+          .update({ nama, primer_barang_id: primer })
+          .eq('id', editId);
+        if (e1) throw e1;
+        await window._sb.from('so_item_group_members').delete().eq('group_id', editId);
+        const { error: e2 } = await window._sb.from('so_item_group_members')
+          .insert(members.map(function(bid){ return { group_id: editId, barang_id: bid }; }));
+        if (e2) throw e2;
+      } else {
+        /* Insert */
+        const { data: newGrp, error: e1 } = await window._sb.from('so_item_groups')
+          .insert({ brand_id: filterBrandId, nama, primer_barang_id: primer })
+          .select().single();
+        if (e1) throw e1;
+        const { error: e2 } = await window._sb.from('so_item_group_members')
+          .insert(members.map(function(bid){ return { group_id: newGrp.id, barang_id: bid }; }));
+        if (e2) throw e2;
+      }
+      /* Reload grup */
+      await loadItemGroups();
+      renderGroupList();
+      resetGroupForm();
+      renderTab();
+      showToast('✓ Grup "' + nama + '" disimpan', 'success');
+    } catch(e) {
+      showToast('❌ Gagal: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Simpan Grup';
+    }
+  }
+
+  async function deleteGroup(groupId) {
+    const grp = soItemGroups.find(function(g){ return g.id === groupId; });
+    if (!grp) return;
+    if (!confirm('Hapus grup "' + grp.nama + '"? Barang anggotanya akan kembali tampil individual.')) return;
+    try {
+      const { error } = await window._sb.from('so_item_groups').delete().eq('id', groupId);
+      if (error) throw error;
+      await loadItemGroups();
+      renderGroupList();
+      renderTab();
+      showToast('✓ Grup dihapus', 'success');
+    } catch(e) {
+      showToast('❌ Gagal: ' + e.message, 'error');
+    }
+  }
+
   window.onFilterChange=onFilterChange; window.goMonth=goMonth;
   window.toggleHideEmpty=toggleHideEmpty;
   window.openItemSelectModal=openItemSelectModal; window.closeItemSelectModal=closeItemSelectModal;
@@ -1523,6 +1932,9 @@
   window.generatePlan=generatePlan; window.onPlanInput=onPlanInput; window.savePlan=savePlan; window.discardPlan=discardPlan;
   window.exportExcel=exportExcel; window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
+  window.openGroupModal=openGroupModal; window.closeGroupModal=closeGroupModal;
+  window.renderGroupMemberList=renderGroupMemberList; window.toggleGroupMember=toggleGroupMember;
+  window.saveGroup=saveGroup; window.deleteGroup=deleteGroup; window.editGroup=editGroup; window.resetGroupForm=resetGroupForm;
 </script>
 </body>
 </html>

@@ -4,41 +4,31 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="datefilter.js"></script>
   <style>
-    .topbar-right { display:flex; align-items:center; gap:var(--sp-md); }
-    .date-chip { font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px var(--sp-md); }
-
-    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-lg); margin-bottom:calc(var(--sp-3xl) + 8px); }
-    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:calc(var(--sp-xl) + 6px) var(--sp-xl); position:relative; overflow:hidden; transition:border-color .2s,transform .15s; animation:fadeUp .4s ease both; }
-    .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
-    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-    .stat-card.blue::before  { background:var(--accent); }
-    .stat-card.green::before { background:var(--accent2); }
-    .stat-card.orange::before{ background:var(--accent3); }
-    .stat-card.purple::before{ background:#a78bfa; }
-    .stat-label { font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:calc(var(--sp-sm) + 2px); }
-    .stat-value { font-size:34px; font-weight:600; font-family:var(--mono); line-height:1; margin-bottom:8px; }
-    .stat-value.blue   { color:var(--accent); }
-    .stat-value.green  { color:var(--accent2); }
-    .stat-value.orange { color:var(--accent3); }
-    .stat-value.purple { color:#a78bfa; }
-    .stat-sub  { font-size:12px; color:var(--muted); }
-    .stat-icon { position:absolute; top:var(--sp-lg); right:var(--sp-lg); font-size:28px; opacity:.15; }
-
-    .row { display:grid; gap:var(--sp-xl); margin-bottom:var(--sp-xl); }
-    .row-2 { grid-template-columns:1fr 1fr; }
-    .row-purchases { grid-template-columns:3fr 1fr; }
-    .row-3 { grid-template-columns:2fr 1fr; }
-
-    .card-header { padding:var(--sp-lg) var(--sp-xl); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    /* ── Layout khusus dashboard — tidak ada di style.css ── */
+    .topbar-right   { display:flex; align-items:center; gap:var(--sp-md); }
     .topbar-brand-row { display:flex; align-items:center; gap:6px; }
     .topbar-date-wrap { position:relative; }
-    .card-action { font-size:12px; color:var(--accent); text-decoration:none; font-family:var(--mono); cursor:pointer; }
-    .card-action:hover { text-decoration:underline; }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-lg); margin-bottom:calc(var(--sp-3xl) + 8px); }
+    .stat-card  { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:calc(var(--sp-xl) + 6px) var(--sp-xl); position:relative; overflow:hidden; transition:border-color .2s,transform .15s; animation:fadeUp .4s ease both; }
+    .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .stat-card.blue::before   { background:var(--accent); }
+    .stat-card.green::before  { background:var(--accent2); }
+    .stat-card.orange::before { background:var(--accent3); }
+    .stat-card.purple::before { background:#a78bfa; }
+    .stat-value.purple { color:#a78bfa; }
+    .stat-label { margin-bottom:calc(var(--sp-sm) + 2px); }
+    .stat-value { margin-bottom:8px; }
+    .stat-icon  { top:var(--sp-lg); right:var(--sp-lg); }
+
+    .row   { display:grid; gap:var(--sp-xl); margin-bottom:var(--sp-xl); }
+    .row-2 { grid-template-columns:1fr 1fr; }
+    .row-3 { grid-template-columns:2fr 1fr; }
 
     .bar-chart  { padding:var(--sp-lg) var(--sp-xl); }
     .bar-group  { display:flex; align-items:flex-end; gap:var(--sp-sm); height:100px; margin-bottom:var(--sp-sm); position:relative; }
@@ -47,33 +37,21 @@
     .bar:hover  { opacity:1; }
     .bar.current{ background:var(--accent2); opacity:1; }
     .bar-labels { display:flex; gap:var(--sp-sm); }
-    .bar-label  { flex:1; text-align:center; font-family:var(--mono); font-size:10px; color:var(--muted); }
 
     .quick-actions { display:grid; grid-template-columns:1fr 1fr; gap:calc(var(--sp-sm) + 2px); padding:var(--sp-lg); }
     .qa-btn  { display:flex; align-items:center; gap:calc(var(--sp-sm) + 2px); padding:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; cursor:pointer; text-decoration:none; color:var(--text); transition:border-color .2s,background .2s; }
     .qa-btn:hover { border-color:var(--accent); background:rgba(79,142,247,.06); }
     .qa-icon  { font-size:22px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:8px; flex-shrink:0; }
-    .qa-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); }
 
     .activity-list { padding:0 var(--sp-md); }
     .activity-item { display:flex; gap:var(--sp-sm); padding:10px 0; border-bottom:1px solid rgba(37,40,48,.6); }
     .activity-item:last-child { border-bottom:none; }
     .activity-dot  { width:7px; height:7px; border-radius:50%; margin-top:5px; flex-shrink:0; }
     .activity-body { flex:1; min-width:0; }
-    .activity-text { font-size:12px; line-height:1.4; }
     .activity-text strong { color:var(--accent); font-weight:600; }
-    .activity-time { font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
 
     .skeleton { background:linear-gradient(90deg,var(--border) 0%,var(--surface2) 50%,var(--border) 100%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; }
     @keyframes shimmer { to { background-position:-200% 0; } }
-
-    .nav-badge { margin-left:auto; background:var(--accent); color:#fff; font-size:10px; font-family:var(--mono); padding:2px 6px; border-radius:10px; min-width:20px; text-align:center; }
-
-    .bar-range-btn { padding:3px 10px; font-family:var(--mono); font-size:10px; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all .15s; }
-    .bar-range-btn:hover  { border-color:var(--accent); color:var(--accent); }
-    .bar-range-btn.active { border-color:var(--accent); background:rgba(79,142,247,.15); color:var(--accent); }
-
-    .period-badge { font-family:var(--mono); font-size:10px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:2px 8px; }
 
     @media (max-width:1024px) { .stats-grid{grid-template-columns:repeat(2,1fr)} .row-2,.row-3{grid-template-columns:1fr} }
     @media (max-width:768px)  { .stats-grid{grid-template-columns:1fr 1fr} }
@@ -93,18 +71,18 @@
     </div>
     <div class="topbar-right">
       <div class="topbar-brand-row">
-        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">🏷 Brand:</span>
+        <span class="topbar-brand-label">🏷 Brand:</span>
         <div id="brandFilterWrap" class="brand-filter-wrap" style="min-width:160px;max-width:220px"></div>
       </div>
       <div class="date-chip" id="dateChip">—</div>
       <input type="date" id="dashDateFrom" style="display:none"/>
       <input type="date" id="dashDateTo"   style="display:none"/>
       <div class="topbar-date-wrap">
-        <button class="btn btn-ghost btn-sm" id="btnDashDate" onclick="dashDf.toggle()" style="white-space:nowrap;min-width:130px;font-family:var(--mono);font-size:11px">
+        <button class="btn btn-ghost btn-sm btn-dash-date" id="btnDashDate" onclick="dashDf.toggle()">
           📅 <span id="dashDateLabel">Bulan Ini</span>
         </button>
         <div id="dashDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
+          <div class="date-picker-section-label">Filter Cepat</div>
           <div style="margin-bottom:6px">
             <button class="date-quick-btn" id="dashBtnAll" onclick="dashDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
           </div>
@@ -120,18 +98,18 @@
             <button class="date-quick-btn" id="dashBtnThisYear"  onclick="dashDf.setQuick('thisyear')">Tahun Ini</button>
             <button class="date-quick-btn" id="dashBtnLastYear"  onclick="dashDf.setQuick('lastyear')">Tahun Lalu</button>
           </div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
+          <div class="date-picker-section-label">Rentang Kustom</div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-              <input type="date" id="dashDateFromVis" onchange="dashDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+              <span class="date-range-span">Dari</span>
+              <input type="date" id="dashDateFromVis" onchange="dashDf.onVisibleInputChange()" class="date-range-input"/>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-              <input type="date" id="dashDateToVis" onchange="dashDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
+              <span class="date-range-span">S/d</span>
+              <input type="date" id="dashDateToVis" onchange="dashDf.onVisibleInputChange()" class="date-range-input"/>
             </div>
           </div>
-          <button onclick="dashDf.setQuick('thismonth')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
+          <button onclick="dashDf.setQuick('thismonth')" class="date-reset-btn">✕ Reset Filter</button>
         </div>
       </div>
     </div>
@@ -182,10 +160,10 @@
           </div>
         </div>
         <div class="bar-chart">
-          <div id="barYAxisLabel" style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;padding-left:2px"></div>
+          <div id="barYAxisLabel" class="bar-y-axis-label"></div>
           <div class="bar-group" id="barGroup"></div>
           <div class="bar-labels" id="barLabels"></div>
-          <div id="barTooltip" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--text);pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.4)"></div>
+          <div id="barTooltip" class="bar-tooltip" style="display:none;position:fixed;pointer-events:none;z-index:999"></div>
         </div>
       </div>
 
@@ -271,7 +249,7 @@
           </table>
         </div>
         <div id="topBarangShowMore" style="display:none;padding:10px var(--sp-xl);border-top:1px solid var(--border);text-align:center">
-          <button onclick="toggleTopBarangRows()" id="btnTopBarangToggle" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:12px;font-family:var(--mono);padding:6px 16px;cursor:pointer;transition:all .15s">↓ Lihat semua (10 baris)</button>
+          <button onclick="toggleTopBarangRows()" id="btnTopBarangToggle" class="btn-show-more">↓ Lihat semua (10 baris)</button>
         </div>
       </div>
     </div>
@@ -289,7 +267,7 @@
           <table>
             <thead><tr><th>#</th><th>Nama Barang</th><th>Brand</th><th>Total Qty</th><th>Total Belanja</th></tr></thead>
             <tbody id="tabelTopSpend">
-              <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Memuat...</td></tr>
+              <tr><td colspan="5" class="td-memuat">Memuat...</td></tr>
             </tbody>
           </table>
         </div>
@@ -306,7 +284,7 @@
           <table>
             <thead><tr><th>Rank</th><th>Vendor</th><th>Transaksi</th><th>Total Belanja</th></tr></thead>
             <tbody id="tabelVendorKasta">
-              <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Memuat...</td></tr>
+              <tr><td colspan="4" class="td-memuat">Memuat...</td></tr>
             </tbody>
           </table>
         </div>
@@ -394,7 +372,7 @@
       <button class="brand-filter-btn" id="brandFilterBtn" onclick="toggleBrandDropdown(event)">
         <span style="flex:1" id="brandFilterLabel">Semua Brand</span>
         <span class="brand-filter-count" id="brandFilterCount" style="display:none">0</span>
-        <span style="font-size:10px;color:var(--muted)">▾</span>
+        <span class="caret-sm">▾</span>
       </button>
       <div class="brand-filter-dropdown" id="brandFilterDropdown">
         <div class="brand-filter-option brand-filter-all" onclick="selectAllBrands()">
@@ -407,7 +385,7 @@
             <div class="brand-dot-sm" style="background:${b._color}"></div>
             <span style="overflow:hidden;text-overflow:ellipsis">${b.nama}</span>
           </div>`).join('')}
-        ${!brands.length ? '<div style="font-size:12px;color:var(--muted);padding:4px 10px">Belum ada brand</div>' : ''}
+        ${!brands.length ? '<div class="no-brand-msg">Belum ada brand</div>' : ''}
       </div>`;
   }
 
@@ -666,16 +644,16 @@
         const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID') : '—';
         const status = r.status||'selesai', badgeClass = ({selesai:'badge-green',pending:'badge-orange',batal:'badge-gray'}[status])||'badge-blue';
         return `<tr>
-          <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
+          <td><span class="td-mono-date">${tgl}</span></td>
           <td>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'—'}</td>
           <td style="display:${isSingle?'none':''}"><span>${brandBadge(r.brand_id)}</span></td>
-          <td style="font-family:var(--mono);white-space:nowrap">${formatRp(r.total||0)}</td>
+          <td class="td-mono" style="white-space:nowrap">${formatRp(r.total||0)}</td>
           <td><span class="badge ${badgeClass}">${status}</span></td>
         </tr>`;
       }).join('');
       const brandTh = tbody.closest('table')?.querySelector('thead tr th:nth-child(3)');
       if (brandTh) brandTh.style.display = isSingle ? 'none' : '';
-    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--danger);font-size:12px;padding:16px">Gagal memuat data.</td></tr>`; }
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" class="td-error">Gagal memuat data.</td></tr>`; }
   }
 
   /* ── TOP BARANG ── */
@@ -695,9 +673,9 @@
       return `<tr>
         <td>${d.nama}</td>
         <td style="display:${isSingle?'none':''}"><span>${brandBadge(d.brand)}</span></td>
-        <td><span style="font-family:var(--mono)">${d.freq}×</span></td>
-        <td><span style="font-family:var(--mono)">${qty}${satuan?' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>':''}</span></td>
-        <td><span style="font-family:var(--mono)">${formatRp(d.totalBelanja)}</span></td>
+        <td><span class="td-mono">${d.freq}×</span></td>
+        <td><span class="td-mono">${qty}${satuan?' <span class="td-mono-sm">'+satuan+'</span>':''}</span></td>
+        <td><span class="td-mono">${formatRp(d.totalBelanja)}</span></td>
       </tr>`;
     }).join('');
     if (all.length > 5) { showMoreDiv.style.display=''; btnToggle.textContent = expanded ? '↑ Tampilkan lebih sedikit' : `↓ Lihat semua (${all.length} baris)`; }
@@ -727,7 +705,7 @@
       if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Belum ada pembelian di periode ini</div></div></td></tr>`; document.getElementById('topBarangShowMore').style.display='none'; return; }
       DashState.topBarangAllRows = sorted; DashState.topBarangExpanded = false;
       renderTopBarangRows(selectedBrands);
-    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Belum ada data.</td></tr>`; }
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="5" class="td-memuat">Belum ada data.</td></tr>`; }
   }
 
   /* ── TOP SPEND ── */
@@ -757,11 +735,11 @@
       tbody.innerHTML = sorted.map(([id,d],idx) => {
         const satuan=window.barangSatuanMap?.[id]||'', qty=Number.isInteger(d.qty)?d.qty:parseFloat(d.qty.toFixed(3));
         return `<tr>
-          <td><span style="font-family:var(--mono);color:var(--muted)">${idx+1}</span></td>
+          <td><span class="td-mono-muted">${idx+1}</span></td>
           <td>${d.nama}</td>
           <td style="display:${isSingle?'none':''}"><span>${brandBadge(d.brand)}</span></td>
-          <td><span style="font-family:var(--mono)">${qty}${satuan?' <span style="color:var(--muted);font-size:11px">'+satuan+'</span>':''}</span></td>
-          <td><span style="font-family:var(--mono);color:var(--accent2)">${formatRp(d.totalBelanja)}</span></td>
+          <td><span class="td-mono">${qty}${satuan?' <span class="td-mono-sm">'+satuan+'</span>':''}</span></td>
+          <td><span class="td-mono-green">${formatRp(d.totalBelanja)}</span></td>
         </tr>`;
       }).join('');
     } catch(e) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`; }
@@ -800,10 +778,10 @@
       tbody.innerHTML = [...perRank[0],...perRank[1],...perRank[2]].map(([vid,d,rIdx]) => {
         const rank=ranks[rIdx];
         return `<tr>
-          <td><span class="rank-label" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${rank.bg};border:1px solid ${rank.border};color:${rank.color};font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap"><span>${rank.icon}</span>${rank.label}</span></td>
+          <td><span class="rank-label" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${rank.bg};border:1px solid ${rank.border};color:${rank.color};letter-spacing:.3px;white-space:nowrap"><span>${rank.icon}</span>${rank.label}</span></td>
           <td>${window.vendorMap?.[vid]||vid}</td>
-          <td><span style="font-family:var(--mono)">${d.transaksi}×</span></td>
-          <td><span style="font-family:var(--mono)">${formatRp(d.total)}</span></td>
+          <td><span class="td-mono">${d.transaksi}×</span></td>
+          <td><span class="td-mono">${formatRp(d.total)}</span></td>
         </tr>`;
       }).join('');
     } catch(e) { tbody.innerHTML=`<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:16px">Gagal memuat data.</td></tr>`; }

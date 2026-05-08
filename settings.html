@@ -25,8 +25,6 @@
     /* CARD (settings variant — adds overflow:hidden & margin-bottom) */
     .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
     .card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .card-title { font-size:15px; font-weight:600; }
-    .card-desc { font-size:12px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
     .card-body { padding:20px; }
 
     /* BRANDS */
@@ -44,17 +42,8 @@
     .color-dot-btn:hover { transform:scale(1.15); }
     .color-dot-btn.selected { border-color:var(--text); transform:scale(1.1); }
 
-    /* TOGGLE */
-    .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(37,40,48,0.5); }
-    .toggle-row:last-child { border-bottom:none; }
-    .toggle-label { font-size:14px; font-weight:500; }
-    .toggle-sub { font-size:12px; color:var(--muted); margin-top:3px; }
-    .toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
-    .toggle input { opacity:0; width:0; height:0; }
-    .toggle-track { position:absolute; inset:0; background:var(--border); border-radius:11px; transition:background .2s; cursor:pointer; }
-    .toggle input:checked + .toggle-track { background:var(--accent2); }
-    .toggle-thumb { position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; transition:transform .2s; pointer-events:none; }
-    .toggle input:checked ~ .toggle-thumb { transform:translateX(18px); }
+    /* TOGGLE — definisi di style.css (Vendor section), settings hanya tambah flex-shrink */
+    .toggle { flex-shrink:0; }
 
     .success-box { background:rgba(56,217,169,0.1); border:1px solid rgba(56,217,169,0.3); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--accent2); margin-bottom:14px; display:none; }
     .success-box.show { display:block; }
@@ -68,7 +57,6 @@
     .danger-zone .card-header { background:rgba(248,113,113,0.06); border-bottom-color:rgba(248,113,113,0.2); }
     .danger-zone .card-title { color:var(--danger); }
 
-    .section-label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; padding:6px 0 10px; border-bottom:1px solid var(--border); margin-bottom:14px; }
     .field { margin-bottom:14px; }
     .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
     .btn-success { background:rgba(56,217,169,0.15); color:var(--accent2); border:1px solid rgba(56,217,169,0.3); }
@@ -84,6 +72,64 @@
     .hapus-info { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
     .hapus-reset-warning { font-size:13px; color:var(--muted); padding:12px; background:rgba(248,113,113,0.06); border-radius:8px; border:1px solid rgba(248,113,113,0.2); }
     .hapus-reset-btns { display:flex; gap:10px; flex-wrap:wrap; }
+
+    /* PROFILE */
+    .profile-name  { font-size:18px; font-weight:700; }
+    .profile-email { font-size:13px; color:var(--muted); margin-top:3px; }
+
+    /* IMPORT CARDS */
+    .import-card { display:flex; align-items:center; gap:12px; padding:16px; background:var(--bg); border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); transition:border-color .2s; }
+    .import-card:hover { border-color:var(--accent); }
+    .import-card-icon  { font-size:28px; flex-shrink:0; }
+    .import-card-title { font-weight:600; font-size:14px; }
+    .import-card-sub   { font-size:12px; color:var(--muted); margin-top:3px; }
+
+    /* THEME OPTIONS */
+    .theme-opt { padding:16px; border-radius:10px; cursor:pointer; text-align:center; transition:all .2s; }
+    .theme-opt-icon  { font-size:24px; margin-bottom:8px; }
+    .theme-opt-label { font-size:13px; font-weight:600; }
+    .theme-opt-sub   { font-size:11px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
+
+    /* PPN */
+    .ppn-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:18px; font-weight:600; padding:10px 14px; outline:none; transition:border-color .2s; }
+    .ppn-input:focus { border-color:var(--accent); }
+    .ppn-badge { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--accent2); }
+    .ppn-hint  { margin-top:12px; font-size:12px; color:var(--muted); font-family:var(--mono); padding:8px 12px; background:var(--bg); border-radius:6px; border:1px solid var(--border); }
+
+    /* SISTEM INFO */
+    .sysinfo-list { display:flex; flex-direction:column; gap:10px; font-size:13px; }
+    .sysinfo-row  { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(37,40,48,.5); }
+    .sysinfo-row:last-child { border-bottom:none; }
+    .sysinfo-key  { color:var(--muted); }
+    .sysinfo-val  { font-family:var(--mono); }
+    .sysinfo-val.feature { font-size:11px; color:var(--accent2); }
+
+    /* DANGER ZONE ACTION ROW */
+    .dz-action-title { font-size:14px; font-weight:500; }
+    .dz-action-sub   { font-size:12px; color:var(--muted); margin-top:3px; }
+
+    /* ASSIGN OPTIONS (brand modal) */
+    .assign-opt-title { font-size:13px; font-weight:500; }
+    .assign-opt-sub   { font-size:11px; color:var(--muted); margin-top:1px; }
+    .assign-section-label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:14px; }
+
+    /* LOG TABLE (JS-generated) */
+    .log-date   { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .log-user   { font-weight:500; font-size:13px; }
+    .log-email  { font-size:11px; color:var(--muted); font-family:var(--mono); }
+    .log-detail { font-size:12px; color:var(--muted); font-family:var(--mono); }
+
+    /* KODE ORDER INFO — notice box */
+    .kode-notice { background:rgba(79,142,247,0.07); border:1px solid rgba(79,142,247,0.2); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--accent); font-family:var(--mono); margin-bottom:16px; }
+
+    /* INVITE LINK BOX */
+    .invite-link-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; font-family:var(--mono); font-size:13px; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+
+    /* ROLE MODAL USER INFO */
+    .role-user-info { font-size:14px; color:var(--muted); margin-bottom:16px; }
+
+    /* KODE MODAL HINT */
+    .kode-hint { font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono); }
   </style>
 </head>
 <body>
@@ -194,7 +240,7 @@
               </div>
             </div>
             <div class="card-body">
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div class="invite-link-box">
                 <span id="inviteLink" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
                 <button class="btn btn-ghost btn-sm" onclick="copyInviteLink()" style="flex-shrink:0">Salin</button>
               </div>
@@ -214,7 +260,7 @@
               <button class="btn btn-primary btn-sm" onclick="openKodeModal()">＋ Tambah Kode</button>
             </div>
             <div class="card-body">
-              <div style="background:rgba(79,142,247,0.07);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);font-family:var(--mono);margin-bottom:16px">
+              <div class="kode-notice">
                 ℹ Setiap brand bisa punya lebih dari satu kode. Bagikan kode ke tim brand untuk login ke Order Internal.
               </div>
               <div id="kodeOrderList">
@@ -230,8 +276,8 @@
             <div class="profile-header">
               <div class="profile-avatar-big" id="profileAvatarBig">?</div>
               <div>
-                <div style="font-size:18px;font-weight:700" id="profileName">—</div>
-                <div style="font-size:13px;color:var(--muted);margin-top:3px" id="profileEmail">—</div>
+                <div class="profile-name" id="profileName">—</div>
+                <div class="profile-email" id="profileEmail">—</div>
                 <span class="badge badge-blue" style="margin-top:6px" id="profileRole">—</span>
               </div>
             </div>
@@ -281,21 +327,21 @@
             </div>
             <div class="card-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <a href="import.html?type=barang" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <span style="font-size:28px">📋</span>
-                  <div><div style="font-weight:600;font-size:14px">Import Barang</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Upload daftar SKU</div></div>
+                <a href="import.html?type=barang" class="import-card">
+                  <span class="import-card-icon">📋</span>
+                  <div><div class="import-card-title">Import Barang</div><div class="import-card-sub">Upload daftar SKU</div></div>
                 </a>
-                <a href="import.html?type=vendor" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <span style="font-size:28px">🏢</span>
-                  <div><div style="font-weight:600;font-size:14px">Import Vendor</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Upload daftar supplier</div></div>
+                <a href="import.html?type=vendor" class="import-card">
+                  <span class="import-card-icon">🏢</span>
+                  <div><div class="import-card-title">Import Vendor</div><div class="import-card-sub">Upload daftar supplier</div></div>
                 </a>
-                <a href="import.html?type=pembelian" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <span style="font-size:28px">🛒</span>
-                  <div><div style="font-weight:600;font-size:14px">Import Pembelian</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Upload riwayat transaksi</div></div>
+                <a href="import.html?type=pembelian" class="import-card">
+                  <span class="import-card-icon">🛒</span>
+                  <div><div class="import-card-title">Import Pembelian</div><div class="import-card-sub">Upload riwayat transaksi</div></div>
                 </a>
-                <a href="import.html?type=harga" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <span style="font-size:28px">📈</span>
-                  <div><div style="font-weight:600;font-size:14px">Import Harga</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Upload riwayat harga</div></div>
+                <a href="import.html?type=harga" class="import-card">
+                  <span class="import-card-icon">📈</span>
+                  <div><div class="import-card-title">Import Harga</div><div class="import-card-sub">Upload riwayat harga</div></div>
                 </a>
               </div>
             </div>
@@ -361,15 +407,15 @@
             <div class="card-header"><div class="card-title">Tema Tampilan</div></div>
             <div class="card-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div id="themeOptDark" onclick="setTheme('dark')" style="padding:16px;border:2px solid var(--accent);border-radius:10px;cursor:pointer;background:rgba(79,142,247,0.06);text-align:center;transition:all .2s">
-                  <div style="font-size:24px;margin-bottom:8px">🌙</div>
-                  <div style="font-size:13px;font-weight:600">Dark</div>
-                  <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)">Mode gelap (default)</div>
+                <div id="themeOptDark" onclick="setTheme('dark')" class="theme-opt" style="border:2px solid var(--accent);background:rgba(79,142,247,0.06)">
+                  <div class="theme-opt-icon">🌙</div>
+                  <div class="theme-opt-label">Dark</div>
+                  <div class="theme-opt-sub">Mode gelap (default)</div>
                 </div>
-                <div id="themeOptLight" onclick="setTheme('light')" style="padding:16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .2s">
-                  <div style="font-size:24px;margin-bottom:8px">☀️</div>
-                  <div style="font-size:13px;font-weight:600">Light</div>
-                  <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)">Mode terang</div>
+                <div id="themeOptLight" onclick="setTheme('light')" class="theme-opt" style="border:1px solid var(--border)">
+                  <div class="theme-opt-icon">☀️</div>
+                  <div class="theme-opt-label">Light</div>
+                  <div class="theme-opt-sub">Mode terang</div>
                 </div>
               </div>
             </div>
@@ -382,19 +428,18 @@
                 <div class="card-title">Tarif PPN</div>
                 <div class="card-desc">Berlaku untuk semua kalkulasi harga inc/exc PPN di seluruh aplikasi</div>
               </div>
-              <span id="ppnCurrentBadge" style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent2)">—%</span>
+              <span id="ppnCurrentBadge" class="ppn-badge">—%</span>
             </div>
             <div class="card-body">
               <div style="display:flex;align-items:center;gap:12px">
                 <div style="flex:1">
-                  <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Persentase PPN (%)</label>
-                  <input type="number" id="ppnInput" min="0" max="99" step="0.1" value="11"
-                    style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:18px;font-weight:600;padding:10px 14px;outline:none;transition:border-color .2s"
+                  <label class="ppn-field-label">Persentase PPN (%)</label>
+                  <input type="number" id="ppnInput" min="0" max="99" step="0.1" value="11" class="ppn-input"
                     onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
                 </div>
                 <button class="btn btn-primary" onclick="savePPN()" style="margin-top:22px;white-space:nowrap">Simpan PPN</button>
               </div>
-              <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+              <div class="ppn-hint">
                 ℹ Perubahan PPN disimpan di database dan berlaku untuk semua pengguna secara real-time. Tidak perlu edit kode.
               </div>
               <div id="ppnHistory" style="margin-top:14px"></div>
@@ -405,12 +450,12 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Informasi Sistem</div></div>
             <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(37,40,48,.5)"><span style="color:var(--muted)">Versi Aplikasi</span><span style="font-family:var(--mono)">1.4.0</span></div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(37,40,48,.5)"><span style="color:var(--muted)">Supabase JS</span><span style="font-family:var(--mono)">v2</span></div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(37,40,48,.5)"><span style="color:var(--muted)">Database</span><span style="font-family:var(--mono)">Supabase (PostgreSQL)</span></div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(37,40,48,.5)"><span style="color:var(--muted)">Hosting</span><span style="font-family:var(--mono)">Netlify</span></div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--muted)">Fitur</span><span style="font-family:var(--mono);font-size:11px;color:var(--accent2)">Multi-brand · Multi-select · Stock Opname · Analisis Harga · Purchase Plan</span></div>
+              <div class="sysinfo-list">
+                <div class="sysinfo-row"><span class="sysinfo-key">Versi Aplikasi</span><span class="sysinfo-val">1.4.0</span></div>
+                <div class="sysinfo-row"><span class="sysinfo-key">Supabase JS</span><span class="sysinfo-val">v2</span></div>
+                <div class="sysinfo-row"><span class="sysinfo-key">Database</span><span class="sysinfo-val">Supabase (PostgreSQL)</span></div>
+                <div class="sysinfo-row"><span class="sysinfo-key">Hosting</span><span class="sysinfo-val">Netlify</span></div>
+                <div class="sysinfo-row"><span class="sysinfo-key">Fitur</span><span class="sysinfo-val feature">Multi-brand · Multi-select · Stock Opname · Analisis Harga · Purchase Plan</span></div>
               </div>
             </div>
           </div>
@@ -420,8 +465,8 @@
             <div class="card-body">
               <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
                 <div>
-                  <div style="font-size:14px;font-weight:500">Hapus Cache Lokal</div>
-                  <div style="font-size:12px;color:var(--muted);margin-top:3px">Reset pilihan brand dan preferensi yang tersimpan di browser</div>
+                  <div class="dz-action-title">Hapus Cache Lokal</div>
+                  <div class="dz-action-sub">Reset pilihan brand dan preferensi yang tersimpan di browser</div>
                 </div>
                 <button class="btn btn-danger btn-sm" onclick="clearLocalCache()">Hapus Cache</button>
               </div>
@@ -438,7 +483,7 @@
                 <div class="card-desc">Riwayat perubahan data oleh semua pengguna</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
-                <select id="logFilterTipe" class="filter-select" onchange="loadLog()" style="font-size:12px;padding:6px 10px">
+                <select id="logFilterTipe" class="filter-select log-filter-select" onchange="loadLog()">
                   <option value="">Semua Tipe</option>
                   <option value="barang">Barang</option>
                   <option value="vendor">Vendor</option>
@@ -603,7 +648,7 @@
       </div>
       <!-- Assign section — tambah brand: terapkan ke data; edit brand: kelola relasi -->
       <div id="bulkAssignSection" style="display:none;border-top:1px solid var(--border);margin-top:10px;padding-top:14px">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px" id="assignSectionLabel">Terapkan ke Data yang Ada</div>
+        <div class="assign-section-label" id="assignSectionLabel">Terapkan ke Data yang Ada</div>
 
         <!-- ── BARANG BLOCK ── -->
         <div style="margin-bottom:14px">
@@ -619,19 +664,19 @@
             <div id="assignBarangRadios">
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
                 <input type="radio" name="modeBarang" value="all" checked style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('barang')"/>
-                <div><div style="font-size:13px;font-weight:500">Assign ke semua barang</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Semua barang yang belum punya brand ini</div></div>
+                <div><div class="assign-opt-title">Assign ke semua barang</div><div class="assign-opt-sub">Semua barang yang belum punya brand ini</div></div>
               </label>
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
                 <input type="radio" name="modeBarang" value="brand" style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('barang')"/>
                 <div style="flex:1">
-                  <div style="font-size:13px;font-weight:500">Salin dari brand lain</div>
-                  <div style="font-size:11px;color:var(--muted);margin-top:1px">Assign barang yang sudah ada di brand tertentu</div>
+                  <div class="assign-opt-title">Salin dari brand lain</div>
+                  <div class="assign-opt-sub">Assign barang yang sudah ada di brand tertentu</div>
                   <select id="srcBrandBarang" style="display:none;margin-top:8px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:7px 10px;outline:none"></select>
                 </div>
               </label>
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
                 <input type="radio" name="modeBarang" value="pilih" style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('barang')"/>
-                <div><div style="font-size:13px;font-weight:500">Pilih satu per satu</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Centang barang yang ingin di-assign</div></div>
+                <div><div class="assign-opt-title">Pilih satu per satu</div><div class="assign-opt-sub">Centang barang yang ingin di-assign</div></div>
               </label>
             </div>
             <!-- Checklist barang -->
@@ -652,19 +697,19 @@
             <div id="assignVendorRadios">
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
                 <input type="radio" name="modeVendor" value="all" checked style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('vendor')"/>
-                <div><div style="font-size:13px;font-weight:500">Assign ke semua vendor</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Semua vendor yang belum punya brand ini</div></div>
+                <div><div class="assign-opt-title">Assign ke semua vendor</div><div class="assign-opt-sub">Semua vendor yang belum punya brand ini</div></div>
               </label>
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
                 <input type="radio" name="modeVendor" value="brand" style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('vendor')"/>
                 <div style="flex:1">
-                  <div style="font-size:13px;font-weight:500">Salin dari brand lain</div>
-                  <div style="font-size:11px;color:var(--muted);margin-top:1px">Assign vendor yang sudah ada di brand tertentu</div>
+                  <div class="assign-opt-title">Salin dari brand lain</div>
+                  <div class="assign-opt-sub">Assign vendor yang sudah ada di brand tertentu</div>
                   <select id="srcBrandVendor" style="display:none;margin-top:8px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:7px 10px;outline:none"></select>
                 </div>
               </label>
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
                 <input type="radio" name="modeVendor" value="pilih" style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('vendor')"/>
-                <div><div style="font-size:13px;font-weight:500">Pilih satu per satu</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Centang vendor yang ingin di-assign</div></div>
+                <div><div class="assign-opt-title">Pilih satu per satu</div><div class="assign-opt-sub">Centang vendor yang ingin di-assign</div></div>
               </label>
             </div>
             <div id="vendorChecklist" style="display:none;max-height:180px;overflow-y:auto;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;padding-right:4px"></div>
@@ -688,7 +733,7 @@
       <button class="modal-close" onclick="closeRoleModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:14px;color:var(--muted);margin-bottom:16px">Pengguna: <strong style="color:var(--text)" id="roleUserName">—</strong></div>
+      <div class="role-user-info">Pengguna: <strong style="color:var(--text)" id="roleUserName">—</strong></div>
       <div class="field">
         <label>Role</label>
         <select id="roleSelect">
@@ -737,7 +782,7 @@
           <option value="admin">Admin — akses penuh</option>
         </select>
       </div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+      <div class="kode-brand-hint">
         ℹ Akun akan dibuat dan langsung aktif. Bagikan email + password ke pengguna.
       </div>
     </div>
@@ -767,10 +812,10 @@
           <input type="text" id="kodeModalKode" placeholder="Contoh: BAKEOUT-X7K" style="text-transform:uppercase;font-family:var(--mono);letter-spacing:1px;flex:1" oninput="this.value=this.value.toUpperCase()"/>
           <button class="btn btn-ghost btn-sm" onclick="generateKodeAuto()" title="Generate otomatis" style="flex-shrink:0">🎲 Auto</button>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)">Kode harus unik. Klik 🎲 untuk generate otomatis.</div>
+        <div class="kode-hint">Kode harus unik. Klik 🎲 untuk generate otomatis.</div>
       </div>
       <div class="field">
-        <label>Nama / Keterangan <span style="color:var(--muted);font-size:10px;font-family:var(--sans);text-transform:none;letter-spacing:0">opsional</span></label>
+        <label>Nama / Keterangan <span class="optional-tag">opsional</span></label>
         <input type="text" id="kodeModalNama" placeholder="Contoh: Tim Produksi Bakeout"/>
       </div>
       <input type="hidden" id="kodeModalEditId"/>
@@ -824,9 +869,9 @@
     if (role !== 'admin') {
       document.querySelector('.settings-grid').innerHTML = `
         <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:16px">
-          <div style="font-size:48px">🔒</div>
-          <div style="font-size:20px;font-weight:700;color:var(--text)">Akses Ditolak</div>
-          <div style="font-size:14px;color:var(--muted);max-width:360px;line-height:1.6">
+          <div class="access-denied-icon">🔒</div>
+          <div class="access-denied-title">Akses Ditolak</div>
+          <div class="access-denied-desc">
             Halaman Pengaturan hanya dapat diakses oleh <strong style="color:var(--accent)">Admin</strong>.<br/>
             Hubungi admin jika kamu memerlukan akses ini.
           </div>
@@ -928,10 +973,10 @@
         const isSelf = p.id === selfId;
         const escapedName = (name||'').replace(/'/g,"\\'");
         return `<tr>
-          <td style="font-weight:500">${name}${isSelf?` <span style="font-size:10px;font-family:var(--mono);color:var(--muted)">(kamu)</span>`:''}</td>
-          <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${email}</td>
+          <td class="user-name-cell">${name}${isSelf?` <span class="user-self-badge">(kamu)</span>`:''}</td>
+          <td class="user-meta-cell">${email}</td>
           <td>${roleBadge}</td>
-          <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${tgl}</td>
+          <td class="user-meta-cell">${tgl}</td>
           <td>
             ${!isSelf ? `<button class="btn btn-ghost btn-sm" onclick="openRoleModal('${p.id}','${escapedName}','${p.role}')">Ubah Role</button>` : '—'}
           </td>
@@ -1153,7 +1198,7 @@
   }
 
   async function loadChecklist(tipe, listEl, checkedIds=[]) {
-    listEl.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:4px 0">Memuat...</div>';
+    listEl.innerHTML = '<div class="state-loading">Memuat...</div>';
     try {
       let data, error;
       if (tipe === 'barang') {
@@ -1167,21 +1212,21 @@
       }
       if (error) throw error;
       if (!data || data.length === 0) {
-        listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">Tidak ada data.</div>';
+        listEl.innerHTML = '<div class="state-empty">Tidak ada data.</div>';
         return;
       }
       const checkedSet = new Set(checkedIds);
       const cls = tipe === 'barang' ? 'chk-barang' : 'chk-vendor';
       listEl.innerHTML = data.map(item => {
-        const label = item.nama + (item.kode ? ` <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${item.kode}</span>` : '');
+        const label = item.nama + (item.kode ? ` <span class="checklist-kode">${item.kode}</span>` : '');
         const chk = checkedSet.has(item.id) ? 'checked' : '';
-        return `<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;font-size:13px">
+        return `<label class="checklist-item">
           <input type="checkbox" class="${cls}" value="${item.id}" ${chk} style="accent-color:var(--accent);flex-shrink:0"/>
           <span>${label}</span>
         </label>`;
       }).join('');
     } catch(e) {
-      listEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Gagal memuat: ${e.message}</div>`;
+      listEl.innerHTML = `<div class="state-error">Gagal memuat: ${e.message}</div>`;
     }
   }
 
@@ -1498,7 +1543,7 @@
       if (data?.updated_at) {
         const tgl = new Date(data.updated_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
         document.getElementById('ppnHistory').innerHTML =
-          `<div style="font-size:11px;color:var(--muted);font-family:var(--mono)">Terakhir diubah: ${tgl}</div>`;
+          `<div class="kode-item-date">Terakhir diubah: ${tgl}</div>`;
       }
     } catch(e) {
       window._ppnRate = 11;
@@ -1516,7 +1561,7 @@
       document.getElementById('ppnCurrentBadge').textContent = rate + '%';
       const tgl = new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
       document.getElementById('ppnHistory').innerHTML =
-        `<div style="font-size:11px;color:var(--muted);font-family:var(--mono)">Terakhir diubah: ${tgl}</div>`;
+        `<div class="kode-item-date">Terakhir diubah: ${tgl}</div>`;
       showToast(`✓ Tarif PPN disimpan: ${rate}%`, 'success');
     } catch(e) { showToast('Gagal simpan PPN: ' + e.message, 'error'); }
   }
@@ -1594,15 +1639,15 @@
         const tgl = new Date(r.created_at).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
         const aksiStyle = AKSI_BADGE[r.aksi] || '';
         return `<tr>
-          <td style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">${tgl}</td>
+          <td class="log-date">${tgl}</td>
           <td>
-            <div style="font-weight:500;font-size:13px">${r.user_nama||'—'}</div>
-            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${r.user_email||''}</div>
+            <div class="log-user">${r.user_nama||'—'}</div>
+            <div class="log-email">${r.user_email||''}</div>
           </td>
-          <td><span class="badge" style="${aksiStyle};font-size:11px">${r.aksi}</span></td>
-          <td><span class="badge badge-gray" style="font-size:11px">${TIPE_LABEL[r.tipe]||r.tipe}</span></td>
+          <td><span class="badge" style="${aksiStyle}">${r.aksi}</span></td>
+          <td><span class="badge badge-gray">${TIPE_LABEL[r.tipe]||r.tipe}</span></td>
           <td style="font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.target_nama||''}">${r.target_nama||'—'}</td>
-          <td style="font-size:12px;color:var(--muted);font-family:var(--mono)">${r.detail||'—'}</td>
+          <td class="log-detail">${r.detail||'—'}</td>
         </tr>`;
       }).join('');
 
@@ -1769,11 +1814,10 @@
 <!-- ═══ MODAL SATUAN ═══ -->
 <div id="satuanOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:360px;max-width:95vw">
-    <div style="font-size:16px;font-weight:700;margin-bottom:20px" id="satuanModalTitle">Tambah Satuan</div>
-    <label style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Nama Satuan</label>
+    <div class="simple-modal-title" id="satuanModalTitle">Tambah Satuan</div>
+    <label class="simple-modal-label">Nama Satuan</label>
     <input id="satuanInput" type="text" placeholder="cth: kg, liter, karton..." maxlength="30"
-      style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:10px 14px;outline:none;box-sizing:border-box"
-      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      class="simple-modal-input"/>
     <input type="hidden" id="satuanEditId"/>
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn btn-ghost" onclick="closeSatuanModal()" style="flex:1">Batal</button>
@@ -1785,11 +1829,10 @@
 <!-- ═══ MODAL KATEGORI ═══ -->
 <div id="kategoriOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:360px;max-width:95vw">
-    <div style="font-size:16px;font-weight:700;margin-bottom:20px" id="kategoriModalTitle">Tambah Kategori</div>
-    <label style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Nama Kategori</label>
+    <div class="simple-modal-title" id="kategoriModalTitle">Tambah Kategori</div>
+    <label class="simple-modal-label">Nama Kategori</label>
     <input id="kategoriInput" type="text" placeholder="cth: Daging, Sayuran..." maxlength="50"
-      style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:10px 14px;outline:none;box-sizing:border-box"
-      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      class="simple-modal-input"/>
     <input type="hidden" id="kategoriEditId"/>
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn btn-ghost" onclick="closeKategoriModal()" style="flex:1">Batal</button>
@@ -1819,7 +1862,7 @@ function renderSatuanList() {
   }
   list.innerHTML = window.allSatuan.map(s => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)">
-      <span style="font-size:14px;font-weight:500">${s.nama}</span>
+      <span class="simple-list-item-name">${s.nama}</span>
       <div style="display:flex;gap:8px">
         <button onclick="openSatuanModal('${s.id}')" class="btn btn-ghost btn-sm">Edit</button>
         <button onclick="deleteSatuan('${s.id}','${s.nama}')" class="btn btn-danger btn-sm">Hapus</button>
@@ -1891,7 +1934,7 @@ function renderKategoriList() {
   }
   list.innerHTML = window.allKategori.map(k => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)">
-      <span style="font-size:14px;font-weight:500">${k.nama}</span>
+      <span class="simple-list-item-name">${k.nama}</span>
       <div style="display:flex;gap:8px">
         <button onclick="openKategoriModal('${k.id}')" class="btn btn-ghost btn-sm">Edit</button>
         <button onclick="deleteKategori('${k.id}','${k.nama}')" class="btn btn-danger btn-sm">Hapus</button>
@@ -1981,12 +2024,12 @@ async function loadKodeOrder() {
           <div style="display:flex;align-items:center;gap:12px;min-width:0">
             <div style="width:10px;height:10px;border-radius:50%;background:${brandColor};flex-shrink:0"></div>
             <div style="min-width:0">
-              <div style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--accent);letter-spacing:1px">${p.kode}</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">${brandNama}${p.nama ? ' · ' + p.nama : ''}</div>
+              <div class="kode-item-code">${p.kode}</div>
+              <div class="kode-item-sub">${brandNama}${p.nama ? ' · ' + p.nama : ''}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${tgl}</span>
+            <span class="kode-item-date">${tgl}</span>
             <button class="btn btn-ghost btn-sm" onclick="copyKode('${p.kode}')" title="Salin kode">📋</button>
             <button class="btn btn-ghost btn-sm" onclick="openKodeModal('${p.id}')">Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteKodeOrder('${p.id}','${p.kode}')">🗑</button>

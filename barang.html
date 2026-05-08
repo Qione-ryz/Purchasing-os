@@ -743,21 +743,21 @@
 
         const hargaRaw = window.hargaTerakhirMap?.[b.id];
         const hargaDisplay = hargaRaw
-          ? `<span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">Rp ${Math.round(hargaRaw).toLocaleString('id-ID')}</span>`
-          : `<span style="color:var(--muted);font-size:11px;font-style:italic" title="Belum ada riwayat harga. Klik Detail lalu + Catat Harga untuk menambahkan.">Belum ada ↗</span>`;
+          ? `<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent2)">Rp ${Math.round(hargaRaw).toLocaleString('id-ID')}</span>`
+          : `<span style="color:var(--muted);font-size:12px;font-style:italic" title="Belum ada riwayat harga. Klik Detail lalu + Catat Harga untuk menambahkan.">Belum ada ↗</span>`;
 
         const menuId = 'menu-' + b.id;
         return `<tr>
           <td>
             <div style="font-weight:500">${b.nama||'—'}</div>
-            ${b.deskripsi?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${b.deskripsi.slice(0,55)}${b.deskripsi.length>55?'…':''}</div>`:''}
+            ${b.deskripsi?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${b.deskripsi.slice(0,55)}${b.deskripsi.length>55?'…':''}</div>`:''}
           </td>
-          <td class="sku-col"${skuVisible?' style="display:table-cell"':''}>${b.sku?`<span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${b.sku}</span>`:`<span style="color:var(--muted);font-size:12px;font-style:italic">—</span>`}</td>
+          <td class="sku-col"${skuVisible?' style="display:table-cell"':''}>${b.sku?`<span style="font-family:var(--mono);font-size:13px;color:var(--accent2)">${b.sku}</span>`:`<span style="color:var(--muted);font-size:13px;font-style:italic">—</span>`}</td>
           <td>${window._userRole==='admin'
             ? `<span class="badge badge-gray" data-bid="${b.id}" data-kat="${b.kategori||''}" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'" onclick="openKategoriPicker(this.dataset.bid,this.dataset.kat,event)" title="Klik untuk ganti kategori">${b.kategori||'—'}</span>`
             : `<span class="badge badge-gray" style="cursor:default">${b.kategori||'—'}</span>`
           }</td>
-          <td><span style="font-family:var(--mono);font-size:12px">${b.satuan||'—'}</span></td>
+          <td><span style="font-family:var(--mono);font-size:13px">${b.satuan||'—'}</span></td>
           <td><div class="brand-tags">${brandTags}</div></td>
           <td>${hargaDisplay}</td>
           <td>
@@ -1124,33 +1124,33 @@
           const {tx, item} = entry;
           const hargaInc = Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : toIncPPN(item.harga_satuan)));
           const hargaExc = Math.round(item.harga_exc_ppn || (item.ppn_included ? toExcPPN(item.harga_satuan) : item.harga_satuan));
-          const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
+          const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
           let vendorLabel = '—';
           if (tx.vendor_id) vendorLabel = vendorMap[tx.vendor_id]||ghostCache[tx.vendor_id]||`<span style="color:var(--muted);font-style:italic">—</span>`;
           const brandName = getBrandName(tx.brand_id)||tx.brand_id||'—';
-          const faktur = tx.nomor_faktur?`<span style="font-size:10px;color:var(--muted)">${tx.nomor_faktur}</span>`:'';
+          const faktur = tx.nomor_faktur?`<span style="font-size:11px;color:var(--muted)">${tx.nomor_faktur}</span>`:'';
           return `<tr>
-            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${tgl}</td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${tgl}</td>
             <td>${hargaDisplay}</td>
             <td>${vendorLabel}</td>
             <td><span class="badge" style="background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${brandName}</span></td>
-            <td style="font-family:var(--mono);font-size:11px">${item.qty||'—'}</td>
+            <td style="font-family:var(--mono);font-size:12px">${item.qty||'—'}</td>
             <td>${faktur}</td>
           </tr>`;
         } else {
           const {h} = entry;
           const hargaInc = Math.round(h.harga_inc_ppn || (h.ppn_included ? h.harga : toIncPPN(h.harga)));
           const hargaExc = Math.round(h.harga_exc_ppn || (h.ppn_included ? toExcPPN(h.harga) : h.harga));
-          const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
+          const hargaDisplay = `<div style="font-weight:600;color:var(--accent2);font-family:var(--mono)">Rp ${hargaInc.toLocaleString('id-ID')}</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">exc: Rp ${hargaExc.toLocaleString('id-ID')}</div>`;
           let vendorLabel = '—';
           if (h.vendor_id) vendorLabel = vendorMap[h.vendor_id]||ghostCache[h.vendor_id]||`<span style="color:var(--muted);font-style:italic">—</span>`;
-          const catatan = h.catatan?`<span style="font-size:10px;color:var(--muted)">${h.catatan}</span>`:'';
+          const catatan = h.catatan?`<span style="font-size:11px;color:var(--muted)">${h.catatan}</span>`:'';
           return `<tr>
-            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${tgl}</td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${tgl}</td>
             <td>${hargaDisplay}</td>
             <td>${vendorLabel}</td>
-            <td><span class="badge badge-survey" style="font-size:9px">survey</span></td>
-            <td style="font-family:var(--mono);font-size:11px">—</td>
+            <td><span class="badge badge-survey" style="font-size:11px">survey</span></td>
+            <td style="font-family:var(--mono);font-size:12px">—</td>
             <td style="white-space:nowrap">${catatan}
               ${window._userRole==='admin' ? `
               <button onclick="openSurveyModal(null,'${h.id}')" class="ph-btn">Edit</button>

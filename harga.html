@@ -30,14 +30,14 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px">
-        <button id="ppnBtnExc" class="btn btn-sm" style="border-radius:6px;border:none;background:transparent;color:var(--muted);font-size:12px;padding:6px 12px;transition:all .2s" onclick="setPPN('exc')">Exc PPN</button>
-        <button id="ppnBtnInc" class="btn btn-sm" style="border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:12px;padding:6px 12px;font-weight:600" onclick="setPPN('inc')">Inc PPN 11%</button>
+        <button id="ppnBtnExc" class="btn btn-sm ppn-toggle-btn" onclick="setPPN('exc')">Exc PPN</button>
+        <button id="ppnBtnInc" class="btn btn-sm ppn-toggle-btn ppn-toggle-btn--active" onclick="setPPN('inc')">Inc PPN 11%</button>
       </div>
-      <button class="btn btn-ghost" onclick="refreshData()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost topbar-action-btn" onclick="refreshData()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
       </button>
-      <button class="btn btn-ghost" onclick="exportHarga()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+      <button class="btn btn-ghost topbar-action-btn topbar-action-btn--export" onclick="exportHarga()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export Excel
       </button>
@@ -71,15 +71,14 @@
         <input type="hidden" id="hargaDateFrom" value=""/>
         <input type="hidden" id="hargaDateTo"   value=""/>
         <div style="position:relative">
-          <button class="btn btn-ghost" id="btnHargaDate" onclick="toggleHargaDate()"
-            style="width:100%;justify-content:flex-start;font-family:var(--mono);font-size:11px;min-width:160px">
+          <button class="btn btn-ghost filter-date-btn" id="btnHargaDate" onclick="toggleHargaDate()">
             📅 <span id="hargaDateLabel">Semua Waktu</span>
           </button>
         </div>
       </div>
       <div>
         <label>&nbsp;</label>
-        <button class="btn btn-ghost" onclick="resetFilters()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:36px;font-size:13px">
+        <button class="btn btn-ghost filter-reset-btn" onclick="resetFilters()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Reset
         </button>
@@ -129,10 +128,10 @@
           <div class="card-header">
             <div>
               <span class="card-title" id="chartTitle">Top Kenaikan Harga</span>
-              <div id="chartSubtitle" style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px">Pilih barang di kanan untuk lihat tren spesifik</div>
+              <div id="chartSubtitle" class="chart-subtitle">Pilih barang di kanan untuk lihat tren spesifik</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <select class="filter-sel" id="chartGroupBy" onchange="renderChart()" style="font-size:11px;padding:5px 9px;display:none">
+              <select class="filter-sel filter-sel--sm" id="chartGroupBy" onchange="renderChart()" style="display:none">
                 <option value="day">Per Hari</option>
                 <option value="week">Per Minggu</option>
                 <option value="month" selected>Per Bulan</option>
@@ -154,7 +153,7 @@
         <div class="card anim" style="animation-delay:.3s">
           <div class="card-header" style="flex-wrap:wrap;gap:8px">
             <span class="card-title">Daftar Barang</span>
-            <span id="barangListCount" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:4px"></span>
+            <span id="barangListCount" class="barang-list-count"></span>
           </div>
           <div style="padding:10px 12px 0">
             <div class="search-wrap" style="position:relative">
@@ -163,12 +162,12 @@
                 placeholder="Cari barang..."
                 oninput="filterBarangList();toggleBarangClear()"/>
               <button id="barangSearchClear" onclick="clearBarangSearch()" title="Hapus pencarian"
-                style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+                class="search-clear-btn" style="display:none"
                 onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
             </div>
           </div>
           <div class="barang-list" id="barangList" style="margin-top:8px">
-            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Memuat...</div>
+            <div class="loading-placeholder">Memuat...</div>
           </div>
         </div>
       </div>
@@ -206,17 +205,15 @@
           <input class="search-input" id="tSearch" type="text" placeholder="Cari barang, SKU, vendor... (Ctrl+K)"
             oninput="onTSearch();toggleTSearchClear()" style="padding-right:36px"/>
           <button id="tSearchClear" onclick="clearTSearch()" title="Hapus pencarian"
-            style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+            class="search-clear-btn" style="display:none"
             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <!-- View mode toggle -->
-        <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;flex-shrink:0">
-          <button id="tViewBtnRingkasan" onclick="setTabelView('ringkasan')"
-            style="padding:5px 12px;border:none;border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;background:var(--accent);color:#fff;font-weight:600">
+        <div class="view-mode-toggle">
+          <button id="tViewBtnRingkasan" onclick="setTabelView('ringkasan')" class="view-mode-btn view-mode-btn--active">
             📋 Ringkasan
           </button>
-          <button id="tViewBtnDetail" onclick="setTabelView('detail')"
-            style="padding:5px 12px;border:none;border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;background:transparent;color:var(--muted)">
+          <button id="tViewBtnDetail" onclick="setTabelView('detail')" class="view-mode-btn">
             🔍 Detail Transaksi
           </button>
         </div>
@@ -229,7 +226,7 @@
           <option value="tanggal-desc">Terbaru</option>
         </select>
       </div>
-      <div id="tSearchResultInfo" style="display:none;font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 2px 10px;margin-top:-8px"></div>
+      <div id="tSearchResultInfo" class="search-result-info" style="display:none"></div>
 
       <!-- VIEW: RINGKASAN PER BARANG -->
       <div id="tViewRingkasan">
@@ -274,13 +271,11 @@
                   <th>No. Faktur</th>
                   <th style="text-align:right;white-space:nowrap">
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-                      <div id="diffModeToggle" style="display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px;gap:1px">
-                        <button onclick="setDiffMode('vendor')" id="tDiffBtnVendor"
-                          style="padding:2px 8px;border:none;border-radius:4px;font-family:var(--mono);font-size:10px;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;white-space:nowrap">
+                      <div id="diffModeToggle" class="diff-mode-toggle">
+                        <button onclick="setDiffMode('vendor')" id="tDiffBtnVendor" class="diff-mode-btn diff-mode-btn--active">
                           vs Vendor
                         </button>
-                        <button onclick="setDiffMode('krono')" id="tDiffBtnKrono"
-                          style="padding:2px 8px;border:none;border-radius:4px;font-family:var(--mono);font-size:10px;cursor:pointer;background:transparent;color:var(--muted);white-space:nowrap">
+                        <button onclick="setDiffMode('krono')" id="tDiffBtnKrono" class="diff-mode-btn">
                           vs Pasar
                         </button>
                       </div>
@@ -294,9 +289,9 @@
               </tbody>
             </table>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px;border-top:1px solid var(--border)">
+          <div class="table-footer-bar">
             <div style="display:flex;align-items:center;gap:8px">
-              <span id="tPaginInfo2" style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</span>
+              <span id="tPaginInfo2" class="pagin-info">—</span>
             </div>
             <div class="page-btns" id="tPageBtns2"></div>
           </div>
@@ -313,7 +308,7 @@
           <input class="search-input" id="gSearch" type="text" placeholder="Cari nama barang, SKU, vendor..."
             oninput="onGSearch();toggleGSearchClear()"/>
           <button id="gSearchClear" onclick="clearGSearch()" title="Hapus pencarian"
-            style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+            class="search-clear-btn" style="display:none"
             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
         <!-- Filter Brand khusus Global tab -->
@@ -328,7 +323,7 @@
           <option value="nama_barang-asc">Nama A–Z</option>
         </select>
       </div>
-      <div id="gSearchResultInfo" style="display:none;font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 2px 10px;margin-top:-8px"></div>
+      <div id="gSearchResultInfo" class="search-result-info" style="display:none"></div>
       <div class="card anim">
         <div class="table-wrap">
           <table>
@@ -371,11 +366,11 @@
       <div style="text-align:center;padding:40px;color:var(--muted)">Memuat...</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeBarangDetail()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost topbar-action-btn" onclick="closeBarangDetail()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Tutup
       </button>
-      <a id="barangDetailLink" href="#" class="btn btn-ghost" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px;text-decoration:none" target="_blank">
+      <a id="barangDetailLink" href="#" class="btn btn-ghost topbar-action-btn" style="text-decoration:none" target="_blank">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         Buka di Barang
       </a>
@@ -593,10 +588,10 @@
   function setPPN(mode) {
     PageState.ppnMode = mode;
 
-    document.getElementById('ppnBtnExc').style.background = mode==='exc' ? 'var(--accent)' : 'transparent';
-    document.getElementById('ppnBtnExc').style.color = mode==='exc' ? '#fff' : 'var(--muted)';
-    document.getElementById('ppnBtnInc').style.background = mode==='inc' ? 'var(--accent)' : 'transparent';
-    document.getElementById('ppnBtnInc').style.color = mode==='inc' ? '#fff' : 'var(--muted)';
+    const btnExc = document.getElementById('ppnBtnExc');
+    const btnInc = document.getElementById('ppnBtnInc');
+    btnExc.classList.toggle('ppn-toggle-btn--active', mode === 'exc');
+    btnInc.classList.toggle('ppn-toggle-btn--active', mode === 'inc');
     updateStats(); renderBarangList(); renderCurrentTab();
   }
   window.setPPN = setPPN;
@@ -1147,7 +1142,6 @@
 
       if (chartInst) { chartInst.destroy(); chartInst = null; }
       const t = getChartTheme();
-      const isLight = document.body.classList.contains('light-mode');
       chartInst = new Chart(canvas, {
         type: 'bar',
         data: {
@@ -1224,7 +1218,7 @@
             const ctx = chart.canvas.getContext('2d');
             ctx.save();
             ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = isLight ? '#ffffff' : '#161920';
+            ctx.fillStyle = getChartTheme().canvasBg;
             ctx.fillRect(0, 0, chart.width, chart.height);
             ctx.restore();
           }
@@ -1242,7 +1236,7 @@
                 if (!b) return;
                 const label = (b.naik > 0 ? '+' : '') + b.naik.toLocaleString('id-ID');
                 ctx.save();
-                ctx.fillStyle = isLight ? '#374151' : '#9ca3af';
+                ctx.fillStyle = getCSSVar('--muted');
                 ctx.font = "10px 'DM Mono', monospace";
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -1256,23 +1250,32 @@
     }
   }
 
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
   function getChartTheme() {
-    const isLight = document.body.classList.contains('light-mode');
+    const surface  = getCSSVar('--surface');
+    const surface2 = getCSSVar('--surface2');
+    const border   = getCSSVar('--border');
+    const text     = getCSSVar('--text');
+    const muted    = getCSSVar('--muted');
+    const isLight  = document.body.classList.contains('light-mode');
     return {
-      gridColor:    isLight ? 'rgba(200,210,225,0.6)'  : 'rgba(37,40,48,0.8)',
-      tickColor:    isLight ? '#6b7280'                : '#6b7280',
-      tooltipBg:    isLight ? '#ffffff'                : '#1c2029',
-      tooltipBorder:isLight ? '#d1d9e6'               : '#252830',
-      tooltipTitle: isLight ? '#111827'                : '#e8eaf0',
-      tooltipBody:  isLight ? '#6b7280'                : '#9ca3af',
-      legendColor:  isLight ? '#4b5563'                : '#6b7280',
+      canvasBg:      surface,
+      gridColor:     isLight ? `color-mix(in srgb, ${border} 60%, transparent)` : `color-mix(in srgb, ${border} 80%, transparent)`,
+      tickColor:     muted,
+      tooltipBg:     isLight ? '#ffffff' : surface2,
+      tooltipBorder: border,
+      tooltipTitle:  text,
+      tooltipBody:   muted,
+      legendColor:   muted,
     };
   }
 
   function drawChart(canvas, labels, datasets) {
     if (chartInst) chartInst.destroy();
     const t = getChartTheme();
-    const isLight = document.body.classList.contains('light-mode');
     chartInst = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },
@@ -1282,7 +1285,7 @@
           const ctx = chart.canvas.getContext('2d');
           ctx.save();
           ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = isLight ? '#ffffff' : '#161920';
+          ctx.fillStyle = getChartTheme().canvasBg;
           ctx.fillRect(0, 0, chart.width, chart.height);
           ctx.restore();
         }
@@ -1439,7 +1442,6 @@
     const canvas = document.getElementById('bandingChart');
     if (bandingInst) { bandingInst.destroy(); bandingInst = null; }
     const t = getChartTheme();
-    const isLight = document.body.classList.contains('light-mode');
 
     /* Chart: warna netral per vendor, tidak ada "highlight termurah" di bar */
     setTimeout(() => { bandingInst = new Chart(canvas, {
@@ -1459,7 +1461,7 @@
         beforeDraw(chart) {
           const ctx = chart.canvas.getContext('2d');
           ctx.save(); ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = isLight ? '#ffffff' : '#161920';
+          ctx.fillStyle = getChartTheme().canvasBg;
           ctx.fillRect(0, 0, chart.width, chart.height);
           ctx.restore();
         }
@@ -1531,12 +1533,8 @@
     document.getElementById('tViewDetail').style.display    = v === 'detail'    ? '' : 'none';
     const btnR = document.getElementById('tViewBtnRingkasan');
     const btnD = document.getElementById('tViewBtnDetail');
-    btnR.style.background = v === 'ringkasan' ? 'var(--accent)' : 'transparent';
-    btnR.style.color      = v === 'ringkasan' ? '#fff' : 'var(--muted)';
-    btnR.style.fontWeight = v === 'ringkasan' ? '600' : '400';
-    btnD.style.background = v === 'detail'    ? 'var(--accent)' : 'transparent';
-    btnD.style.color      = v === 'detail'    ? '#fff' : 'var(--muted)';
-    btnD.style.fontWeight = v === 'detail'    ? '600' : '400';
+    btnR.classList.toggle('view-mode-btn--active', v === 'ringkasan');
+    btnD.classList.toggle('view-mode-btn--active', v === 'detail');
 
     /* Di Detail: sembunyikan stats-row global & tampilkan summary strip sebagai gantinya */
     const statsRow    = document.querySelector('.stats-row');
@@ -1583,8 +1581,8 @@
     PageState.diffMode = mode;
     const btnV = document.getElementById('tDiffBtnVendor');
     const btnK = document.getElementById('tDiffBtnKrono');
-    if (btnV) { btnV.style.background = mode === 'vendor' ? 'var(--accent)' : 'transparent'; btnV.style.color = mode === 'vendor' ? '#fff' : 'var(--muted)'; btnV.style.fontWeight = mode === 'vendor' ? '600' : '400'; }
-    if (btnK) { btnK.style.background = mode === 'krono'  ? 'var(--accent)' : 'transparent'; btnK.style.color = mode === 'krono'  ? '#fff' : 'var(--muted)'; btnK.style.fontWeight = mode === 'krono'  ? '600' : '400'; }
+    if (btnV) btnV.classList.toggle('diff-mode-btn--active', mode === 'vendor');
+    if (btnK) btnK.classList.toggle('diff-mode-btn--active', mode === 'krono');
     renderTabel();
   }
   window.setDiffMode = setDiffMode;
@@ -2892,5 +2890,46 @@
   </div>
   <button onclick="hargaDf.setQuick('all')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
 </div>
+<script>
+  /* ══════════════════════════════════════════════════════════
+     THEME SYNC — redraw chart saat theme berubah dari tab lain
+     (mis. user ganti theme di settings.html)
+
+     Mekanisme:
+     1. settings.html simpan ke localStorage('appTheme')
+     2. Browser firing 'storage' event di semua tab lain
+     3. harga.html dengarkan → toggle class + redraw chart aktif
+
+     Juga menangani toggle dari tab yang sama via MutationObserver,
+     sehingga jika suatu saat ada toggle theme inline di halaman ini
+     pun chart tetap ikut update.
+  ══════════════════════════════════════════════════════════ */
+
+  function onThemeChange() {
+    /* Guard: jangan redraw sebelum data selesai dimuat */
+    if (!window.hargaRaw || !window.hargaRaw.length) return;
+    const tab = PageState?.activeTab || 'tren';
+    if (tab === 'tren')    { if (window.renderChart)   window.renderChart(); }
+    if (tab === 'banding') { if (window.renderBanding) window.renderBanding(); }
+    /* Tab Tabel & Global tidak pakai Chart.js — tidak perlu redraw */
+  }
+
+  /* 1. Cross-tab: localStorage berubah dari tab settings.html */
+  window.addEventListener('storage', e => {
+    if (e.key !== 'appTheme') return;
+    const isLight = e.newValue === 'light';
+    document.body.classList.toggle('light-mode', isLight);
+    onThemeChange();
+  });
+
+  /* 2. Same-tab: class 'light-mode' di body berubah (toggle inline / ppn.js) */
+  new MutationObserver(mutations => {
+    for (const m of mutations) {
+      if (m.type === 'attributes' && m.attributeName === 'class') {
+        onThemeChange();
+      }
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+</script>
 </body>
 </html>

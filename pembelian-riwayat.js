@@ -124,7 +124,7 @@ async function loadRiwayat() {
 /* ── fetchRiwayatPage ── */
 async function fetchRiwayatPage() {
   const tbody = document.getElementById('rTableBody');
-  tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted);font-size:13px"><span class="spinner"></span> Memuat...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span> Memuat...</td></tr>`;
 
   /* Update stats ikut filter aktif */
   loadRiwayatStats();
@@ -226,11 +226,11 @@ function _renderRiwayatRows(slice) {
     const brandStyle = brandColor ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55` : '';
     return `<tr>
       <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')">▶</button></td>
-      <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
-      <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${r.nomor_faktur || '—'}</span></td>
+      <td><span class="td-date">${tgl}</span></td>
+      <td><span class="td-faktur">${r.nomor_faktur || '—'}</span></td>
       <td style="font-weight:500">${vendorDisplay}</td>
       <td><span class="badge badge-blue" style="${brandStyle}">${brandNama}</span></td>
-      <td><span style="font-family:var(--mono);font-size:12px">${nItems} item</span></td>
+      <td><span class="td-count">${nItems} item</span></td>
       <td><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
       <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
       <td>
@@ -264,20 +264,20 @@ function _renderRiwayatRows(slice) {
                 ? (item.harga_inc_ppn || item.harga_satuan || 0)
                 : (item.harga_exc_ppn || item.harga_satuan || 0);
               const ppnLabel = isInc
-                ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(79,142,247,0.12);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
-                : '<span style="font-size:9px;font-family:var(--mono);background:rgba(107,114,128,0.12);color:var(--muted);border-radius:3px;padding:1px 4px;margin-left:4px">exc PPN</span>';
+                ? '<span class="ppn-tag inc">inc PPN</span>'
+                : '<span class="ppn-tag exc">exc PPN</span>';
               return `<tr>
               <td style="font-weight:500">${item.nama || '—'}</td>
-              <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${item.sku || '—'}</td>
+              <td class="td-sku">${item.sku || '—'}</td>
               <td>${item.satuan || '—'}</td>
               <td style="text-align:right;font-family:var(--mono)">${item.qty}</td>
               <td style="text-align:right;font-family:var(--mono)">${formatRp(hargaTampil)}${ppnLabel}</td>
               <td style="text-align:right;font-family:var(--mono);color:var(--accent2)">${formatRp(item.subtotal || 0)}</td>
             </tr>`;}).join('')}</tbody>
           </table>
-          ${r.catatan ? `<div style="margin-top:10px;font-size:12px;color:var(--muted)">📝 ${r.catatan}</div>` : ''}
+          ${r.catatan ? `<div style="margin-top:10px;color:var(--muted)">📝 ${r.catatan}</div>` : ''}
           <div style="margin-top:12px;display:flex;justify-content:flex-end">
-            <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-family:var(--mono);min-width:260px">
+            <div class="detail-sum-table">
               ${(() => {
                 const subtotalInc = r.subtotal || 0;
                 const ppnRate = (window._ppnRate || 11) / 100;
@@ -288,7 +288,7 @@ function _renderRiwayatRows(slice) {
               })()}
               ${r.diskon ? `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Diskon</span><span>− ${formatRp(r.diskon)}</span></div>` : ''}
               ${r.ongkir ? `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Ongkir</span><span>+ ${formatRp(r.ongkir)}</span></div>` : ''}
-              <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:6px;border-top:1px solid var(--border);font-size:13px;font-weight:700;color:var(--accent2)">
+              <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:6px;border-top:1px solid var(--border);font-weight:700;color:var(--accent2)">
                 <span>Total</span><span>${formatRp(r.total || 0)}</span>
               </div>
             </div>
@@ -375,13 +375,13 @@ function openDetail(id) {
     <div class="detail-kv"><span class="detail-k">Brand</span><span class="detail-v"><span class="badge badge-blue">${(window.allBrands||[]).find(b=>b.id===r.brand_id)?.nama || r.brand_id || '—'}</span></span></div>
     <div class="detail-kv"><span class="detail-k">Status</span><span class="detail-v"><span class="badge ${badgeS}">${r.status || '—'}</span></span></div>
     <div class="detail-kv"><span class="detail-k">Catatan</span><span class="detail-v">${r.catatan || '—'}</span></div>
-    <div style="margin:16px 0 8px;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Daftar Barang</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <div class="detail-sum-header">Daftar Barang</div>
+    <table class="detail-sum-table" style="width:100%;border-collapse:collapse">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)">Barang</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)">Qty</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)">Harga</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)">Subtotal</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:var(--fs-mono-sm);border-bottom:1px solid var(--border)">Barang</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:var(--fs-mono-sm);border-bottom:1px solid var(--border)">Qty</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:var(--fs-mono-sm);border-bottom:1px solid var(--border)">Harga</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:var(--fs-mono-sm);border-bottom:1px solid var(--border)">Subtotal</th>
       </tr></thead>
       <tbody>${(r.items || []).map(i => {
         /* Baca ppn_included dari item, fallback ke parent record */
@@ -390,17 +390,17 @@ function openDetail(id) {
           ? (i.harga_inc_ppn || i.harga_satuan || 0)
           : (i.harga_exc_ppn || i.harga_satuan || 0);
         const ppnLabel = isInc
-          ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(79,142,247,0.12);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
-          : '<span style="font-size:9px;font-family:var(--mono);background:rgba(107,114,128,0.12);color:var(--muted);border-radius:3px;padding:1px 4px;margin-left:4px">exc PPN</span>';
+          ? '<span class="ppn-tag inc">inc PPN</span>'
+          : '<span class="ppn-tag exc">exc PPN</span>';
         return `<tr>
         <td style="padding:8px;border-bottom:1px solid rgba(37,40,48,0.4)">${i.nama}</td>
-        <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${i.qty} <span style="color:var(--muted);font-size:10px">${i.satuan}</span></td>
+        <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${i.qty} <span style="color:var(--muted);font-size:var(--fs-mono-sm)">${i.satuan}</span></td>
         <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(hargaTampil)}${ppnLabel}</td>
         <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(i.subtotal || 0)}</td>
       </tr>`;}).join('')}</tbody>
     </table>
     <div style="margin-top:14px;display:flex;justify-content:flex-end">
-      <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-family:var(--mono);min-width:260px">
+      <div class="detail-sum-table">
         ${(() => {
           const subtotalInc = r.subtotal || 0;
           const ppnRate = (window._ppnRate || 11) / 100;
@@ -411,7 +411,7 @@ function openDetail(id) {
         })()}
         ${r.diskon ? `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Diskon</span><span>− ${formatRp(r.diskon)}</span></div>` : ''}
         ${r.ongkir ? `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Ongkos Kirim</span><span>+ ${formatRp(r.ongkir)}</span></div>` : ''}
-        <div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:8px;border-top:1px solid var(--border);font-size:14px;font-weight:700;color:var(--accent2)">
+        <div class="detail-sum-total" style="display:flex;justify-content:space-between;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
           <span>Total</span><span>${formatRp(r.total || 0)}</span>
         </div>
       </div>
@@ -564,7 +564,7 @@ function renderEditItems() {
           oninput="this.value=this.value.replace(',','.');editItems[${i}].qty=parseFloat(this.value)||0;updateEditSummary()"
           onblur="this.value=parseFloat(this.value)||''"
           style="width:60px" title="Qty"/>
-        <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan||''}</span>
+        <span class="td-satuan" style="white-space:nowrap">${item.satuan||''}</span>
       </div>
       <input class="item-input" type="number" min="0" step="any"
         value="${displayHarga}"

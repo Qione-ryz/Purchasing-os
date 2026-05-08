@@ -4,156 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Pembelian</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
   <script src="datefilter.js"></script>
-  <style>
-/* FORM PEMBELIAN */
-    .form-layout { display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start; }
-.card-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-.card-title { font-size:15px; font-weight:600; }
-.card-body { padding:20px; }
-/* ITEM LIST */
-    .item-list { margin-bottom:14px; }
-.item-row {
-      display:grid; grid-template-columns:1fr 80px 110px 80px 24px;
-      gap:8px; align-items:center; margin-bottom:8px;
-      padding:10px 12px; background:var(--bg);
-      border:1px solid var(--border); border-radius:8px;
-      transition:border-color .2s;
-      animation:fadeUp .2s ease both;
-    }
-.item-row:hover { border-color:rgba(79,142,247,0.3); }
-.item-label { font-size:13px; font-weight:500; }
-.item-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); }
-.item-input {
-      width:100%; background:var(--surface); border:1px solid var(--border);
-      border-radius:6px; color:var(--text); font-family:var(--mono);
-      font-size:13px; padding:6px 9px; outline:none; text-align:right;
-      transition:border-color .2s;
-    }
-.item-input:focus { border-color:var(--accent); }
-.item-subtotal { font-family:var(--mono); font-size:12px; color:var(--accent2); text-align:right; }
-.item-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px; border-radius:4px; transition:color .2s; }
-.item-del:hover { color:var(--danger); }
-.item-header { display:grid; grid-template-columns:1fr 80px 110px 80px 24px; gap:8px; padding:0 12px 6px; font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
-.add-item-area { border:1px dashed var(--border); border-radius:8px; padding:12px; }
-.add-item-row { display:grid; grid-template-columns:1fr auto; gap:8px; }
-.item-search-wrap { }
-.item-dropdown {
-      position:fixed; z-index:9999;
-      background:var(--surface2); border:1px solid var(--border);
-      border-radius:8px; max-height:320px; overflow-y:auto;
-      box-shadow:0 8px 24px rgba(0,0,0,0.4);
-    }
-.item-option { padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .15s; }
-.item-option:last-child { border-bottom:none; }
-.item-option:hover { background:rgba(79,142,247,0.08); }
-.item-option-name { font-weight:500; }
-.item-option-sub  { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
-.harga-src { display:inline-block; font-size:9px; font-family:var(--mono); padding:1px 5px; border-radius:3px; margin-left:4px; vertical-align:middle; }
-.harga-src.vendor  { background:rgba(56,217,169,0.15); color:var(--accent2); }
-.harga-src.fallback{ background:rgba(107,114,128,0.15); color:var(--muted); }
-.harga-src.manual  { background:rgba(247,146,79,0.15);  color:var(--accent3); }
-.vendor-price-info { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:6px; padding:6px 10px; background:rgba(79,142,247,0.06); border-radius:6px; border:1px solid rgba(79,142,247,0.12); }
-/* Diskon toggle */
-    .diskon-toggle { display:flex; gap:4px; margin-bottom:6px; }
-.diskon-toggle-btn { flex:1; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted); font-family:var(--mono); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
-.diskon-toggle-btn.active { background:rgba(79,142,247,0.12); color:var(--accent); border-color:var(--accent); }
-/* Multi-select item panel */
-    .multisel-panel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; max-height:260px; overflow-y:auto; margin-top:8px; display:none; }
-.multisel-item { display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid rgba(37,40,48,0.5); transition:background .12s; user-select:none; }
-.multisel-item:last-child { border-bottom:none; }
-.multisel-item:hover { background:rgba(79,142,247,0.06); }
-.multisel-item.checked { background:rgba(56,217,169,0.06); }
-.multisel-cb { width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .12s; background:var(--bg); }
-.multisel-item.checked .multisel-cb { background:var(--accent2); border-color:var(--accent2); color:#0d0f14; font-size:11px; }
-.multisel-item-name { font-size:13px; font-weight:500; flex:1; }
-.multisel-item-sub { font-size:11px; color:var(--muted); font-family:var(--mono); }
-.multisel-item-price { font-size:12px; font-family:var(--mono); color:var(--accent2); white-space:nowrap; }
-.multisel-footer { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-top:1px solid var(--border); background:var(--surface); border-radius:0 0 8px 8px; }
-.multisel-count { font-size:12px; color:var(--muted); font-family:var(--mono); }
-/* SUMMARY CARD */
-    .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; position:sticky; top:88px; }
-.summary-title { font-size:15px; font-weight:600; margin-bottom:16px; }
-.summary-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
-.summary-row:last-of-type { border-bottom:none; }
-.summary-key { color:var(--muted); }
-.summary-val { font-family:var(--mono); font-weight:500; }
-.summary-total { font-size:20px; font-weight:600; color:var(--accent2); font-family:var(--mono); }
-.summary-divider { height:1px; background:var(--border); margin:12px 0; }
-/* STATUS PILLS */
-    .status-group { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:16px; }
-.status-pill { padding:8px; border-radius:7px; text-align:center; cursor:pointer; font-size:12px; font-weight:600; border:1px solid var(--border); color:var(--muted); background:var(--bg); transition:all .2s; }
-.status-pill.active-selesai { background:rgba(56,217,169,0.12); color:var(--accent2); border-color:rgba(56,217,169,0.4); }
-.status-pill.active-pending { background:rgba(247,146,79,0.12); color:var(--accent3); border-color:rgba(247,146,79,0.4); }
-.status-pill.active-batal   { background:rgba(248,113,113,0.12); color:var(--danger); border-color:rgba(248,113,113,0.4); }
-input[type="date"] { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:12px; padding:9px 12px; cursor:pointer; outline:none; }
-input[type="date"]:focus { border-color:var(--accent); }
-.expand-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px; transition:transform .2s,color .2s; }
-.expand-btn:hover { color:var(--accent); }
-.expand-btn.open { transform:rotate(90deg); color:var(--accent); }
-.detail-row { display:none; }
-.detail-row.open { display:table-row; }
-.detail-inner { padding:12px 16px 16px 36px; background: var(--surface2); }
-.detail-items-table { width:100%; border-collapse:collapse; font-size:12px; }
-.detail-items-table th { font-size:10px; padding:6px 10px; }
-.detail-items-table td { padding:7px 10px; border-bottom: 1px solid var(--border); }
-.detail-kv { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid rgba(37,40,48,0.5); font-size:13px; }
-.detail-kv:last-child { border-bottom:none; }
-.detail-k { color:var(--muted); min-width:140px; font-family:var(--mono); font-size:12px; }
-.detail-v { color:var(--text); flex:1; }
-.btn-success { background:rgba(56,217,169,0.15); color:var(--accent2); border:1px solid rgba(56,217,169,0.3); }
-.btn-success:hover { background:rgba(56,217,169,0.25); }
-.btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-.deleted-label { font-size:10px; font-family:var(--mono); color:var(--danger); background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:4px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
-/* ACTION MORE MENU */
-    .action-more-wrap { position:relative; display:inline-block; }
-.action-more-btn {
-      width:30px; height:30px; border-radius:6px; border:1px solid var(--border);
-      background:var(--surface); color:var(--muted); cursor:pointer;
-      display:flex; align-items:center; justify-content:center; font-size:16px;
-      transition:all .15s; line-height:1;
-    }
-.action-more-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.06); }
-.action-more-btn:active { transform:scale(0.9); }
-.action-more-menu {
-      display:none; position:fixed; z-index:500;
-      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      padding:5px; min-width:140px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
-    }
-.action-more-menu.open { display:block; }
-.action-more-item {
-      display:flex; align-items:center; gap:8px; padding:8px 12px;
-      border-radius:5px; cursor:pointer; font-size:12px; transition:background .12s;
-      color:var(--text); text-decoration:none; width:100%; background:none; border:none; text-align:left;
-    }
-.action-more-item:hover { background:rgba(79,142,247,0.08); }
-.action-more-item.danger { color:var(--danger); }
-.action-more-item.danger:hover { background:rgba(248,113,113,0.08); }
-.btn-primary:active { filter: brightness(0.9); }
-.btn-danger:active  { filter: brightness(0.9); }
-/* Detail overlay entrance animation */
-    #detailOverlay .modal {
-      transition: transform .2s cubic-bezier(.34,1.3,.7,1), opacity .2s ease;
-    }
-#detailOverlay:not(.show) .modal {
-      transform: translateY(12px) scale(0.98);
-      opacity: 0;
-    }
-#detailOverlay.show .modal {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-@media (max-width:1100px) { .form-layout { grid-template-columns:1fr; } .summary-card { position:static; } }
-@media (max-width:768px) {
-      .item-row,.item-header { grid-template-columns:1fr 70px 100px 70px 24px; }
-    }
-/* Dipakai oleh switchTab untuk hide brandSelect sidebar di tab Riwayat & Cari Barang */
-    .sidebar-brand-hidden { display: none !important; }
-</style>
+  
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -3386,6 +3241,8 @@ input[type="date"]:focus { border-color:var(--accent); }
   ══════════════════════════════════════════ */
   function openQuickAddBarang(prefillNama = '') {
     if (!requireAdmin(showToast)) return;
+    /* Tutup dropdown barang sebelum buka modal */
+    closeItemDropdown();
     document.getElementById('qaBarangNama').value   = prefillNama;
     document.getElementById('qaBarangSatuan').value = '';
     const errEl = document.getElementById('qaBarangError');
@@ -3451,14 +3308,19 @@ input[type="date"]:focus { border-color:var(--accent); }
       await loadMasterData();
 
       /* Langsung isi item search dengan nama barang baru, lalu trigger search */
+      closeQuickAddBarang();
+
       const searchInput = document.getElementById('itemSearch');
       if (searchInput) {
         searchInput.value = inserted.nama;
-        onItemSearch();
         toggleItemSearchClear();
+        /* Posisikan dropdown setelah modal tertutup & layout selesai */
+        requestAnimationFrame(() => {
+          onItemSearch();
+          searchInput.focus();
+        });
       }
 
-      closeQuickAddBarang();
       showToast(`✓ Barang "${inserted.nama}" berhasil ditambahkan`, 'success');
     } catch(e) {
       errEl.textContent = 'Gagal menyimpan: ' + e.message;
@@ -3476,6 +3338,8 @@ input[type="date"]:focus { border-color:var(--accent); }
   window.saveQuickAddBarang  = saveQuickAddBarang;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="pembelian-riwayat.js"></script>
+<script src="pembelian-caribarang.js"></script>
 <script>
   async function exportRiwayat() {
     showToast('Menyiapkan export...', 'success');
