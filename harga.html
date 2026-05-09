@@ -13,8 +13,67 @@
   <script src="sidebar.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* ── Custom JS tooltip ── */
+    #pctTooltip {
+      position: fixed;
+      z-index: 99999;
+      background: var(--surface2, #1e2130);
+      color: var(--text, #e2e8f0);
+      border: 1px solid var(--border, #2d3550);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,.4);
+      opacity: 0;
+      transition: opacity .12s ease;
+    }
+    .pct-tip { cursor: default; }
+  </style>
 </head>
 <body>
+<script>
+  /* ── Custom tooltip untuk .pct-tip[data-tip] ── */
+  document.addEventListener('DOMContentLoaded', function() {
+    const tip = document.createElement('div');
+    tip.id = 'pctTooltip';
+    document.body.appendChild(tip);
+    let showTimer;
+    document.addEventListener('mouseover', e => {
+      const el = e.target.closest('.pct-tip[data-tip]');
+      if (!el) return;
+      clearTimeout(showTimer);
+      tip.textContent = el.dataset.tip;
+      showTimer = setTimeout(() => { tip.style.opacity = '1'; }, 80);
+    });
+    document.addEventListener('mouseout', e => {
+      const el = e.target.closest('.pct-tip[data-tip]');
+      if (!el) return;
+      clearTimeout(showTimer);
+      tip.style.opacity = '0';
+    });
+    document.addEventListener('mousemove', e => {
+      const el = e.target.closest('.pct-tip[data-tip]');
+      if (!el) { tip.style.opacity = '0'; return; }
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let x = e.clientX - tw / 2;
+      let y = e.clientY - th - 10;
+      x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+      if (y < 4) y = e.clientY + 18;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    });
+  });
+</script>
+<script>
+  /* ── Theme init — baca dari localStorage sebelum render ── */
+  if (localStorage.getItem('appTheme') === 'light') {
+    document.body.classList.add('light-mode');
+  }
+</script>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
@@ -664,7 +723,9 @@
     filteredData = (window.hargaRaw||[]).filter(r => {
       const mb  = selBarangs.length === 0 || selBarangs.includes(r.barang_id);
       const mv  = !vendor || r.vendor_id === vendor;
-      const mbr = selBrands.length === 0 || selBrands.includes(r.brand_id);
+      const mbr = selBrands.length === 0
+        || selBrands.includes(r.brand_id)
+        || (window._barangBrandsMap?.[r.barang_id] || []).some(bid => selBrands.includes(bid));
       const mp  = (!fromDate || r.tanggal_js >= fromDate)
                && (!toDate   || r.tanggal_js <= toDate);
       return mb && mv && mbr && mp;
@@ -690,7 +751,7 @@
     window._selectedBrands = [];
     updateBrandFilterUI();
     selectedBarangId = '';
-    hargaDf.setQuick('all'); // reset periode ke Semua Waktu
+    hargaDf.setQuick('thismonth'); // reset periode ke Bulan Ini
   }
 
   function onBrandChange() {
@@ -848,10 +909,24 @@
       const trendCls2 = diff2 === null ? 'trend-flat'
                       : diff2 > 0 ? 'trend-up'
                       : diff2 < 0 ? 'trend-down' : 'trend-flat';
+      /* Hitung persentase untuk tooltip */
+      const prevHarga2 = (() => {
+        let prev = null;
+        Object.values(b.byVendor).forEach(rows => {
+          if (rows.length >= 2) prev = rows[1];
+        });
+        return prev ? (PageState.ppnMode==='inc' ? (prev.harga_inc||toIncPPN(prev.harga)) : prev.harga) : null;
+      })();
+      const pct2 = (diff2 !== null && prevHarga2 && prevHarga2 > 0)
+        ? (diff2 / prevHarga2 * 100) : null;
+      const pctLabel2 = pct2 !== null
+        ? (pct2 > 0 ? `+${pct2.toFixed(1)}%` : `${pct2.toFixed(1)}%`) : null;
+      const tipText2 = diff2 !== null && Math.abs(diff2) >= 1 && pctLabel2
+        ? `${pctLabel2} · ${diff2>0?'+':''}${formatRp(Math.abs(diff2))} dari harga sebelumnya` : null;
       const trendStr  = diff2 === null ? '—'
                       : Math.abs(diff2) < 1 ? '→ Stabil'
-                      : diff2 > 0 ? '↑ +'+formatRp(diff2)
-                      : '↓ '+formatRp(Math.abs(diff2));
+                      : diff2 > 0 ? `↑ +${formatRp(diff2)}${pctLabel2?' ('+pctLabel2+')':''}`
+                      : `↓ ${formatRp(Math.abs(diff2))}${pctLabel2?' ('+pctLabel2+')':''}`;
       return `<div class="barang-item${isSelected?' selected':''}" onclick="selectBarang('${id}')">
         <div>
           <div class="barang-item-name">${b.nama}</div>
@@ -859,7 +934,7 @@
         </div>
         <div class="barang-item-price">
           <div class="barang-price-val">${formatRp(dispHarga)}</div>
-          <div class="barang-price-trend ${trendCls2}">${trendStr}</div>
+          <div class="barang-price-trend ${trendCls2}${tipText2?' pct-tip':''}" ${tipText2?`data-tip="${tipText2}"`:''}>${trendStr}</div>
         </div>
       </div>`;
     }).join('');
@@ -1075,8 +1150,9 @@
       const datasets = Object.entries(byVendor).map(([vName, rows], i) => {
         const dataMap = {};
         rows.forEach(r => { dataMap[groupKey(r.tanggal_js,groupBy)] = getHarga(r); });
+        const shortLabel = vName.length > 22 ? vName.slice(0, 20) + '…' : vName;
         return {
-          label: vName,
+          label: shortLabel,
           data: allDates.map(d => dataMap[d] ?? null),
           borderColor: CHART_COLORS[i%CHART_COLORS.length],
           backgroundColor: CHART_COLORS[i%CHART_COLORS.length]+'22',
@@ -1098,23 +1174,40 @@
       filteredData.forEach(r => {
         const bid = r.barang_id;
         const vid = r.vendor_id || '__unknown__';
-        if (!barangMap[bid]) barangMap[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {} };
+        if (!barangMap[bid]) barangMap[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {}, allRows: [] };
         if (!barangMap[bid].byVendor[vid]) barangMap[bid].byVendor[vid] = [];
-        if (barangMap[bid].byVendor[vid].length < 2)
-          barangMap[bid].byVendor[vid].push(getHarga(r));
+        barangMap[bid].byVendor[vid].push(getHarga(r));
+        barangMap[bid].allRows.push(r); // simpan semua rows untuk fallback lintas vendor
       });
 
-      // Untuk setiap barang, ambil perubahan terbesar dari satu vendor yang sama
+      // Untuk setiap barang, ambil perubahan terbesar dari:
+      // 1. Vendor yang sama dengan ≥2 record (akurat, apples-to-apples)
+      // 2. Fallback: harga terbaru vs harga tertua lintas semua vendor (jika tidak ada vendor ≥2x)
       const ranked = Object.values(barangMap).map(b => {
         let bestNaik = 0, bestPct = 0;
+        // Coba per-vendor dulu
         Object.values(b.byVendor).forEach(prices => {
           if (prices.length < 2) return;
-          const naik = prices[0] - prices[1];
+          // prices[0] = terbaru (karena filteredData desc), prices terakhir = tertua
+          const newest = prices[0];
+          const oldest = prices[prices.length - 1];
+          const naik = newest - oldest;
           if (Math.abs(naik) > Math.abs(bestNaik)) {
             bestNaik = naik;
-            bestPct  = prices[1] > 0 ? (naik / prices[1]) * 100 : 0;
+            bestPct  = oldest > 0 ? (naik / oldest) * 100 : 0;
           }
         });
+        // Fallback lintas vendor: jika tidak ada perubahan per-vendor yang terdeteksi
+        if (bestNaik === 0 && b.allRows.length >= 2) {
+          // allRows sudah desc (terbaru dulu karena filteredData desc)
+          const newestH = getHarga(b.allRows[0]);
+          const oldestH = getHarga(b.allRows[b.allRows.length - 1]);
+          const naik = newestH - oldestH;
+          if (Math.abs(naik) >= 1) {
+            bestNaik = naik;
+            bestPct  = oldestH > 0 ? (naik / oldestH) * 100 : 0;
+          }
+        }
         return {
           id:   b.id,
           nama: b.nama.length > 28 ? b.nama.slice(0, 26) + '…' : b.nama,
@@ -1234,13 +1327,13 @@
                 if (val === null || val === undefined) return;
                 const b = ranked[i];
                 if (!b) return;
-                const label = (b.naik > 0 ? '+' : '') + b.naik.toLocaleString('id-ID');
+                const label = (b.naik > 0 ? 'Rp +' : 'Rp ') + b.naik.toLocaleString('id-ID') + (b.pct ? ` (${b.pct>0?'+':''}${b.pct.toFixed(1)}%)` : '');
                 ctx.save();
                 ctx.fillStyle = getCSSVar('--muted');
                 ctx.font = "10px 'DM Mono', monospace";
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('Rp ' + label, bar.x + 5, bar.y);
+                ctx.fillText(label, bar.x + 5, bar.y);
                 ctx.restore();
               });
             });
@@ -1251,7 +1344,8 @@
   }
 
   function getCSSVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    /* Baca dari body agar light-mode overrides (body.light-mode) ikut terbaca */
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
   }
 
   function getChartTheme() {
@@ -1294,7 +1388,21 @@
         responsive: true, maintainAspectRatio: false,
         interaction: { mode:'index', intersect:false },
         plugins: {
-          legend: { labels: { color:t.legendColor, font:{ family:'DM Mono', size:11 }, boxWidth:10, padding:20, usePointStyle:true, pointStyle:'circle' } },
+          legend: {
+            labels: {
+              color: t.legendColor,
+              font: { family: 'DM Mono', size: 11 },
+              boxWidth: 8,
+              boxHeight: 8,
+              padding: 16,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              generateLabels: chart => Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item => ({
+                ...item,
+                text: item.text.length > 22 ? item.text.slice(0, 20) + '…' : item.text
+              }))
+            }
+          },
           tooltip: {
             backgroundColor:t.tooltipBg, borderColor:t.tooltipBorder, borderWidth:1,
             titleColor:t.tooltipTitle, bodyColor:t.tooltipBody,
@@ -1644,15 +1752,20 @@
     /* Hitung tren & vendor termurah per barang */
     Object.values(agg).forEach(b => {
       /* Tren: perubahan terbesar satu vendor (oldest→newest) */
-      let bestPct = null;
+      let bestPct = null, bestOldH = null, bestNewH = null, bestVendor = null;
       Object.values(b.byVendor).forEach(v => {
         if (v.entries.length < 2) return;
         const sorted = [...v.entries].sort((a,x) => a.tanggal_js - x.tanggal_js);
         const oldest = getHarga(sorted[0]), newest = getHarga(sorted[sorted.length-1]);
         const pct = oldest > 0 ? (newest - oldest) / oldest * 100 : 0;
-        if (bestPct === null || Math.abs(pct) > Math.abs(bestPct)) bestPct = pct;
+        if (bestPct === null || Math.abs(pct) > Math.abs(bestPct)) {
+          bestPct = pct; bestOldH = oldest; bestNewH = newest; bestVendor = v.nama;
+        }
       });
-      b.trendPct = bestPct;
+      b.trendPct    = bestPct;
+      b.trendOldH   = bestOldH;
+      b.trendNewH   = bestNewH;
+      b.trendVendor = bestVendor;
 
       /* Vendor terbaru & rata-rata harga: dari data yang sudah difilter (allEntries) */
       const allForBarang = b.allEntries;
@@ -1801,13 +1914,17 @@
         const harga     = b.latestH !== null ? formatRp(b.latestH) : '—';
         const tgl       = b.latestTgl ? b.latestTgl.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—';
         const pct       = b.trendPct;
+        const pctSign   = pct !== null ? (pct > 0 ? '+' : '') : '';
+        const tipRingkasanText = pct !== null && Math.abs(pct) >= 1 && b.trendOldH && b.trendNewH
+          ? `${pctSign}${pct.toFixed(1)}%  ·  ${formatRp(b.trendOldH)} → ${formatRp(b.trendNewH)}  ·  ${b.trendVendor||'vendor sama'}`
+          : null;
         const trendEl   = pct === null
           ? `<span style="color:var(--muted);font-family:var(--mono);font-size:12px">—</span>`
           : Math.abs(pct) < 1
             ? `<span style="color:var(--muted);font-family:var(--mono);font-size:12px">→ Stabil</span>`
             : pct > 0
-              ? `<span style="color:var(--danger);font-family:var(--mono);font-size:12px;font-weight:600">↑ +${pct.toFixed(1)}%</span>`
-              : `<span style="color:var(--accent2);font-family:var(--mono);font-size:12px;font-weight:600">↓ ${pct.toFixed(1)}%</span>`;
+              ? `<span class="pct-tip" ${tipRingkasanText?`data-tip="${tipRingkasanText}"`:''}  style="color:var(--danger);font-family:var(--mono);font-size:12px;font-weight:600">↑ +${pct.toFixed(1)}%</span>`
+              : `<span class="pct-tip" ${tipRingkasanText?`data-tip="${tipRingkasanText}"`:''}  style="color:var(--accent2);font-family:var(--mono);font-size:12px;font-weight:600">↓ ${pct.toFixed(1)}%</span>`;
         const avgHarga   = b.avgH !== null ? formatRp(b.avgH) : '—';
         const vendorTerbaru = b.latestVendorName || '—';
         /* Bandingkan avg vs harga terbaru untuk context */
@@ -1946,13 +2063,18 @@
         let changeEl = '<span class="price-change flat">—</span>';
         if (diff !== null) {
           const pct = Math.abs(diffPct).toFixed(1);
-          const tip = (PageState.diffMode === 'krono' && r._prevVendor && r._prevVendor !== r.vendor_nama)
-            ? ` title="vs ${r._prevVendor}"` : '';
+          const pctExact = Math.abs(diffPct).toFixed(2);
+          const modeInfo = PageState.diffMode === 'krono' ? 'vs harga pasar sebelumnya' : `vs harga ${r.vendor_nama} sebelumnya`;
+          const vsVendorNote = (PageState.diffMode === 'krono' && r._prevVendor && r._prevVendor !== r.vendor_nama)
+            ? ` · dibanding ${r._prevVendor}` : '';
+          const tipDetail = diff > 0
+            ? `+${pctExact}% (+${formatRp(diff)}) · ${modeInfo}${vsVendorNote}`
+            : `−${pctExact}% (−${formatRp(Math.abs(diff))}) · ${modeInfo}${vsVendorNote}`;
           changeEl = Math.abs(diff) < 1
-            ? `<span class="price-change flat"${tip}>→ Sama</span>`
+            ? `<span class="price-change flat">→ Sama</span>`
             : diff > 0
-              ? `<span class="price-change up"${tip}>↑ +${formatRp(diff)} (+${pct}%)</span>`
-              : `<span class="price-change down"${tip}>↓ ${formatRp(Math.abs(diff))} (−${pct}%)</span>`;
+              ? `<span class="price-change up pct-tip" data-tip="${tipDetail}">↑ +${formatRp(diff)} (+${pct}%)</span>`
+              : `<span class="price-change down pct-tip" data-tip="${tipDetail}">↓ ${formatRp(Math.abs(diff))} (−${pct}%)</span>`;
         }
         const isSurvey = r.sumber === 'survey';
         const brandName = window.brandMap?.[r.brand_id] || r.brand_id || '—';

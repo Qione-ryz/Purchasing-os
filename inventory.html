@@ -149,7 +149,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 @media print{
   body > *:not(#sjPrintArea){display:none !important}
   #sjPrintArea{display:block !important;background:#fff;color:#000;padding:0}
-  .sj-print{display:block !important}
+  #sjPrintArea .sj-print{display:block !important}
 }
 .sj-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #000}
 .sj-logo{font-size:20px;font-weight:700}
@@ -178,8 +178,34 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .audit-selisih-minus{color:var(--danger)}
 .audit-selisih-zero{color:var(--muted)}
 
-/* INPUT/OUTPUT TYPE */
-.io-type-wrap{display:flex;gap:8px;margin-bottom:14px}
+/* IO TWO-COLUMN LAYOUT */
+.io-two-col{display:grid;grid-template-columns:1fr 1.3fr;gap:0;height:calc(100vh - 113px);overflow:hidden;max-width:100%}
+.io-col{display:flex;flex-direction:column;overflow:hidden}
+.io-col-left{border-right:1px solid var(--border);background:var(--surface)}
+.io-col-right{background:var(--bg)}
+.io-col-scroll{flex:1;overflow-y:auto;padding:0}
+.io-col-scroll::-webkit-scrollbar{width:4px}
+.io-col-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Barang list item in IO */
+.io-barang-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;transition:background .1s;user-select:none;border-bottom:1px solid rgba(37,40,48,0.4)}
+.io-barang-item:last-child{border-bottom:none}
+.io-barang-item:hover{background:rgba(79,142,247,0.06)}
+.io-barang-item.in-keranjang{background:rgba(56,217,169,0.05)}
+.io-barang-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;background:transparent;transition:all .15s;margin-right:10px}
+.io-barang-item.in-keranjang .io-barang-dot{background:var(--accent2);border-color:var(--accent2)}
+
+/* Keranjang item */
+.io-keranjang-item{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(37,40,48,0.4)}
+.io-keranjang-item:last-child{border-bottom:none}
+
+@media(max-width:700px){
+  .io-two-col{display:flex;flex-direction:column;height:auto;min-height:100dvh}
+  .io-col-left{height:50vh;flex-shrink:0}
+  .io-col-right{flex:1}
+}
+
+
 .io-type-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s}
 .io-type-btn.in.active{background:rgba(56,217,169,.12);color:var(--accent2);border-color:rgba(56,217,169,.4)}
 .io-type-btn.out.active{background:rgba(248,113,113,.12);color:var(--danger);border-color:rgba(248,113,113,.4)}
@@ -250,62 +276,65 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 </div>
 
 <!-- ═══════════════════════════════════════ -->
-<!-- TAB: INPUT / OUTPUT -->
+<!-- TAB: INPUT / OUTPUT (multi-item) -->
 <!-- ═══════════════════════════════════════ -->
-<div id="sectionIo" class="section content" style="display:none">
-  <div class="io-type-wrap">
+<div id="sectionIo" class="section" style="display:none">
+  <div class="io-type-wrap" style="padding:12px 20px 0;max-width:1200px;margin:0 auto">
     <button class="io-type-btn in active" id="btnTypeIn" onclick="setIoType('in')">📥 Barang Masuk</button>
     <button class="io-type-btn out" id="btnTypeOut" onclick="setIoType('out')">📤 Barang Keluar</button>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:16px" id="ioGrid">
-    <div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🔍 Pilih Barang</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-ghost btn-sm" onclick="openBarcodeScanner()">📷 Scan Barcode</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="search-wrap field" style="margin-bottom:10px">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchIoBarang" placeholder="Cari nama barang atau scan barcode..." oninput="filterIoBarang(this.value)" onkeydown="if(event.key==='Enter')submitManualBarcode()"/>
-          </div>
-          <!-- Barcode manual input -->
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="manualBarcodeInput" placeholder="Atau ketik barcode manual..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 11px;outline:none;transition:border-color .2s" onkeydown="if(event.key==='Enter')submitManualBarcode()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
-            <button class="btn btn-ghost btn-sm" onclick="submitManualBarcode()">Cari</button>
-          </div>
-          <div id="ioBarangList" style="max-height:380px;overflow-y:auto"></div>
+  <div class="io-two-col" id="ioGrid">
+    <!-- KIRI: List barang -->
+    <div class="io-col io-col-left">
+      <div class="barang-search-wrap">
+        <span class="barang-search-icon">🔍</span>
+        <input type="text" class="barang-search-input" id="searchIoBarang" placeholder="Cari barang..." oninput="filterIoBarang(this.value)"/>
+        <button class="barang-search-clear" id="ioSearchClear" onclick="clearIoSearch()">✕</button>
+      </div>
+      <div style="display:flex;gap:6px;padding:6px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+        <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openBarcodeScanner()">📷 Scan</button>
+        <div style="display:flex;gap:4px;flex:1">
+          <input type="text" id="manualBarcodeInput" placeholder="Ketik barcode..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 9px;outline:none;min-width:0" onkeydown="if(event.key==='Enter')submitManualBarcode()"/>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="submitManualBarcode()">Cari</button>
         </div>
       </div>
+      <div class="io-col-scroll" id="ioBarangList"></div>
     </div>
 
-    <div>
-      <div class="card" style="position:sticky;top:110px">
-        <div class="card-header">
-          <span class="card-title" id="ioSideTitle">📥 Input Stok</span>
+    <!-- KANAN: Keranjang & form submit -->
+    <div class="io-col io-col-right">
+      <div class="order-col-header" style="padding:12px 16px">
+        <span class="order-col-title" id="ioKeranjangTitle">📥 DAFTAR MASUK</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="ioKeranjangCount" style="font-size:11px;color:var(--muted);font-family:var(--mono)"></span>
+          <button class="btn btn-danger btn-sm" style="font-size:11px" onclick="clearIoKeranjang()" id="btnClearKeranjang" style="display:none">Hapus Semua</button>
         </div>
-        <div class="card-body">
-          <div id="ioSelectedBarang" style="margin-bottom:14px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted)">Pilih barang terlebih dahulu</div>
-          <div class="field">
-            <label>Jumlah <span id="ioSatuanLabel" style="color:var(--accent)"></span></label>
-            <input type="number" id="ioQty" min="0.1" step="0.1" placeholder="0" style="font-family:var(--mono);font-size:18px;font-weight:600"/>
+      </div>
+
+      <!-- Meta: tanggal & catatan -->
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Tanggal</div>
+            <input type="date" id="ioTanggal" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;padding:6px 9px;outline:none;font-family:var(--mono)"/>
           </div>
-          <div class="field">
-            <label>Keterangan / Catatan</label>
-            <textarea id="ioCatatan" placeholder="Misal: dari supplier X, no DO 123..." style="min-height:60px"></textarea>
+          <div style="flex:2;min-width:160px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Catatan</div>
+            <input type="text" id="ioCatatan" placeholder="Misal: dari supplier X, no DO 123..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;padding:6px 9px;outline:none"/>
           </div>
-          <div class="field">
-            <label>Tanggal</label>
-            <input type="date" id="ioTanggal"/>
-          </div>
-          <button class="btn btn-success" style="width:100%;justify-content:center;font-size:14px" onclick="submitIo()" id="btnSubmitIo">
-            <span>💾 Simpan</span>
-          </button>
-          <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;font-family:var(--mono)" id="ioStokSekarang"></div>
         </div>
+      </div>
+
+      <!-- List item keranjang -->
+      <div class="io-col-scroll" id="ioKeranjangList" style="padding:8px 0"></div>
+
+      <!-- Footer: simpan -->
+      <div style="padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+        <div id="ioEmptyMsg" style="font-size:12px;color:var(--muted);text-align:center;padding:4px 0;font-family:var(--mono)">Pilih barang dari kiri untuk ditambahkan</div>
+        <button class="btn btn-success" style="width:100%;justify-content:center;font-size:14px;display:none" onclick="submitIoBulk()" id="btnSubmitIo">
+          <span id="btnSubmitIoLabel">💾 Simpan Semua</span>
+        </button>
       </div>
     </div>
   </div>
@@ -423,65 +452,49 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <!-- ═══════════════════════════════════════ -->
 <div id="sectionAudit" class="section content" style="display:none">
   <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><span class="card-title">🔍 Buat Audit Stok Baru</span></div>
-    <div class="card-body">
-      <div class="field-row">
-        <div class="field">
-          <label>Nama Audit</label>
-          <input type="text" id="auditNama" placeholder="Misal: Audit Bulanan Januari 2025"/>
+    <div class="card-header">
+      <span class="card-title">🔍 Audit & Koreksi Stok</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none">🔍</span>
+          <input type="text" id="searchAudit" placeholder="Cari barang..." oninput="filterAuditTable(this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:6px 10px 6px 30px;outline:none;font-family:var(--mono);width:180px"/>
         </div>
-        <div class="field">
-          <label>Tanggal Audit</label>
-          <input type="date" id="auditTanggal"/>
-        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadAuditDirect()">↺ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="saveAllAuditKoreksi()" id="btnSaveAudit" style="display:none">✅ Simpan Koreksi</button>
       </div>
-      <div class="field">
-        <label>Catatan</label>
-        <textarea id="auditCatatan" placeholder="Keterangan audit..."></textarea>
-      </div>
-      <button class="btn btn-primary" onclick="buatAudit()">📋 Buat Sesi Audit</button>
     </div>
-  </div>
-
-  <div id="auditSesiWrap" style="display:none">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title" id="auditSesiTitle">📋 Sesi Audit</span>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="selesaiAudit()">✅ Selesaikan & Lihat Laporan</button>
-          <button class="btn btn-danger btn-sm" onclick="tutupAudit()">✕ Tutup</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">Isikan jumlah fisik yang dihitung. Kolom Selisih otomatis terhitung dari stok sistem vs fisik.</p>
-        <div style="overflow-x:auto">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th>Nama Barang</th>
-                <th style="text-align:right">Stok Sistem</th>
-                <th style="text-align:right">Fisik</th>
-                <th style="text-align:right">Selisih</th>
-                <th>Catatan</th>
-              </tr>
-            </thead>
-            <tbody id="auditTbody"></tbody>
-          </table>
-        </div>
-      </div>
+    <div class="card-body" style="padding:10px 14px">
+      <p style="font-size:12px;color:var(--muted);font-family:var(--mono)">Isikan jumlah fisik yang dihitung. Klik <b style="color:var(--accent2)">Simpan Koreksi</b> untuk menerapkan perubahan ke stok.</p>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="auditDirectTable">
+        <thead>
+          <tr>
+            <th>Nama Barang</th>
+            <th>Satuan</th>
+            <th style="text-align:right">Stok Sistem</th>
+            <th style="text-align:right">Stok Fisik</th>
+            <th style="text-align:right">Selisih</th>
+            <th>Catatan</th>
+          </tr>
+        </thead>
+        <tbody id="auditDirectTbody">
+          <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Memuat...</div></div></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📁 Riwayat Audit</span>
+      <span class="card-title">📁 Riwayat Koreksi Audit</span>
       <button class="btn btn-ghost btn-sm" onclick="loadAuditHistory()">↺</button>
     </div>
     <div style="overflow-x:auto">
       <table class="tbl">
-        <thead><tr><th>Nama Audit</th><th>Tanggal</th><th>Item</th><th>Selisih Ditemukan</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>Tanggal</th><th>Barang</th><th>Selisih</th><th>Catatan</th><th>Oleh</th></tr></thead>
         <tbody id="auditHistoryTbody">
-          <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada audit</div></div></td></tr>
+          <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada koreksi</div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -612,22 +625,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
-<!-- MODAL: AUDIT DETAIL / LAPORAN -->
-<div class="modal-overlay" id="auditDetailOverlay">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <span class="modal-title">📊 Laporan Audit</span>
-      <button class="modal-close" onclick="closeAuditDetail()">✕</button>
-    </div>
-    <div class="modal-body" id="auditDetailBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeAuditDetail()">Tutup</button>
-      <button class="btn btn-orange" onclick="printAuditDetail()">🖨 Cetak Laporan</button>
-      <button class="btn btn-primary" onclick="applyAuditKoreksi()" id="btnApplyKoreksi">✅ Terapkan Koreksi ke Stok</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL: TRANSFER ITEM ROW -->
 <div class="modal-overlay" id="transferItemOverlay">
   <div class="modal">
@@ -655,9 +652,26 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
-<!-- SURAT JALAN PRINT AREA -->
-<div id="sjPrintArea">
-  <div class="sj-print" id="sjPrintContent"></div>
+<!-- SURAT JALAN PREVIEW MODAL -->
+<div class="modal-overlay" id="sjPreviewOverlay">
+  <div class="modal modal-wide" style="max-width:800px;max-height:90vh">
+    <div class="modal-header">
+      <span class="modal-title">🖨 Preview Surat Jalan</span>
+      <button class="modal-close" onclick="document.getElementById('sjPreviewOverlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="sjPrintContent" style="background:#fff;color:#000;padding:28px;font-family:'DM Sans',sans-serif;font-size:13px"></div>
+    </div>
+    <div class="modal-footer" style="background:var(--surface)">
+      <button class="btn btn-ghost" onclick="document.getElementById('sjPreviewOverlay').classList.remove('show')">Tutup</button>
+      <button class="btn btn-orange" onclick="window.print()">🖨 Cetak</button>
+    </div>
+  </div>
+</div>
+
+<!-- SURAT JALAN PRINT-ONLY AREA -->
+<div id="sjPrintArea" style="display:none">
+  <div class="sj-print" id="sjPrintAreaContent"></div>
 </div>
 
 <!-- TOAST -->
@@ -798,11 +812,7 @@ let currentPemesan  = null;
 let allBarang       = [];
 let allBrands       = [];
 let stockMap        = {};  // { barang_id: qty }
-let ioSelectedBarang = null;
-let ioType          = 'in';
 let transferItems   = [];
-let auditSesi       = null;
-let auditItems      = [];
 let riwayatPage_    = 0;
 let riwayatTotal    = 0;
 const PAGE_SIZE     = 40;
@@ -880,10 +890,10 @@ function switchTab(tab){
   const tabs=['io','stock','transfer','audit','riwayat'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
   tabs.forEach(t=>{const el=document.getElementById('section'+cap(t));if(el)el.style.display=t===tab?'block':'none'});
-  if(tab==='io')    {renderIoBarang();setIoDateDefault()}
+  if(tab==='io')    {renderIoBarang();if(!document.getElementById('ioTanggal').value)document.getElementById('ioTanggal').value=todayStr()}
   if(tab==='stock') {loadStockData()}
   if(tab==='transfer'){setupTransferTab()}
-  if(tab==='audit') {loadAuditHistory();setAuditDateDefault()}
+  if(tab==='audit') {loadAuditDirect();loadAuditHistory()}
   if(tab==='riwayat'){riwayatPage_=0;loadRiwayat()}
 }
 
@@ -972,13 +982,29 @@ function updateStats(){
 }
 
 // ══════════════════════════════════════════
-// IO TAB
+// IO TAB — MULTI ITEM (KERANJANG)
 // ══════════════════════════════════════════
+let ioKeranjang = []; // [{barang_id, nama, satuan, qty, stok}]
+let ioType = 'in';
+
 function setIoType(type){
   ioType=type;
   document.getElementById('btnTypeIn').classList.toggle('active',type==='in');
   document.getElementById('btnTypeOut').classList.toggle('active',type==='out');
-  document.getElementById('ioSideTitle').textContent=type==='in'?'📥 Input Stok':'📤 Output Stok';
+  document.getElementById('ioKeranjangTitle').textContent=type==='in'?'📥 DAFTAR MASUK':'📤 DAFTAR KELUAR';
+  renderIoBarang(document.getElementById('searchIoBarang').value);
+  renderIoKeranjang();
+}
+
+function filterIoBarang(q){
+  const cl=document.getElementById('ioSearchClear');
+  if(cl)cl.style.display=q?'block':'none';
+  renderIoBarang(q);
+}
+
+function clearIoSearch(){
+  document.getElementById('searchIoBarang').value='';
+  filterIoBarang('');
 }
 
 function renderIoBarang(q=''){
@@ -987,13 +1013,16 @@ function renderIoBarang(q=''){
   if(!list.length){list_.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang</div></div>';return}
   list_.innerHTML=list.map(b=>{
     const s=stockMap[b.id]||{qty:0};
-    const isSelected=ioSelectedBarang&&ioSelectedBarang.id===b.id;
-    return `<div onclick="selectIoBarang('${b.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid ${isSelected?'var(--accent)':'transparent'};background:${isSelected?'rgba(79,142,247,.08)':'transparent'};transition:all .15s;margin-bottom:4px">
-      <div>
-        <div style="font-weight:${isSelected?'600':'400'};font-size:13px;color:${isSelected?'var(--accent)':'var(--text)'}">${b.nama}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''} ${b.sku?'· SKU: '+b.sku:''}</div>
+    const inKeranjang=ioKeranjang.some(it=>it.barang_id===b.id);
+    return `<div class="io-barang-item${inKeranjang?' in-keranjang':''}" onclick="toggleIoBarang('${b.id}')">
+      <div style="display:flex;align-items:center;flex:1;min-width:0">
+        <div class="io-barang-dot"></div>
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.nama}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''} ${b.sku?'· '+b.sku:''}</div>
+        </div>
       </div>
-      <div style="text-align:right">
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
         <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:${s.qty<=0?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
         <div style="font-size:10px;color:var(--muted)">${b.satuan||''}</div>
       </div>
@@ -1001,53 +1030,112 @@ function renderIoBarang(q=''){
   }).join('');
 }
 
-function filterIoBarang(q){renderIoBarang(q)}
-
-function selectIoBarang(id){
-  ioSelectedBarang=allBarang.find(b=>b.id===id)||null;
-  renderIoBarang(document.getElementById('searchIoBarang').value);
-  if(ioSelectedBarang){
+function toggleIoBarang(id){
+  const idx=ioKeranjang.findIndex(it=>it.barang_id===id);
+  if(idx>=0){
+    ioKeranjang.splice(idx,1);
+  } else {
+    const b=allBarang.find(x=>x.id===id);
+    if(!b)return;
     const s=stockMap[id]||{qty:0};
-    document.getElementById('ioSelectedBarang').innerHTML=`<div style="font-weight:600;color:var(--text)">${ioSelectedBarang.nama}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${ioSelectedBarang.satuan||''}</div>`;
-    document.getElementById('ioSatuanLabel').textContent=ioSelectedBarang.satuan?`(${ioSelectedBarang.satuan})`:'';
-    document.getElementById('ioStokSekarang').textContent=`Stok saat ini: ${(s.qty||0).toLocaleString('id-ID')} ${ioSelectedBarang.satuan||''}`;
-    document.getElementById('ioQty').focus();
+    ioKeranjang.push({barang_id:id,nama:b.nama,satuan:b.satuan||'',qty:1,stok:s.qty||0});
   }
+  renderIoBarang(document.getElementById('searchIoBarang').value);
+  renderIoKeranjang();
 }
 
 function quickIo(id){
   switchTab('io');
-  setTimeout(()=>selectIoBarang(id),100);
+  setTimeout(()=>{
+    const inKeranjang=ioKeranjang.some(it=>it.barang_id===id);
+    if(!inKeranjang) toggleIoBarang(id);
+  },100);
 }
 
-async function submitIo(){
-  if(!ioSelectedBarang){showToast('error','Pilih barang terlebih dahulu');return}
-  const qty=parseFloat(document.getElementById('ioQty').value)||0;
-  if(qty<=0){showToast('error','Jumlah harus lebih dari 0');return}
-  const catatan=document.getElementById('ioCatatan').value.trim();
+function renderIoKeranjang(){
+  const wrap=document.getElementById('ioKeranjangList');
+  const emptyMsg=document.getElementById('ioEmptyMsg');
+  const submitBtn=document.getElementById('btnSubmitIo');
+  const clearBtn=document.getElementById('btnClearKeranjang');
+  const count=document.getElementById('ioKeranjangCount');
+  const n=ioKeranjang.length;
+  count.textContent=n?n+' item':'';
+  if(clearBtn) clearBtn.style.display=n?'':'none';
+  if(!n){
+    wrap.innerHTML='';
+    emptyMsg.style.display='block';
+    submitBtn.style.display='none';
+    return;
+  }
+  emptyMsg.style.display='none';
+  submitBtn.style.display='flex';
+  document.getElementById('btnSubmitIoLabel').textContent=`💾 Simpan ${n} Item`;
+  wrap.innerHTML=ioKeranjang.map((it,i)=>{
+    const maxQty=ioType==='out'?it.stok:999999;
+    return `<div class="io-keranjang-item">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.nama}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">Stok: ${it.stok.toLocaleString('id-ID')} ${it.satuan}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <button onclick="ioQtyDelta(${i},-1)" style="width:26px;height:26px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button>
+        <input type="number" value="${it.qty}" min="0.1" step="0.1" max="${maxQty}" onchange="ioKeranjang[${i}].qty=Math.max(0.1,Math.min(${maxQty},parseFloat(this.value)||1));renderIoKeranjang()" style="width:64px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:4px 6px;outline:none;text-align:center"/>
+        <button onclick="ioQtyDelta(${i},1)" style="width:26px;height:26px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">＋</button>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono);min-width:30px">${it.satuan}</span>
+        <button onclick="removeIoItem(${i})" style="width:26px;height:26px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:6px;color:var(--danger);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ioQtyDelta(i,d){
+  const it=ioKeranjang[i];
+  const maxQty=ioType==='out'?it.stok:999999;
+  it.qty=Math.max(0.1,Math.min(maxQty,it.qty+d));
+  renderIoKeranjang();
+}
+
+function removeIoItem(i){
+  ioKeranjang.splice(i,1);
+  renderIoBarang(document.getElementById('searchIoBarang').value);
+  renderIoKeranjang();
+}
+
+function clearIoKeranjang(){
+  ioKeranjang=[];
+  renderIoBarang(document.getElementById('searchIoBarang').value);
+  renderIoKeranjang();
+}
+
+async function submitIoBulk(){
+  if(!ioKeranjang.length){showToast('error','Tambahkan barang dulu');return}
   const tgl=document.getElementById('ioTanggal').value||todayStr();
+  const catatan=document.getElementById('ioCatatan').value.trim();
+  // Validasi keluar
+  if(ioType==='out'){
+    for(const it of ioKeranjang){
+      if(it.qty>it.stok){showToast('error',`Stok ${it.nama} tidak cukup (${it.stok} tersedia)`);return}
+    }
+  }
   const btn=document.getElementById('btnSubmitIo');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
   try{
-    const barangId=ioSelectedBarang.id;
-    const qtyDelta=ioType==='in'?qty:-qty;
-    // Upsert stok
-    const curStock=stockMap[barangId]?.qty||0;
-    const newQty=Math.max(0,curStock+qtyDelta);
-    await _sb.from('inventory_stock').upsert({brand_id:currentBrand.id,barang_id:barangId,qty:newQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
-    // Insert log
-    await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:barangId,tipe:ioType==='in'?'masuk':'keluar',qty:qty,catatan,oleh:currentPemesan.kode,tanggal:tgl});
-    // Update local
-    if(!stockMap[barangId])stockMap[barangId]={qty:0,min_qty:0};
-    stockMap[barangId].qty=newQty;
-    // Reset
-    document.getElementById('ioQty').value='';
-    document.getElementById('ioCatatan').value='';
-    document.getElementById('ioStokSekarang').textContent=`Stok saat ini: ${newQty.toLocaleString('id-ID')} ${ioSelectedBarang.satuan||''}`;
+    for(const it of ioKeranjang){
+      const qtyDelta=ioType==='in'?it.qty:-it.qty;
+      const curStock=stockMap[it.barang_id]?.qty||0;
+      const newQty=Math.max(0,curStock+qtyDelta);
+      await _sb.from('inventory_stock').upsert({brand_id:currentBrand.id,barang_id:it.barang_id,qty:newQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
+      await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:it.barang_id,tipe:ioType==='in'?'masuk':'keluar',qty:it.qty,catatan,oleh:currentPemesan.kode,tanggal:tgl});
+      if(!stockMap[it.barang_id])stockMap[it.barang_id]={qty:0,min_qty:0};
+      stockMap[it.barang_id].qty=newQty;
+    }
+    const n=ioKeranjang.length;
+    showToast('success',`✓ ${ioType==='in'?'Masuk':'Keluar'} ${n} item berhasil disimpan`);
+    ioKeranjang=[];
     renderIoBarang(document.getElementById('searchIoBarang').value);
-    showToast('success',`✓ ${ioType==='in'?'Masuk':'Keluar'} ${qty} ${ioSelectedBarang.satuan||''} — ${ioSelectedBarang.nama}`);
+    renderIoKeranjang();
   }catch(e){showToast('error','Gagal menyimpan: '+e.message)}
-  btn.innerHTML='<span>💾 Simpan</span>';btn.disabled=false;
+  btn.innerHTML=`<span id="btnSubmitIoLabel">💾 Simpan Semua</span>`;btn.disabled=false;
 }
 
 // ══════════════════════════════════════════
@@ -1108,7 +1196,7 @@ async function onBarcodeDetected(code){
       const found=allBarang.find(b=>b.id===barangId);
       if(found){
         closeBarcodeScanner();
-        selectIoBarang(found.id);
+        if(!ioKeranjang.some(it=>it.barang_id===found.id))toggleIoBarang(found.id);
         showToast('success','✓ Barang ditemukan: '+found.nama);
         return;
       }
@@ -1117,7 +1205,7 @@ async function onBarcodeDetected(code){
     const foundBySku=allBarang.find(b=>b.sku&&b.sku.toLowerCase()===code.toLowerCase());
     if(foundBySku){
       closeBarcodeScanner();
-      selectIoBarang(foundBySku.id);
+      if(!ioKeranjang.some(it=>it.barang_id===foundBySku.id))toggleIoBarang(foundBySku.id);
       showToast('success','✓ Barang ditemukan: '+foundBySku.nama);
       return;
     }
@@ -1130,17 +1218,15 @@ async function onBarcodeDetected(code){
 async function submitManualBarcode(){
   const code=(document.getElementById('manualBarcodeInput').value||document.getElementById('searchIoBarang').value).trim();
   if(!code)return;
-  // Cari di barcode table
   try{
     const{data:barcodeRows}=await _sb.from('barang_barcodes').select('barang_id').eq('barcode',code);
     if(barcodeRows&&barcodeRows.length){
       const found=allBarang.find(b=>b.id===barcodeRows[0].barang_id);
-      if(found){selectIoBarang(found.id);document.getElementById('manualBarcodeInput').value='';return}
+      if(found){if(!ioKeranjang.some(it=>it.barang_id===found.id))toggleIoBarang(found.id);document.getElementById('manualBarcodeInput').value='';return}
     }
   }catch(e){}
-  // Cek SKU
   const foundBySku=allBarang.find(b=>b.sku&&b.sku.toLowerCase()===code.toLowerCase());
-  if(foundBySku){selectIoBarang(foundBySku.id);document.getElementById('manualBarcodeInput').value='';return}
+  if(foundBySku){if(!ioKeranjang.some(it=>it.barang_id===foundBySku.id))toggleIoBarang(foundBySku.id);document.getElementById('manualBarcodeInput').value='';return}
   showToast('error','Barcode/SKU tidak ditemukan');
 }
 
@@ -1165,8 +1251,7 @@ async function saveRegisterBarcode(){
     showToast('success','✓ Barcode terdaftar!');
     closeRegisterBarcode();
     closeBarcodeScanner();
-    // Pilih barang yang baru diregister
-    selectIoBarang(barangId);
+    if(!ioKeranjang.some(it=>it.barang_id===barangId))toggleIoBarang(barangId);
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
@@ -1333,12 +1418,13 @@ async function loadTransferHistory(){
 function previewSJ(){
   if(!transferItems.length){showToast('error','Tambahkan barang dulu');return}
   const toBrandId=document.getElementById('transferTo').value;
+  if(!toBrandId){showToast('error','Pilih brand tujuan dulu');return}
   const toBrand=allBrands.find(b=>b.id===toBrandId);
   const noSJ=document.getElementById('transferNoSJ').value||'SJ-DRAFT';
   const tgl=document.getElementById('transferTanggal').value||todayStr();
   const catatan=document.getElementById('transferCatatan').value;
   renderSJ({no_sj:noSJ,tanggal:tgl,dari:currentBrand.nama,ke:toBrand?.nama||'—',oleh:currentPemesan.kode,catatan,items:transferItems});
-  window.print();
+  document.getElementById('sjPreviewOverlay').classList.add('show');
 }
 
 async function printSJById(trId){
@@ -1352,14 +1438,14 @@ async function printSJById(trId){
       oleh:tr.oleh||'—',catatan:tr.catatan||'',
       items:(items||[]).map(it=>({nama:it.nama_barang,satuan:it.satuan,qty:it.qty}))
     });
-    window.print();
+    document.getElementById('sjPreviewOverlay').classList.add('show');
   }catch(e){showToast('error','Gagal cetak: '+e.message)}
 }
 
 function renderSJ({no_sj,tanggal,dari,ke,oleh,catatan,items}){
   const tglFmt=tanggal?new Date(tanggal).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}):'—';
   const itemRows=(items||[]).map((it,i)=>`<tr><td style="padding:8px 12px">${i+1}</td><td style="padding:8px 12px">${it.nama}</td><td style="padding:8px 12px">${it.satuan||'—'}</td><td style="padding:8px 12px;text-align:right;font-family:monospace">${(it.qty||0).toLocaleString('id-ID')}</td></tr>`).join('');
-  document.getElementById('sjPrintContent').innerHTML=`
+  const html=`
     <div class="sj-header">
       <div><div class="sj-logo">PurchaseOS</div><div style="font-size:12px;color:#555;margin-top:4px">Sistem Inventory Internal</div></div>
       <div class="sj-doc-info"><div style="font-size:16px;font-weight:700">SURAT JALAN</div><div><b>No:</b> ${no_sj}</div><div><b>Tanggal:</b> ${tglFmt}</div></div>
@@ -1380,192 +1466,108 @@ function renderSJ({no_sj,tanggal,dari,ke,oleh,catatan,items}){
     </div>
     <div style="margin-top:20px;font-size:10px;color:#999;text-align:center">Dicetak dari PurchaseOS · ${new Date().toLocaleString('id-ID')}</div>
   `;
+  document.getElementById('sjPrintContent').innerHTML=html;
+  // Also copy to print area for window.print()
+  document.getElementById('sjPrintAreaContent').innerHTML=html;
 }
 
 // ══════════════════════════════════════════
-// AUDIT TAB
+// AUDIT TAB — DIRECT STOCK CORRECTION
 // ══════════════════════════════════════════
-async function buatAudit(){
-  const nama=document.getElementById('auditNama').value.trim();
-  const tgl=document.getElementById('auditTanggal').value||todayStr();
-  const catatan=document.getElementById('auditCatatan').value.trim();
-  if(!nama){showToast('error','Isi nama audit');return}
-  try{
-    const{data,error}=await _sb.from('inventory_audit').insert({brand_id:currentBrand.id,nama,tanggal:tgl,catatan,oleh:currentPemesan.kode,status:'draft'}).select();
-    if(error)throw error;
-    auditSesi=data[0];
-    // Build audit items dari stok saat ini
-    auditItems=allBarang.map(b=>({
-      audit_id:auditSesi.id,
-      barang_id:b.id,
-      nama_barang:b.nama,
-      satuan:b.satuan||'',
-      qty_sistem:stockMap[b.id]?.qty||0,
-      qty_fisik:null,
-      catatan:''
-    }));
-    // Insert audit items
-    await _sb.from('inventory_audit_items').insert(auditItems);
-    // Reload to get ids
-    const{data:ais}=await _sb.from('inventory_audit_items').select('*').eq('audit_id',auditSesi.id);
-    auditItems=ais||auditItems;
-    showAuditSesi();
-    showToast('success','✓ Sesi audit dibuat');
-  }catch(e){showToast('error','Gagal: '+e.message)}
+let auditDirectData = []; // [{barang_id, nama, satuan, qty_sistem, qty_fisik, catatan}]
+let auditDirectFiltered = [];
+
+async function loadAuditDirect(){
+  await loadBarangForBrand();
+  auditDirectData = allBarang.map(b=>({
+    barang_id: b.id,
+    nama: b.nama,
+    satuan: b.satuan||'',
+    qty_sistem: stockMap[b.id]?.qty||0,
+    qty_fisik: null,
+    catatan: ''
+  }));
+  filterAuditTable(document.getElementById('searchAudit')?.value||'');
+  document.getElementById('btnSaveAudit').style.display='none';
 }
 
-function showAuditSesi(){
-  document.getElementById('auditSesiWrap').style.display='block';
-  document.getElementById('auditSesiTitle').textContent='📋 '+auditSesi.nama+' — '+auditSesi.tanggal;
-  renderAuditTbody();
+function filterAuditTable(q){
+  auditDirectFiltered = q
+    ? auditDirectData.filter(it=>it.nama.toLowerCase().includes(q.toLowerCase()))
+    : [...auditDirectData];
+  renderAuditDirectTable();
 }
 
-function renderAuditTbody(){
-  const tbody=document.getElementById('auditTbody');
-  tbody.innerHTML=auditItems.map((it,i)=>{
-    const selisih=(it.qty_fisik!=null)?(it.qty_fisik-it.qty_sistem):null;
-    const selisiहClass=selisih==null?'':'selisih '+((selisih>0)?'audit-selisih-plus':(selisih<0)?'audit-selisih-minus':'audit-selisih-zero');
-    return `<tr>
-      <td style="font-weight:500">${it.nama_barang}</td>
-      <td style="text-align:right;font-family:var(--mono)">${(it.qty_sistem||0).toLocaleString('id-ID')} <span style="font-size:10px;color:var(--muted)">${it.satuan}</span></td>
-      <td style="text-align:right"><input type="number" value="${it.qty_fisik!=null?it.qty_fisik:''}" min="0" step="0.1" placeholder="—" onchange="auditItems[${i}].qty_fisik=parseFloat(this.value)||0;saveAuditItemFisik(${i})" style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;text-align:center;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/></td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px" class="${selisiहClass}">${selisih!=null?(selisih>0?'+':'')+selisih.toLocaleString('id-ID'):'—'}</td>
-      <td><input type="text" value="${it.catatan||''}" placeholder="catatan..." onchange="auditItems[${i}].catatan=this.value" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/></td>
+function renderAuditDirectTable(){
+  const tbody = document.getElementById('auditDirectTbody');
+  if(!auditDirectFiltered.length){
+    tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = auditDirectFiltered.map((it)=>{
+    // find original index in auditDirectData
+    const idx = auditDirectData.findIndex(x=>x.barang_id===it.barang_id);
+    const selisih = it.qty_fisik!=null ? (it.qty_fisik - it.qty_sistem) : null;
+    const selClass = selisih==null?'':selisih>0?'audit-selisih-plus':selisih<0?'audit-selisih-minus':'audit-selisih-zero';
+    const hasDiff = it.qty_fisik!=null && it.qty_fisik !== it.qty_sistem;
+    return `<tr style="${hasDiff?'background:rgba(79,142,247,.04)':''}">
+      <td style="font-weight:500">${it.nama}</td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${it.satuan||'—'}</td>
+      <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${it.qty_sistem<=0?'var(--danger)':'var(--accent2)'}">${(it.qty_sistem||0).toLocaleString('id-ID')}</td>
+      <td style="text-align:right">
+        <input type="number" value="${it.qty_fisik!=null?it.qty_fisik:''}" min="0" step="0.1" placeholder="—"
+          onchange="auditDirectData[${idx}].qty_fisik=this.value!==''?parseFloat(this.value):null;auditDirectData[${idx}].qty_fisik!=null&&(document.getElementById('btnSaveAudit').style.display='');filterAuditTable(document.getElementById('searchAudit').value)"
+          style="width:80px;background:var(--bg);border:1px solid ${it.qty_fisik!=null?'var(--accent)':'var(--border)'};border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;text-align:center"/>
+      </td>
+      <td style="text-align:right;font-family:var(--mono);font-size:12px" class="${selClass}">${selisih!=null?(selisih>0?'+':'')+selisih.toLocaleString('id-ID'):'—'}</td>
+      <td><input type="text" value="${it.catatan||''}" placeholder="catatan..." onchange="auditDirectData[${idx}].catatan=this.value" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none"/></td>
     </tr>`;
   }).join('');
 }
 
-async function saveAuditItemFisik(i){
-  const it=auditItems[i];
-  if(!it.id)return;
-  try{
-    await _sb.from('inventory_audit_items').update({qty_fisik:it.qty_fisik,catatan:it.catatan}).eq('id',it.id);
-    renderAuditTbody();
-  }catch(e){}
-}
-
-function tutupAudit(){auditSesi=null;auditItems=[];document.getElementById('auditSesiWrap').style.display='none'}
-
-async function selesaiAudit(){
-  if(!auditSesi)return;
-  // Reload latest fisik values
-  try{
-    const{data:ais}=await _sb.from('inventory_audit_items').select('*').eq('audit_id',auditSesi.id);
-    auditItems=ais||auditItems;
-    // Show detail modal
-    showAuditDetailModal(auditSesi,auditItems);
-  }catch(e){showToast('error','Gagal: '+e.message)}
-}
-
-let _auditDetailSesi=null;
-let _auditDetailItems=[];
-function showAuditDetailModal(sesi,items){
-  _auditDetailSesi=sesi;
-  _auditDetailItems=items;
-  const withFisik=items.filter(it=>it.qty_fisik!=null);
-  const withSelisih=withFisik.filter(it=>Math.abs((it.qty_fisik||0)-it.qty_sistem)>0);
-  const body=document.getElementById('auditDetailBody');
-  body.innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase">Total Item</div>
-        <div style="font-size:20px;font-weight:600;margin-top:4px">${items.length}</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase">Diisi</div>
-        <div style="font-size:20px;font-weight:600;margin-top:4px;color:var(--accent2)">${withFisik.length}</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase">Ada Selisih</div>
-        <div style="font-size:20px;font-weight:600;margin-top:4px;color:${withSelisih.length?'var(--danger)':'var(--accent2)'}">${withSelisih.length}</div>
-      </div>
-    </div>
-    <div style="overflow-x:auto;max-height:360px;overflow-y:auto">
-    <table class="tbl">
-      <thead><tr><th>Barang</th><th style="text-align:right">Sistem</th><th style="text-align:right">Fisik</th><th style="text-align:right">Selisih</th><th>Catatan</th></tr></thead>
-      <tbody>
-      ${items.map(it=>{
-        const s=(it.qty_fisik!=null)?(it.qty_fisik-it.qty_sistem):null;
-        return `<tr>
-          <td>${it.nama_barang} <span style="font-size:10px;color:var(--muted)">${it.satuan}</span></td>
-          <td style="text-align:right;font-family:var(--mono)">${(it.qty_sistem||0).toLocaleString('id-ID')}</td>
-          <td style="text-align:right;font-family:var(--mono)">${it.qty_fisik!=null?it.qty_fisik.toLocaleString('id-ID'):'<span style="color:var(--muted)">—</span>'}</td>
-          <td style="text-align:right;font-family:var(--mono);${s!=null&&s!==0?(s>0?'color:var(--accent2)':'color:var(--danger)'):''}">${s!=null?(s>0?'+':'')+s.toLocaleString('id-ID'):'—'}</td>
-          <td style="font-size:12px;color:var(--muted)">${it.catatan||''}</td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>
-    </div>
-  `;
-  document.getElementById('auditDetailOverlay').classList.add('show');
-}
-
-function closeAuditDetail(){document.getElementById('auditDetailOverlay').classList.remove('show')}
-function printAuditDetail(){window.print()}
-
-async function applyAuditKoreksi(){
-  if(!_auditDetailSesi||!_auditDetailItems.length)return;
-  const ok=await showConfirm({title:'✅ Terapkan Koreksi',msg:'Stok akan disesuaikan berdasarkan jumlah fisik audit. Lanjutkan?',okLabel:'Ya, Terapkan'});
+async function saveAllAuditKoreksi(){
+  const toSave = auditDirectData.filter(it=>it.qty_fisik!=null && it.qty_fisik !== it.qty_sistem);
+  if(!toSave.length){showToast('error','Tidak ada perubahan stok yang perlu disimpan');return}
+  const ok=await showConfirm({title:'✅ Simpan Koreksi Stok',msg:`Akan menyesuaikan stok ${toSave.length} barang sesuai jumlah fisik. Lanjutkan?`,okLabel:'Ya, Terapkan'});
   if(!ok)return;
+  const btn=document.getElementById('btnSaveAudit');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
   try{
-    const tgl=_auditDetailSesi.tanggal||todayStr();
-    for(const it of _auditDetailItems){
-      if(it.qty_fisik==null)continue;
-      const selisih=it.qty_fisik-it.qty_sistem;
-      // Update stok
+    const tgl=todayStr();
+    for(const it of toSave){
+      const selisih=it.qty_fisik - it.qty_sistem;
       await _sb.from('inventory_stock').upsert({brand_id:currentBrand.id,barang_id:it.barang_id,qty:it.qty_fisik,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
       if(!stockMap[it.barang_id])stockMap[it.barang_id]={qty:0,min_qty:0};
       stockMap[it.barang_id].qty=it.qty_fisik;
-      // Log koreksi
-      if(selisih!==0){
-        await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:it.barang_id,tipe:'audit',qty:Math.abs(selisih),catatan:`Koreksi audit: ${_auditDetailSesi.nama}. Selisih: ${selisih>0?'+':''}${selisih}`,oleh:currentPemesan.kode,tanggal:tgl});
-      }
+      await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:it.barang_id,tipe:'audit',qty:Math.abs(selisih),catatan:`Koreksi audit fisik. Selisih: ${selisih>0?'+':''}${selisih}${it.catatan?' — '+it.catatan:''}`,oleh:currentPemesan.kode,tanggal:tgl});
     }
-    // Mark audit selesai
-    await _sb.from('inventory_audit').update({status:'selesai'}).eq('id',_auditDetailSesi.id);
-    closeAuditDetail();
-    tutupAudit();
+    showToast('success',`✓ ${toSave.length} item berhasil dikoreksi`);
+    // reset qty_fisik after save
+    auditDirectData.forEach(it=>{if(it.qty_fisik!=null&&it.qty_fisik!==it.qty_sistem){it.qty_sistem=it.qty_fisik;}it.qty_fisik=null;it.catatan='';});
+    filterAuditTable(document.getElementById('searchAudit')?.value||'');
     loadAuditHistory();
-    showToast('success','✓ Koreksi stok berhasil diterapkan!');
+    btn.style.display='none';
   }catch(e){showToast('error','Gagal: '+e.message)}
+  btn.innerHTML='✅ Simpan Koreksi';btn.disabled=false;
 }
 
 async function loadAuditHistory(){
   const tbody=document.getElementById('auditHistoryTbody');
   try{
-    const{data}=await _sb.from('inventory_audit').select('*,inventory_audit_items(id,selisih)').eq('brand_id',currentBrand.id).order('created_at',{ascending:false}).limit(20);
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada audit</div></div></td></tr>';return}
-    tbody.innerHTML=data.map(a=>{
-      const items=a.inventory_audit_items||[];
-      const withSelisih=items.filter(it=>it.selisih!=null&&it.selisih!==0).length;
+    const{data}=await _sb.from('inventory_log').select('*,barang(nama,satuan)').eq('brand_id',currentBrand.id).eq('tipe','audit').order('created_at',{ascending:false}).limit(30);
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada koreksi</div></div></td></tr>';return}
+    tbody.innerHTML=data.map(r=>{
+      const selisihMatch=r.catatan?.match(/Selisih: ([+\-\d.]+)/);
+      const selisihVal=selisihMatch?parseFloat(selisihMatch[1]):0;
       return `<tr>
-        <td style="font-weight:500">${a.nama}</td>
-        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${a.tanggal||'—'}</td>
-        <td><span class="badge badge-blue">${items.length} item</span></td>
-        <td>${withSelisih?`<span class="badge badge-red">${withSelisih} selisih</span>`:'<span class="badge badge-green">Sesuai</span>'}</td>
-        <td>
-          <div style="display:flex;gap:4px">
-            <button class="btn btn-ghost btn-sm" onclick="viewAuditById('${a.id}')">👁 Lihat</button>
-            ${a.status==='draft'?`<span class="badge badge-orange">Draft</span>`:'<span class="badge badge-green">Selesai</span>'}
-          </div>
-        </td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.tanggal||'—'}</td>
+        <td style="font-weight:500">${r.barang?.nama||'—'}</td>
+        <td style="font-family:var(--mono);font-weight:600;color:${selisihVal>0?'var(--accent2)':selisihVal<0?'var(--danger)':'var(--muted)'}">${selisihVal>0?'+':''}${selisihVal.toLocaleString('id-ID')} <span style="font-size:10px;color:var(--muted)">${r.barang?.satuan||''}</span></td>
+        <td style="font-size:12px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.catatan||'—'}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.oleh||'—'}</td>
       </tr>`;
     }).join('');
   }catch(e){tbody.innerHTML='<tr><td colspan="5" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
-}
-
-async function viewAuditById(id){
-  try{
-    const{data:sesi}=await _sb.from('inventory_audit').select('*').eq('id',id).single();
-    const{data:items}=await _sb.from('inventory_audit_items').select('*').eq('audit_id',id);
-    showAuditDetailModal(sesi,items||[]);
-    if(sesi.status==='selesai'){
-      document.getElementById('btnApplyKoreksi').style.display='none';
-    }else{
-      document.getElementById('btnApplyKoreksi').style.display='';
-    }
-  }catch(e){showToast('error','Gagal memuat: '+e.message)}
 }
 
 // ══════════════════════════════════════════
@@ -1667,13 +1669,10 @@ function showToast(type,msg){
 // RESPONSIVE
 // ══════════════════════════════════════════
 function checkResponsive(){
-  const ioGrid=document.getElementById('ioGrid');
   const trGrid=document.getElementById('transferGrid');
   if(window.innerWidth<=700){
-    if(ioGrid)ioGrid.style.gridTemplateColumns='1fr';
     if(trGrid)trGrid.style.gridTemplateColumns='1fr';
   }else{
-    if(ioGrid)ioGrid.style.gridTemplateColumns='1fr 340px';
     if(trGrid)trGrid.style.gridTemplateColumns='1fr 1fr';
   }
 }

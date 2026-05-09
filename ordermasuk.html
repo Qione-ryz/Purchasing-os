@@ -16,7 +16,7 @@
   (function(){ try { if(localStorage.getItem('appTheme')==='light') document.documentElement.classList.add('light-mode'); } catch(e){} })();
 </script>
 <script src="ppn.js"></script>
-<script src="sidebar.js" defer></script>
+<script src="sidebar.js"></script>
 <script src="push-setup.js" defer></script>
 </head>
 <body>
@@ -452,6 +452,98 @@ const PER_PAGE = 15;
 //   -- Pendekatan 1: kunci pembelian ke order item spesifik (mencegah bug FIFO)
 //   ALTER TABLE riwayat_beli_items ADD COLUMN IF NOT EXISTS order_item_id UUID REFERENCES order_items(id) ON DELETE SET NULL;
 //   CREATE INDEX IF NOT EXISTS idx_rbi_order_item_id ON riwayat_beli_items(order_item_id);
+//
+//   -- Draft pembelian otomatis saat "Tandai Dipesan"
+//   ALTER TABLE order_items ADD COLUMN IF NOT EXISTS draft_beli_id UUID REFERENCES riwayat_beli(id) ON DELETE SET NULL;
+//   CREATE INDEX IF NOT EXISTS idx_oi_draft_beli_id ON order_items(draft_beli_id);
+
+// ═══════════════════════════════════════════════
+// DRAFT PEMBELIAN OTOMATIS
+// Dipanggil saat toggle "Dipesan" ON/OFF
+// ═══════════════════════════════════════════════
+
+// Ambil harga terakhir dari riwayat_harga untuk barang + vendor tertentu
+async function _getLastHarga(barangId, vendorId) {
+  if (!barangId || !vendorId) return null;
+  try {
+    const { data } = await _sb.from('riwayat_harga')
+      .select('harga')
+      .eq('barang_id', barangId)
+      .eq('vendor_id', vendorId)
+      .order('tanggal', { ascending: false })
+      .limit(1)
+      .single();
+    return data?.harga || null;
+  } catch { return null; }
+}
+
+// Buat satu draft riwayat_beli untuk satu vendor + kumpulan order_items
+// itemInfos: [{ itemId, barangId, nama, satuan, qty, faktor }]
+async function _createDraftBeli(brandId, vendorId, itemInfos) {
+  if (!brandId || !vendorId || !itemInfos.length) return null;
+  try {
+    // 1. Buat header riwayat_beli (status: pending, tanpa faktur)
+    const { data: beliHeader, error: e1 } = await _sb.from('riwayat_beli').insert({
+      brand_id:  brandId,
+      vendor_id: vendorId,
+      tanggal:   new Date().toISOString().split('T')[0],
+      status:    'pending',
+      catatan:   '🕐 Draft otomatis dari Order Masuk',
+    }).select().single();
+    if (e1) throw e1;
+    const beliId = beliHeader.id;
+
+    // 2. Fetch harga terakhir semua barang dari vendor ini (paralel)
+    const hargaArr = await Promise.all(
+      itemInfos.map(it => _getLastHarga(it.barangId, vendorId))
+    );
+
+    // 3. Insert riwayat_beli_items dengan harga estimasi
+    const itemPayloads = itemInfos.map((it, i) => ({
+      beli_id:       beliId,
+      barang_id:     it.barangId || null,
+      nama:          it.nama || '',
+      satuan:        it.satuan || '',
+      qty:           (it.qty || 1) * (it.faktor || 1),
+      harga_satuan:  hargaArr[i] || 0,
+      order_item_id: it.itemId,
+    }));
+    const { error: e2 } = await _sb.from('riwayat_beli_items').insert(itemPayloads);
+    if (e2) throw e2;
+
+    // 4. Tandai setiap order_item dengan draft_beli_id
+    const updatePromises = itemInfos.map(it =>
+      _sb.from('order_items').update({ draft_beli_id: beliId }).eq('id', it.itemId)
+    );
+    await Promise.all(updatePromises);
+
+    return beliId;
+  } catch(e) {
+    console.error('[_createDraftBeli]', e);
+    return null;
+  }
+}
+
+// Hapus draft riwayat_beli — hanya jika masih status 'pending'
+// Jika sudah diubah jadi selesai/batal oleh user, biarkan
+async function _deleteDraftBeli(beliId) {
+  if (!beliId) return;
+  try {
+    // Cek status dulu — jangan hapus kalau sudah diproses user
+    const { data: beli } = await _sb.from('riwayat_beli')
+      .select('status').eq('id', beliId).single();
+    if (!beli || beli.status !== 'pending') return;
+
+    // Reset draft_beli_id di semua order_items yang merujuk ke draft ini
+    await _sb.from('order_items').update({ draft_beli_id: null }).eq('draft_beli_id', beliId);
+
+    // Hapus items lalu header
+    await _sb.from('riwayat_beli_items').delete().eq('beli_id', beliId);
+    await _sb.from('riwayat_beli').delete().eq('id', beliId);
+  } catch(e) {
+    console.error('[_deleteDraftBeli]', e);
+  }
+}
 
 async function supaGet(table, q='') {
   const params = q ? new URLSearchParams(q) : null;
@@ -528,7 +620,43 @@ async function _aksiOrderedGroup(groupKey, orderId, allOrdered) {
       .update({ status_item: newStatus })
       .in('id', ids);
     if (error) throw error;
-    showToast('success', allOrdered ? '↩ Tanda dipesan dihapus' : '✓ Semua item vendor ditandai dipesan');
+
+    if (allOrdered) {
+      // Toggle OFF — hapus draft pending yang terkait (jika ada)
+      const { data: itemRows } = await _sb.from('order_items')
+        .select('draft_beli_id').in('id', ids).not('draft_beli_id', 'is', null).limit(1);
+      const draftId = itemRows?.[0]?.draft_beli_id;
+      if (draftId) await _deleteDraftBeli(draftId);
+      showToast('success', '↩ Tanda dipesan dihapus');
+    } else {
+      // Toggle ON — buat draft otomatis
+      const vendorId = window._groupVendorMap?.[groupKey] || null;
+      const order    = allOrders.find(o => o.id === orderId);
+      const brandId  = order?.brand_id || null;
+
+      if (vendorId && brandId) {
+        const { data: itemRows } = await _sb.from('order_items')
+          .select('id,barang_id,nama_barang,satuan,satuan_db,qty_order,faktor_konversi')
+          .in('id', ids);
+        const itemInfos = (itemRows || []).map(it => ({
+          itemId:   it.id,
+          barangId: it.barang_id,
+          nama:     it.nama_barang,
+          satuan:   it.satuan_db || it.satuan || '',
+          qty:      it.qty_order,
+          faktor:   it.faktor_konversi || 1,
+        }));
+        const beliId = await _createDraftBeli(brandId, vendorId, itemInfos);
+        if (beliId) {
+          showToast('success', '✓ Semua item ditandai dipesan · Draft pembelian dibuat');
+        } else {
+          showToast('success', '✓ Semua item vendor ditandai dipesan');
+        }
+      } else {
+        showToast('success', '✓ Semua item vendor ditandai dipesan');
+      }
+    }
+
     await _refreshDetailBody(orderId);
   } catch(e) { showToast('error', '✕ Gagal: ' + e.message); }
 }
@@ -559,12 +687,13 @@ window.flatBulkUnordered = flatBulkUnordered;
 
 // Toggle ordered status — hanya indikator, tidak mempengaruhi progress/FIFO
 async function _aksiOrdered(itemId, orderId) {
-  // Cari item di itemsArr cache
   const modal = document.getElementById('modalDetail');
   if (!modal) return;
-  // Ambil current status dari DOM (tombol yang diklik)
+
+  // Fetch current status + info item sekaligus
   const { data: itemRow } = await _sb.from('order_items')
-    .select('status_item').eq('id', itemId).single();
+    .select('status_item,draft_beli_id,barang_id,nama_barang,satuan,satuan_db,qty_order,faktor_konversi,order_id')
+    .eq('id', itemId).single();
   if (!itemRow) return;
 
   const curStatus = itemRow.status_item || 'pending';
@@ -576,9 +705,45 @@ async function _aksiOrdered(itemId, orderId) {
     .eq('id', itemId);
   if (error) { showToast('error', '✕ Gagal: ' + error.message); return; }
 
-  showToast('success', newStatus === 'ordered'
-    ? '🛒 Item ditandai sudah dipesan'
-    : '↩ Tanda dipesan dihapus');
+  if (newStatus === 'ordered') {
+    // Toggle ON — buat draft pembelian
+    // Ambil brand dari order parent
+    const order = allOrders.find(o => o.id === orderId);
+    const brandId = order?.brand_id || null;
+
+    // Cari vendor terbaik dari riwayat_harga untuk barang ini
+    let vendorId = null;
+    if (itemRow.barang_id) {
+      const { data: hRows } = await _sb.from('riwayat_harga')
+        .select('vendor_id,harga,tanggal')
+        .eq('barang_id', itemRow.barang_id)
+        .not('vendor_id', 'is', null)
+        .order('tanggal', { ascending: false })
+        .limit(1);
+      vendorId = hRows?.[0]?.vendor_id || null;
+    }
+
+    if (brandId && vendorId) {
+      const itemInfos = [{
+        itemId:   itemId,
+        barangId: itemRow.barang_id,
+        nama:     itemRow.nama_barang,
+        satuan:   itemRow.satuan_db || itemRow.satuan || '',
+        qty:      itemRow.qty_order,
+        faktor:   itemRow.faktor_konversi || 1,
+      }];
+      const beliId = await _createDraftBeli(brandId, vendorId, itemInfos);
+      showToast('success', beliId
+        ? '🛒 Item ditandai dipesan · Draft pembelian dibuat'
+        : '🛒 Item ditandai sudah dipesan');
+    } else {
+      showToast('success', '🛒 Item ditandai sudah dipesan');
+    }
+  } else {
+    // Toggle OFF — hapus draft jika masih pending
+    if (itemRow.draft_beli_id) await _deleteDraftBeli(itemRow.draft_beli_id);
+    showToast('success', '↩ Tanda dipesan dihapus');
+  }
 
   // Refresh detail modal tanpa menutup/membuka ulang
   await _refreshDetailBody(orderId);
@@ -1886,6 +2051,7 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     // Simpan IDs ke registry global — hindari encoding dalam onclick string
     const _gKey = groupId + '_' + o.id;
     if (groupId) window._groupItemIds[_gKey] = orderableItems.map(it => it.id);
+    if (groupId) { window._groupVendorMap = window._groupVendorMap || {}; window._groupVendorMap[_gKey] = groupId; }
     const groupBulkBtn = (!_isReadOnly() && orderableItems.length > 0 && groupId) ? `
       <button class="btn btn-sm"
         onclick="event.stopPropagation();_aksiOrderedGroup('${_gKey}','${o.id}',${allOrdered})"
@@ -2999,6 +3165,19 @@ function showConfirm(title, body, onOk) {
 function initSidebar() {
   if (typeof renderSidebar === 'function') {
     renderSidebar('ordermasuk.html', 'Filter Brand', '', { hideBrandSelector: true });
+  } else {
+    // sidebar.js belum selesai dimuat (race condition) — retry hingga siap
+    let attempts = 0;
+    const retry = setInterval(() => {
+      attempts++;
+      if (typeof renderSidebar === 'function') {
+        clearInterval(retry);
+        renderSidebar('ordermasuk.html', 'Filter Brand', '', { hideBrandSelector: true });
+      } else if (attempts >= 20) {
+        clearInterval(retry);
+        console.warn('[initSidebar] renderSidebar tidak tersedia setelah 2 detik');
+      }
+    }, 100);
   }
 }
 
