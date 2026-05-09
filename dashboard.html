@@ -460,8 +460,17 @@
   function brandBadge(brandId) {
     const name = window.brandMap?.[brandId] || brandId || '—';
     const color = getBrandColor(brandId);
-    // derive background as 15% opacity of the brand color
     return `<span class="badge" style="color:${color};background:${color}26;border:1px solid ${color}40">${name}</span>`;
+  }
+
+  function brandBadges(brandsSet) {
+    const arr = [...(brandsSet||[])];
+    if (!arr.length) return '—';
+    const first = brandBadge(arr[0]);
+    if (arr.length === 1) return first;
+    const color = 'var(--muted)';
+    const more = `<span class="badge" style="color:${color};background:rgba(107,114,128,0.15);border:1px solid rgba(107,114,128,0.25);cursor:default" title="${arr.slice(1).map(b=>window.brandMap?.[b]||b).join(', ')}">+${arr.length-1}</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap">${first}${more}</span>`;
   }
 
   function relativeTime(date) {
@@ -550,7 +559,7 @@
       const { data: beliRows } = await q;
       const filtered = (beliRows||[]).filter(r => isAll || selectedBrands.includes(r.brand_id));
       animateCount('statBeli', filtered.length);
-      document.getElementById('statTotal').textContent = formatRp(filtered.reduce((s,r)=>s+(r.total||0),0));
+      document.getElementById('statTotal').textContent = formatRp(toIncPPN(filtered.reduce((s,r)=>s+(r.total||0),0)));
     } catch(e) { document.getElementById('statBeli').textContent='—'; document.getElementById('statTotal').textContent='—'; }
 
     loadBarChart(selectedBrands);
@@ -599,7 +608,7 @@
       if (!r.tanggal) return;
       if (!isAll && !selectedBrands.includes(r.brand_id)) return;
       const key = r.tanggal.slice(0, 7);
-      if (key in monthTotals) monthTotals[key] += r.total || 0;
+      if (key in monthTotals) monthTotals[key] += toIncPPN(r.total || 0);
     });
 
     const months = [], values = [];
@@ -647,7 +656,7 @@
           <td><span class="td-mono-date">${tgl}</span></td>
           <td>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'—'}</td>
           <td style="display:${isSingle?'none':''}"><span>${brandBadge(r.brand_id)}</span></td>
-          <td class="td-mono" style="white-space:nowrap">${formatRp(r.total||0)}</td>
+          <td class="td-mono" style="white-space:nowrap">${formatRp(toIncPPN(r.total||0))}</td>
           <td><span class="badge ${badgeClass}">${status}</span></td>
         </tr>`;
       }).join('');
@@ -672,7 +681,7 @@
       const satuan = window.barangSatuanMap?.[id]||'', qty = Number.isInteger(d.qty) ? d.qty : parseFloat(d.qty.toFixed(3));
       return `<tr>
         <td>${d.nama}</td>
-        <td style="display:${isSingle?'none':''}"><span>${brandBadge(d.brand)}</span></td>
+        <td style="display:${isSingle?'none':''}"><span>${brandBadges(d.brands)}</span></td>
         <td><span class="td-mono">${d.freq}×</span></td>
         <td><span class="td-mono">${qty}${satuan?' <span class="td-mono-sm">'+satuan+'</span>':''}</span></td>
         <td><span class="td-mono">${formatRp(d.totalBelanja)}</span></td>
@@ -697,8 +706,9 @@
         if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
         (tx.riwayat_beli_items||[]).forEach(item => {
           const bid = item.barang_id; if (!bid) return;
-          if (!agg[bid]) agg[bid] = { freq:0, qty:0, totalBelanja:0, nama:item.nama||bid, brand:item.brand_id||tx.brand_id };
-          agg[bid].freq++; agg[bid].qty += item.qty||0; agg[bid].totalBelanja += (item.qty||0)*(item.harga_satuan||0);
+          if (!agg[bid]) agg[bid] = { freq:0, qty:0, totalBelanja:0, nama:item.nama||bid, brands:new Set() };
+          const itemBrand = item.brand_id||tx.brand_id; if (itemBrand) agg[bid].brands.add(itemBrand);
+          agg[bid].freq++; agg[bid].qty += item.qty||0; agg[bid].totalBelanja += toIncPPN((item.qty||0)*(item.harga_satuan||0));
         });
       });
       const sorted = Object.entries(agg).sort((a,b) => sortBy==='freq' ? b[1].freq-a[1].freq : b[1].totalBelanja-a[1].totalBelanja).slice(0,10);
@@ -724,8 +734,9 @@
         if (!isAll && !selectedBrands.includes(tx.brand_id)) return;
         (tx.riwayat_beli_items||[]).forEach(item => {
           const bid = item.barang_id; if (!bid) return;
-          if (!agg[bid]) agg[bid] = { qty:0, totalBelanja:0, nama:item.nama||bid, brand:item.brand_id||tx.brand_id };
-          agg[bid].qty += item.qty||0; agg[bid].totalBelanja += (item.qty||0)*(item.harga_satuan||0);
+          if (!agg[bid]) agg[bid] = { qty:0, totalBelanja:0, nama:item.nama||bid, brands:new Set() };
+          const itemBrand = item.brand_id||tx.brand_id; if (itemBrand) agg[bid].brands.add(itemBrand);
+          agg[bid].qty += item.qty||0; agg[bid].totalBelanja += toIncPPN((item.qty||0)*(item.harga_satuan||0));
         });
       });
       const sorted = Object.entries(agg).sort((a,b)=>b[1].totalBelanja-a[1].totalBelanja).slice(0,10);
@@ -737,7 +748,7 @@
         return `<tr>
           <td><span class="td-mono-muted">${idx+1}</span></td>
           <td>${d.nama}</td>
-          <td style="display:${isSingle?'none':''}"><span>${brandBadge(d.brand)}</span></td>
+          <td style="display:${isSingle?'none':''}"><span>${brandBadges(d.brands)}</span></td>
           <td><span class="td-mono">${qty}${satuan?' <span class="td-mono-sm">'+satuan+'</span>':''}</span></td>
           <td><span class="td-mono-green">${formatRp(d.totalBelanja)}</span></td>
         </tr>`;
@@ -752,7 +763,7 @@
     const isAll = !selectedBrands?.length, tbody = document.getElementById('tabelVendorKasta'), { fromVal, toVal } = getDateRange();
     document.getElementById('vendorKastaPeriodBadge').textContent = document.getElementById('dashDateLabel').textContent;
     try {
-      let q = window._sb.from('riwayat_beli').select('vendor_id,brand_id,total').eq('status','selesai');
+      let q = window._sb.from('riwayat_beli').select('vendor_id,brand_id,riwayat_beli_items(qty,harga_satuan)').eq('status','selesai');
       if (fromVal) q=q.gte('tanggal',fromVal); if (toVal) q=q.lte('tanggal',toVal);
       const { data: rows } = await q;
       const agg = {};
@@ -760,7 +771,10 @@
         if (!isAll && !selectedBrands.includes(r.brand_id)) return;
         const vid = r.vendor_id; if (!vid) return;
         if (!agg[vid]) agg[vid]={ transaksi:0, total:0 };
-        agg[vid].transaksi++; agg[vid].total += r.total||0;
+        agg[vid].transaksi++;
+        (r.riwayat_beli_items||[]).forEach(item => {
+          agg[vid].total += toIncPPN((item.qty||0)*(item.harga_satuan||0));
+        });
       });
       const sorted = Object.entries(agg).sort((a,b)=>b[1].total-a[1].total);
       if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Belum ada data</td></tr>`; return; }
@@ -804,7 +818,7 @@
         return `<div class="activity-item">
           <div class="activity-dot" style="background:var(--accent2)"></div>
           <div class="activity-body">
-            <div class="activity-text">Pembelian dari <strong>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'Vendor'}</strong> — ${items} item${items>1?'s':''} · ${formatRp(r.total||0)}</div>
+            <div class="activity-text">Pembelian dari <strong>${window.vendorMap?.[r.vendor_id]||r.vendor_id||'Vendor'}</strong> — ${items} item${items>1?'s':''} · ${formatRp(toIncPPN(r.total||0))}</div>
             <div class="activity-time">${rel}</div>
           </div>
         </div>`;

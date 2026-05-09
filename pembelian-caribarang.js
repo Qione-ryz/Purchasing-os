@@ -70,7 +70,7 @@ function cbSortBy(field) {
     PageState.cbSortDir   = 'desc';
   }
   // Reset sort indicators
-  ['nama','sku','brand','kategori','totalQty','totalExc','totalInc','transaksi'].forEach(f => {
+  ['nama','sku','brand','kategori','totalQty','totalInc','transaksi'].forEach(f => {
     const el = document.getElementById('cbsort-' + f);
     if (el) el.textContent = '↕';
   });
@@ -105,7 +105,9 @@ async function cbFetch() {
   document.getElementById('cbPagin').style.display = 'none';
 
   try {
-    const brand    = document.getElementById('cbFilterBrand').value;
+    // Gunakan multi-brand dari PageState, fallback ke select tersembunyi
+    const selectedBrands = (PageState.cbSelectedBrands || []);
+    const singleBrand    = document.getElementById('cbFilterBrand').value;
     const dateFrom = document.getElementById('cbDateFrom').value;
     const dateTo   = document.getElementById('cbDateTo').value;
 
@@ -113,7 +115,13 @@ async function cbFetch() {
       .from('riwayat_beli_items')
       .select('nama, sku, satuan, brand_id, qty, harga_exc_ppn, harga_inc_ppn, harga_satuan, riwayat_beli!inner(tanggal, status, brand_id)');
 
-    if (brand)    q = q.eq('brand_id', brand);
+    if (selectedBrands.length === 1) {
+      q = q.eq('brand_id', selectedBrands[0]);
+    } else if (selectedBrands.length > 1) {
+      q = q.in('brand_id', selectedBrands);
+    } else if (singleBrand) {
+      q = q.eq('brand_id', singleBrand);
+    }
     if (dateFrom) q = q.gte('riwayat_beli.tanggal', dateFrom);
     if (dateTo)   q = q.lte('riwayat_beli.tanggal', dateTo);
 
@@ -216,15 +224,19 @@ function cbRenderFlat(tbody, total) {
   const slice = PageState.cbFiltered.slice(start, start + CB_PER_PAGE);
 
   tbody.innerHTML = slice.map(r => {
-    const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
+    const brandObj   = (window.allBrands || []).find(b => b.id === r.brand_id);
+    const brandNama  = brandObj?.nama || '—';
+    const brandColor = brandObj?.warna || null;
+    const brandStyle = brandColor
+      ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55`
+      : '';
     return `<tr>
       <td style="font-weight:500">${r.nama}</td>
       <td class="td-cb-sku">${r.sku || '—'}</td>
       <td class="td-cb-satuan">${r.satuan || '—'}</td>
-      <td><span class="badge badge-blue" >${brandNama}</span></td>
+      <td><span class="badge" style="${brandStyle}">${brandNama}</span></td>
       <td class="td-cb-kat">${r.kategori || '—'}</td>
       <td style="text-align:right;font-family:var(--mono);font-weight:600">${_cbFmtQty(r.totalQty)}</td>
-      <td style="text-align:right;font-family:var(--mono)">${_cbFmt(r.totalExc)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--accent3)">${_cbFmt(r.totalInc)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--muted)">${r.transaksi}x</td>
     </tr>`;
@@ -275,15 +287,15 @@ async function cbExport() {
     const dateTo   = document.getElementById('cbDateTo').value   || 'semua';
 
     const rows = [
-      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Exc PPN)','Total Nilai (Inc PPN)','Jumlah Transaksi']
+      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Inc PPN)','Jumlah Transaksi']
     ];
     PageState.cbFiltered.forEach(r => {
       const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
-      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalExc, r.totalInc, r.transaksi]);
+      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalInc, r.transaksi]);
     });
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [28,14,10,16,14,10,20,20,16].map(w => ({ wch: w }));
+    ws['!cols'] = [28,14,10,16,14,10,20,16].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, 'Rekap Barang');
     const tgl = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `rekap_barang_${dateFrom}_sd_${dateTo}_${tgl}.xlsx`);

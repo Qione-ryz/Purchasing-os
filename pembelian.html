@@ -512,13 +512,12 @@
                 <th onclick="cbSortBy('brand')">Brand <span id="cbsort-brand">↕</span></th>
                 <th onclick="cbSortBy('kategori')" id="cbThKategori">Kategori <span id="cbsort-kategori">↕</span></th>
                 <th onclick="cbSortBy('totalQty')" style="text-align:right">Total Qty <span id="cbsort-totalQty">↕</span></th>
-                <th onclick="cbSortBy('totalExc')" style="text-align:right">Total Nilai (Exc PPN) <span id="cbsort-totalExc">↑</span></th>
                 <th onclick="cbSortBy('totalInc')" style="text-align:right">Total Nilai (Inc PPN) <span id="cbsort-totalInc">↕</span></th>
                 <th onclick="cbSortBy('transaksi')" style="text-align:right">Transaksi <span id="cbsort-transaksi">↕</span></th>
               </tr>
             </thead>
             <tbody id="cbTableBody">
-              <tr><td colspan="10"><div class="empty-state">
+              <tr><td colspan="9"><div class="empty-state">
                 <div class="empty-icon">🔍</div>
                 <div class="empty-text">Memuat data...</div>
               </div></td></tr>
@@ -587,6 +586,45 @@
     </div>
     <div class="modal-body" id="editBody">
       <div id="editError" class="error-box"></div>
+
+      <!-- ── SCAN INVOICE (Edit Modal) ── -->
+      <div id="editScanWrapper" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <input type="file" id="editScanInput" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none"/>
+        <button type="button" id="btnEditScan"
+          style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(79,142,247,0.1);border:1px dashed rgba(79,142,247,0.4);border-radius:8px;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;width:100%;justify-content:center;transition:all .2s;font-family:var(--sans)"
+          onmouseover="this.style.background='rgba(79,142,247,0.18)';this.style.borderColor='var(--accent)'"
+          onmouseout="this.style.background='rgba(79,142,247,0.1)';this.style.borderColor='rgba(79,142,247,0.4)'"
+          onclick="document.getElementById('editScanExpandZone').classList.toggle('open')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          📄 Scan Invoice Otomatis
+        </button>
+        <!-- Expand zone -->
+        <div class="scan-expand-zone" id="editScanExpandZone" style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div class="scan-ez-title">📄 Upload Invoice</div>
+            <button class="scan-ez-close" type="button" onclick="document.getElementById('editScanExpandZone').classList.remove('open')">✕</button>
+          </div>
+          <div class="scan-ez-sub">
+            Drag &amp; drop file ke area ini, atau tekan <span class="scan-ez-kbd">Ctrl+V</span> untuk paste dari clipboard
+          </div>
+          <div class="scan-ez-actions">
+            <button type="button" class="scan-ez-btn primary" onclick="document.getElementById('editScanInput').click()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Pilih File
+            </button>
+            <button type="button" class="scan-ez-btn" onclick="editScanPasteClipboard()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Paste dari Clipboard
+            </button>
+          </div>
+          <div class="scan-ez-formats">JPG · PNG · PDF · maks 10MB</div>
+        </div>
+        <!-- Preview -->
+        <div class="scan-preview-box" id="editScanPreviewBox" style="margin-top:8px">
+          <div class="scan-preview-name" id="editScanFileName">—</div>
+          <div id="editScanStatusBadge"></div>
+        </div>
+      </div>
 
       <div class="field-row" style="margin-bottom:14px">
         <div class="field">
@@ -743,7 +781,7 @@
     cbPage    : 1,
     cbInited  : false,
     cbTimer   : null,
-    cbSortField: 'totalExc',
+    cbSortField: 'totalInc',
     cbSortDir  : 'desc',
   };
   window.PageState = PageState;
@@ -1425,17 +1463,27 @@
     ).join('');
   }
 
+  function _positionCbDropdown() {
+    const dd  = document.getElementById('cbBrandFilterDropdown');
+    const btn = document.getElementById('cbBrandFilterBtn');
+    if (!dd || !btn || dd.style.display === 'none') return;
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
+  }
+
   function toggleCbBrandDropdown(e) {
     e.stopPropagation();
     const dd  = document.getElementById('cbBrandFilterDropdown');
     const btn = document.getElementById('cbBrandFilterBtn');
     if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
-    const rect = btn.getBoundingClientRect();
-    dd.style.left  = rect.left + 'px';
-    dd.style.top   = (rect.bottom + 4) + 'px';
-    dd.style.width = Math.max(rect.width, 200) + 'px';
+    _positionCbDropdown();
     dd.style.display = 'block';
   }
+
+  window.addEventListener('scroll', _positionCbDropdown, true);
+  window.addEventListener('resize', _positionCbDropdown);
 
   function toggleCbBrand(e, id) {
     e.stopPropagation();
@@ -3033,6 +3081,188 @@
   }
 
   /* ══════════════════════════════════════════
+     SCAN INVOICE — EDIT MODAL
+     Menggunakan fungsi scan yang sama dari scan-invoice.js,
+     tapi hasilnya diterapkan ke editItems (bukan form utama).
+  ══════════════════════════════════════════ */
+  (function initEditScan() {
+    // Tunggu DOM siap
+    function setup() {
+      const input     = document.getElementById('editScanInput');
+      const ez        = document.getElementById('editScanExpandZone');
+      if (!input || !ez) return;
+
+      // File input change
+      input.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        if (file) handleEditScanFile(file);
+        input.value = '';
+      });
+
+      // Drag & drop ke expand zone
+      ez.addEventListener('dragover', e => { e.preventDefault(); ez.classList.add('dragover'); });
+      ez.addEventListener('dragleave', () => ez.classList.remove('dragover'));
+      ez.addEventListener('drop', e => {
+        e.preventDefault();
+        ez.classList.remove('dragover');
+        const file = e.dataTransfer.files?.[0];
+        if (file) handleEditScanFile(file);
+      });
+
+      // Paste dari keyboard saat modal edit terbuka
+      document.addEventListener('paste', e => {
+        if (!document.getElementById('editOverlay')?.classList.contains('show')) return;
+        const items = e.clipboardData?.items || [];
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            handleEditScanFile(item.getAsFile());
+            break;
+          }
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setup);
+    } else {
+      setup();
+    }
+  })();
+
+  function editScanPasteClipboard() {
+    navigator.clipboard.read().then(items => {
+      for (const item of items) {
+        const imgType = item.types.find(t => t.startsWith('image/'));
+        if (imgType) {
+          item.getType(imgType).then(blob => handleEditScanFile(new File([blob], 'clipboard.png', { type: imgType })));
+          return;
+        }
+      }
+      if (typeof showToast === 'function') showToast('Tidak ada gambar di clipboard', 'error');
+    }).catch(() => {
+      if (typeof showToast === 'function') showToast('Gagal akses clipboard. Coba paste langsung (Ctrl+V)', 'error');
+    });
+  }
+
+  async function handleEditScanFile(file) {
+    if (!file) return;
+
+    // Tutup expand zone, tampilkan preview
+    const ez       = document.getElementById('editScanExpandZone');
+    const prevBox  = document.getElementById('editScanPreviewBox');
+    const prevName = document.getElementById('editScanFileName');
+    const prevBadge= document.getElementById('editScanStatusBadge');
+    if (ez)       ez.classList.remove('open');
+    if (prevBox)  prevBox.classList.add('show');
+    if (prevName) prevName.textContent = file.name;
+    if (prevBadge) prevBadge.innerHTML = '<span class="scan-result-badge ok"><span class="scan-spinner"></span> Memproses invoice...</span>';
+
+    // Disable tombol scan
+    const btn = document.getElementById('btnEditScan');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="scan-spinner"></span> Memindai...'; }
+
+    try {
+      // Gunakan handleInvoiceFile dari scan-invoice.js tapi dengan callback custom
+      // Kita manfaatkan showScanItemsModal yang sudah ada, lalu override apply-nya
+      // ── Baca file sebagai base64 ──
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = () => rej(new Error('Gagal baca file'));
+        r.readAsDataURL(file);
+      });
+
+      // Panggil Claude API via scan-invoice (gunakan fungsi internal yang sama)
+      // Kita set flag agar applyScanItems tahu ini mode edit
+      window._editScanMode = true;
+      window._editScanCallback = applyEditScanItems;
+
+      // Simulasikan file upload ke handler asli — pakai FileList trick
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const fakeInput = document.createElement('input');
+      fakeInput.type = 'file';
+      Object.defineProperty(fakeInput, 'files', { value: dt.files });
+
+      // Panggil handleInvoiceFile dari scan-invoice.js
+      if (typeof handleInvoiceFile === 'function') {
+        await handleInvoiceFile({ target: fakeInput });
+        if (prevBadge) prevBadge.innerHTML = '<span class="scan-result-badge ok">✓ Invoice berhasil dipindai — lihat modal review</span>';
+      } else {
+        throw new Error('Fungsi scan tidak tersedia');
+      }
+    } catch(e) {
+      if (prevBadge) prevBadge.innerHTML = `<span class="scan-result-badge err">✕ Gagal: ${e.message}</span>`;
+      if (typeof showToast === 'function') showToast('Gagal scan invoice: ' + e.message, 'error');
+    } finally {
+      window._editScanMode = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> 📄 Scan Invoice Otomatis';
+      }
+    }
+  }
+
+  // Dipanggil oleh scan-invoice.js saat user klik "Terapkan" di modal review
+  // (override applyScanItems ketika _editScanMode = true)
+  function applyEditScanItems(scanData) {
+    if (!scanData?.items?.length) return;
+    const ppnRate = (window._ppnRate || 11) / 100;
+    const isInc   = editPpnMode === 'inc';
+
+    // Merge items hasil scan ke editItems
+    for (const scanItem of scanData.items) {
+      // Cari apakah barang sudah ada di list edit
+      const existing = editItems.find(ei =>
+        (scanItem.barang_id && ei.barang_id === scanItem.barang_id) ||
+        (ei.nama || '').toLowerCase() === (scanItem.nama || '').toLowerCase()
+      );
+      if (existing) {
+        // Tambah qty
+        existing.qty = (existing.qty || 1) + (scanItem.qty || 1);
+        updateEditSummary();
+      } else {
+        const excHarga = scanItem.harga_exc_ppn || scanItem.harga_satuan || 0;
+        const incHarga = scanItem.harga_inc_ppn || Math.round(excHarga * (1 + ppnRate));
+        editItems.push({
+          barang_id:    scanItem.barang_id || '',
+          nama:         scanItem.nama || '',
+          sku:          scanItem.sku || '',
+          satuan:       scanItem.satuan || '',
+          brand_id:     scanItem.brand_id || null,
+          qty:          scanItem.qty || 1,
+          harga_satuan: isInc ? incHarga : excHarga,
+          _harga_exc:   excHarga,
+          _harga_inc:   incHarga,
+        });
+      }
+    }
+
+    // Isi field jika kosong
+    if (scanData.nomor_faktur) {
+      const el = document.getElementById('eFaktur');
+      if (el && !el.value) el.value = scanData.nomor_faktur;
+    }
+    if (scanData.tanggal) {
+      const el = document.getElementById('eFTanggal');
+      if (el && !el.value) el.value = scanData.tanggal;
+    }
+    if (scanData.diskon > 0) {
+      const el = document.getElementById('eDiskon');
+      if (el && (!el.value || el.value === '0')) el.value = scanData.diskon;
+    }
+    if (scanData.ongkir > 0) {
+      const el = document.getElementById('eOngkir');
+      if (el && (!el.value || el.value === '0')) el.value = scanData.ongkir;
+    }
+
+    renderEditItems();
+    updateEditSummary();
+    if (typeof showToast === 'function') showToast(`✓ ${scanData.items.length} item dari scan diterapkan ke edit`, 'success');
+  }
+  window.applyEditScanItems = applyEditScanItems;
+
+  /* ══════════════════════════════════════════
      HELPERS
   ══════════════════════════════════════════ */
   function formatRp(n) {
@@ -3486,7 +3716,7 @@ function cbSortBy(field) {
     PageState.cbSortDir   = 'desc';
   }
   // Reset sort indicators
-  ['nama','sku','brand','kategori','totalQty','totalExc','totalInc','transaksi'].forEach(f => {
+  ['nama','sku','brand','kategori','totalQty','totalInc','transaksi'].forEach(f => {
     const el = document.getElementById('cbsort-' + f);
     if (el) el.textContent = '↕';
   });
@@ -3517,12 +3747,14 @@ function _cbSortFn() {
 /* ─── Fetch & Aggregate ─── */
 async function cbFetch() {
   const tbody = document.getElementById('cbTableBody');
-  tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span> Memuat...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span> Memuat...</td></tr>`;
   document.getElementById('cbInfo').style.display = 'none';
   document.getElementById('cbPagin').style.display = 'none';
 
   try {
-    const brand    = document.getElementById('cbFilterBrand').value;
+    // Gunakan multi-brand dari PageState, fallback ke select tersembunyi
+    const selectedBrands = (PageState.cbSelectedBrands || []);
+    const singleBrand    = document.getElementById('cbFilterBrand').value;
     const dateFrom = document.getElementById('cbDateFrom').value;
     const dateTo   = document.getElementById('cbDateTo').value;
 
@@ -3530,7 +3762,13 @@ async function cbFetch() {
       .from('riwayat_beli_items')
       .select('nama, sku, satuan, brand_id, qty, harga_exc_ppn, harga_inc_ppn, harga_satuan, riwayat_beli!inner(tanggal, status, brand_id)');
 
-    if (brand)    q = q.eq('brand_id', brand);
+    if (selectedBrands.length === 1) {
+      q = q.eq('brand_id', selectedBrands[0]);
+    } else if (selectedBrands.length > 1) {
+      q = q.in('brand_id', selectedBrands);
+    } else if (singleBrand) {
+      q = q.eq('brand_id', singleBrand);
+    }
     if (dateFrom) q = q.gte('riwayat_beli.tanggal', dateFrom);
     if (dateTo)   q = q.lte('riwayat_beli.tanggal', dateTo);
 
@@ -3579,7 +3817,7 @@ async function cbFetch() {
 
   } catch(e) {
     console.error(e);
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--danger)">Gagal memuat: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--danger)">Gagal memuat: ${e.message}</td></tr>`;
   }
 }
 
@@ -3614,7 +3852,7 @@ function cbRender() {
   }
 
   if (!total) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
       <div class="empty-icon">🔍</div>
       <div class="empty-text">Tidak ada barang ditemukan</div>
     </div></td></tr>`;
@@ -3633,15 +3871,17 @@ function cbRenderFlat(tbody, total) {
   const slice = PageState.cbFiltered.slice(start, start + CB_PER_PAGE);
 
   tbody.innerHTML = slice.map(r => {
-    const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
+    const brandObj   = (window.allBrands || []).find(b => b.id === r.brand_id);
+    const brandNama  = brandObj?.nama || '—';
+    const brandColor = brandObj?.warna || null;
+    const brandStyle = brandColor ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55` : '';
     return `<tr>
       <td style="font-weight:500">${r.nama}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.sku || '—'}</td>
       <td style="font-family:var(--mono);font-size:12px">${r.satuan || '—'}</td>
-      <td><span class="badge badge-blue" style="font-size:11px">${brandNama}</span></td>
+      <td><span class="badge" style="${brandStyle};font-size:11px">${brandNama}</span></td>
       <td style="font-size:12px;color:var(--muted)">${r.kategori || '—'}</td>
       <td style="text-align:right;font-family:var(--mono);font-weight:600">${_cbFmtQty(r.totalQty)}</td>
-      <td style="text-align:right;font-family:var(--mono)">${_cbFmt(r.totalExc)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--accent3)">${_cbFmt(r.totalInc)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--muted)">${r.transaksi}x</td>
     </tr>`;
@@ -3693,15 +3933,15 @@ async function cbExport() {
     const dateTo   = document.getElementById('cbDateTo').value   || 'semua';
 
     const rows = [
-      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Exc PPN)','Total Nilai (Inc PPN)','Jumlah Transaksi']
+      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Inc PPN)','Jumlah Transaksi']
     ];
     PageState.cbFiltered.forEach(r => {
       const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
-      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalExc, r.totalInc, r.transaksi]);
+      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalInc, r.transaksi]);
     });
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [28,14,10,16,14,10,20,20,16].map(w => ({ wch: w }));
+    ws['!cols'] = [28,14,10,16,14,10,20,16].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, 'Rekap Barang');
     const tgl = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `rekap_barang_${dateFrom}_sd_${dateTo}_${tgl}.xlsx`);

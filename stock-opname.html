@@ -16,6 +16,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+<script>
+  /* ── Theme init — baca dari localStorage sebelum render ── */
+  if (localStorage.getItem('appTheme') === 'light') {
+    document.body.classList.add('light-mode');
+  }
+  /* ── Cross-tab theme sync ── */
+  window.addEventListener('storage', e => {
+    if (e.key !== 'appTheme') return;
+    document.body.classList.toggle('light-mode', e.newValue === 'light');
+  });
+</script>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
