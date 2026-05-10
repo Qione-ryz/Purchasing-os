@@ -204,7 +204,7 @@
     <div id="tabPlan" style="display:none">
       <div class="plan-gen-bar admin-only">
         <label>Generate Plan</label>
-        <span class="so-formula-hint">Rekomendasi = Stok Akhir Bln Lalu − Rata-rata Pakai</span>
+        <span class="so-formula-hint">Rekomendasi = Rata-rata Pakai − Stok Akhir Bln Lalu</span>
         <span class="so-formula-hint">+</span>
         <div style="display:flex;align-items:center;gap:5px">
           <input type="number" id="planBufferPct" value="0" min="0" max="500"
@@ -247,6 +247,7 @@
                 <th style="text-align:right;width:110px">Rata-rata Pakai 3 Bln</th>
                 <th style="text-align:right;width:110px">Rekomendasi Plan</th>
                 <th style="text-align:right;width:110px">Purchase Plan</th>
+                <th style="width:44px;text-align:center" class="admin-only" title="Exclude dari plan"></th>
               </tr>
             </thead>
             <tbody id="planTableBody">
@@ -436,6 +437,7 @@
     _itemSelectTemp:    null, // Set sementara saat modal terbuka
     soItemGroups:       [], // [{ id, brand_id, nama, primer_barang_id, members:[barang_id,...] }]
     _groupModalState:   null,
+    planExcludeConfig:  {}, // key: brandId, val: Set<barang_id> — item yang di-exclude dari purchase plan
   };
   window.PageState = PageState;
 
@@ -461,6 +463,7 @@
     _itemSelectTemp:     { get: () => PageState._itemSelectTemp,     set: v => { PageState._itemSelectTemp = v; },     configurable: true },
     soItemGroups:        { get: () => PageState.soItemGroups,        set: v => { PageState.soItemGroups = v; },        configurable: true },
     _groupModalState:    { get: () => PageState._groupModalState,    set: v => { PageState._groupModalState = v; },    configurable: true },
+    planExcludeConfig:   { get: () => PageState.planExcludeConfig,   set: v => { PageState.planExcludeConfig = v; },   configurable: true },
   });
 
   async function loadSoConfig() {
@@ -516,6 +519,68 @@
       Object.keys(soBarangConfig).forEach(k => { plain[k] = [...soBarangConfig[k]]; });
       localStorage.setItem('soBarangConfig', JSON.stringify(plain));
     }
+  }
+
+  async function loadPlanExcludeConfig() {
+    try {
+      const { data, error } = await window._sb
+        .from('so_barang_config')
+        .select('brand_id, plan_exclude_ids');
+      if (error) throw error;
+      planExcludeConfig = {};
+      (data || []).forEach(function(row) {
+        if (row.plan_exclude_ids && row.plan_exclude_ids.length) {
+          planExcludeConfig[row.brand_id] = new Set(row.plan_exclude_ids);
+        }
+      });
+    } catch(e) {
+      /* Fallback localStorage */
+      try {
+        var raw = localStorage.getItem('planExcludeConfig');
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          Object.keys(parsed).forEach(function(k) { planExcludeConfig[k] = new Set(parsed[k]); });
+        }
+      } catch(_) {}
+    }
+  }
+
+  async function savePlanExcludeConfig(brandId) {
+    var excl = planExcludeConfig[brandId];
+    try {
+      var ids = excl ? [...excl] : [];
+      const { error } = await window._sb
+        .from('so_barang_config')
+        .upsert({ brand_id: brandId, plan_exclude_ids: ids }, { onConflict: 'brand_id' });
+      if (error) throw error;
+    } catch(e) {
+      showToast('⚠ Gagal simpan exclude config: ' + e.message, 'error');
+      /* Fallback localStorage */
+      var plain = {};
+      Object.keys(planExcludeConfig).forEach(function(k) { plain[k] = [...planExcludeConfig[k]]; });
+      localStorage.setItem('planExcludeConfig', JSON.stringify(plain));
+    }
+  }
+
+  function isPlanExcluded(barangId) {
+    var excl = planExcludeConfig[filterBrandId];
+    return excl ? excl.has(barangId) : false;
+  }
+
+  async function togglePlanExclude(barangId) {
+    if (!filterBrandId) return;
+    if (!planExcludeConfig[filterBrandId]) planExcludeConfig[filterBrandId] = new Set();
+    var excl = planExcludeConfig[filterBrandId];
+    if (excl.has(barangId)) {
+      excl.delete(barangId);
+      showToast('✓ Item dimasukkan kembali ke purchase plan', 'success');
+    } else {
+      excl.add(barangId);
+      showToast('✓ Item di-exclude dari purchase plan', 'success');
+    }
+    if (excl.size === 0) delete planExcludeConfig[filterBrandId];
+    await savePlanExcludeConfig(filterBrandId);
+    renderPlan();
   }
 
   function getActiveBarang() {
@@ -663,6 +728,7 @@
     const role = await getUserRole(); applyRoleUI(role);
     window._userRole = role;
     await loadSoConfig();
+    await loadPlanExcludeConfig();
     await loadBrands();
     await loadBarang();
     await loadItemGroups();
@@ -1285,32 +1351,39 @@
         const vals   = last3.map(function(v){return v.val;});
         const avg    = vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
         const avgRound = avg != null ? Math.round(avg) : null;
-        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
+        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? avgRound - stokAkhirLalu : null;
+        const excluded = isPlanExcluded(grp.primer_barang_id);
         const savedVal = _currPlanData[grp.primer_barang_id] != null ? _currPlanData[grp.primer_barang_id] : null;
-        const editVal  = planDraft
+        const editVal  = excluded ? '' : planDraft
           ? (planDraft[grp.primer_barang_id] != null ? planDraft[grp.primer_barang_id] : (rekomen != null ? rekomen : ''))
           : (savedVal != null ? savedVal : '');
         const isChanged = planDraft && planDraft[grp.primer_barang_id] != null;
-        const rekomenHtml = rekomen == null ? '<span style="color:var(--muted)">—</span>'
+        const rekomenHtml = excluded ? '<span style="color:var(--muted)">—</span>'
+          : rekomen == null ? '<span style="color:var(--muted)">—</span>'
           : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
           : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
-        rows += '<tr>'
+        const excludeBtnHtml = window._userRole === 'admin'
+          ? '<td style="text-align:center;padding:0 6px"><button onclick="togglePlanExclude(\'' + grp.primer_barang_id + '\')" title="' + (excluded ? 'Masukkan ke plan' : 'Exclude dari plan') + '" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:' + (excluded ? '1' : '0.35') + ';transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=\'' + (excluded ? '1' : '0.35') + '\'">' + (excluded ? '🚫' : '🚫') + '</button></td>'
+          : '<td></td>';
+        rows += '<tr style="' + (excluded ? 'opacity:0.45;background:var(--surface-alt,rgba(255,255,255,0.02))' : '') + '">'
           + '<td><div class="item-name" style="display:flex;align-items:center;gap:6px">'
           + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
-          + grp.nama + '</div></td>'
+          + grp.nama + (excluded ? ' <span style="font-size:10px;color:var(--muted);font-weight:400">(excluded)</span>' : '') + '</div></td>'
           + '<td><span class="item-meta">—</span></td>'
           + '<td><span class="item-meta">' + satuan + '</span></td>'
           + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
           + (window._userRole === 'admin'
-              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+              ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
+                '<input type="number" min="0"'
                 + ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
                 + ' data-bid="' + grp.primer_barang_id + '"'
                 + ' value="' + editVal + '" placeholder="0"'
-                + ' oninput="onPlanInput(this,\'' + grp.primer_barang_id + '\',this.value)"/></td>'
+                + ' oninput="onPlanInput(this,\'' + grp.primer_barang_id + '\',this.value)"/>') + '</td>'
               : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
+          + excludeBtnHtml
           + '</tr>';
       } else {
         const b = item.barang;
@@ -1319,30 +1392,37 @@
         const vals     = last3.map(function(v) { return v.val; });
         const avg      = vals.length ? vals.reduce(function(s,v){return s+v;},0) / vals.length : null;
         const avgRound = avg != null ? Math.round(avg) : null;
-        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? stokAkhirLalu - avgRound : null;
+        const rekomen  = (stokAkhirLalu != null && avgRound != null) ? avgRound - stokAkhirLalu : null;
+        const excluded = isPlanExcluded(b.id);
         const savedVal = _currPlanData[b.id] != null ? _currPlanData[b.id] : null;
-        const editVal  = planDraft
+        const editVal  = excluded ? '' : planDraft
           ? (planDraft[b.id] != null ? planDraft[b.id] : (rekomen != null ? rekomen : ''))
           : (savedVal != null ? savedVal : '');
         const isChanged = planDraft && planDraft[b.id] != null;
-        const rekomenHtml = rekomen == null ? '<span style="color:var(--muted)">—</span>'
+        const rekomenHtml = excluded ? '<span style="color:var(--muted)">—</span>'
+          : rekomen == null ? '<span style="color:var(--muted)">—</span>'
           : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
           : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
-        rows += '<tr>'
-          + '<td><div class="item-name">' + b.nama + '</div></td>'
+        const excludeBtnHtml = window._userRole === 'admin'
+          ? '<td style="text-align:center;padding:0 6px"><button onclick="togglePlanExclude(\'' + b.id + '\')" title="' + (excluded ? 'Masukkan ke plan' : 'Exclude dari plan') + '" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:' + (excluded ? '1' : '0.35') + ';transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=\'' + (excluded ? '1' : '0.35') + '\'">' + (excluded ? '🚫' : '🚫') + '</button></td>'
+          : '<td></td>';
+        rows += '<tr style="' + (excluded ? 'opacity:0.45;background:var(--surface-alt,rgba(255,255,255,0.02))' : '') + '">'
+          + '<td><div class="item-name">' + b.nama + (excluded ? ' <span style="font-size:10px;color:var(--muted);font-weight:400">(excluded)</span>' : '') + '</div></td>'
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
           + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
           + (window._userRole === 'admin'
-              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+              ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
+                '<input type="number" min="0"'
                 +   ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
                 +   ' data-bid="' + b.id + '"'
                 +   ' value="' + editVal + '" placeholder="0"'
-                +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"/></td>'
+                +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"/>') + '</td>'
               : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
+          + excludeBtnHtml
           + '</tr>';
       }
     });
@@ -1352,23 +1432,43 @@
   }
 
   function generatePlan() {
-    const list      = getFilteredBarang();
     const prevM     = prevYM(curYear, curMonth);
     const bufferPct = Number(document.getElementById('planBufferPct').value) || 0;
     const draft     = {};
-    list.forEach(function(b) {
-      const stokAkhirLalu = getStock(prevM.y, prevM.m, b.id);
-      const last3    = getUsageLast3(b.id);
-      const avg      = last3.length ? last3.reduce(function(s,v){return s+v.val;},0) / last3.length : null;
-      const avgRound = avg != null ? Math.round(avg) : 0;
-      const buffer   = Math.round(avgRound * bufferPct / 100);
-      const rekomen  = stokAkhirLalu != null ? stokAkhirLalu - avgRound + buffer : buffer;
-      draft[b.id] = Math.max(0, rekomen);
+    const merged    = buildMergedList('');
+    var   count     = 0;
+
+    merged.forEach(function(item) {
+      if (item.type === 'grup') {
+        var grp = item.grp;
+        var bid = grp.primer_barang_id;
+        if (isPlanExcluded(bid)) { count++; return; }
+        var stokAkhirLalu = getStock(prevM.y, prevM.m, bid);
+        var last3    = getUsageLast3(bid);
+        var avg      = last3.length ? last3.reduce(function(s,v){return s+v.val;},0) / last3.length : null;
+        var avgRound = avg != null ? Math.round(avg) : 0;
+        var buffer   = Math.round(avgRound * bufferPct / 100);
+        var rekomen  = stokAkhirLalu != null ? avgRound + buffer - stokAkhirLalu : avgRound + buffer;
+        draft[bid] = Math.max(0, rekomen);
+        count++;
+      } else {
+        var b = item.barang;
+        if (isPlanExcluded(b.id)) { count++; return; }
+        var stokAkhirLalu2 = getStock(prevM.y, prevM.m, b.id);
+        var last3b    = getUsageLast3(b.id);
+        var avg2      = last3b.length ? last3b.reduce(function(s,v){return s+v.val;},0) / last3b.length : null;
+        var avgRound2 = avg2 != null ? Math.round(avg2) : 0;
+        var buffer2   = Math.round(avgRound2 * bufferPct / 100);
+        var rekomen2  = stokAkhirLalu2 != null ? avgRound2 + buffer2 - stokAkhirLalu2 : avgRound2 + buffer2;
+        draft[b.id] = Math.max(0, rekomen2);
+        count++;
+      }
     });
+
     planDraft = draft;
     renderPlan();
-    const bufMsg = bufferPct > 0 ? ' (buffer +' + bufferPct + '%)' : '';
-    showToast('⚡ Draft plan digenerate untuk ' + list.length + ' barang' + bufMsg + '. Review lalu simpan.', 'success');
+    var bufMsg = bufferPct > 0 ? ' (buffer +' + bufferPct + '%)' : '';
+    showToast('⚡ Draft plan digenerate untuk ' + count + ' item' + bufMsg + '. Review lalu simpan.', 'success');
   }
 
   function onPlanInput(el, barangId, val) {
@@ -1998,6 +2098,7 @@
   window.onBrandChange=onBrandChange; window.updateBrandLabel=updateBrandLabel;
   window.onOpnameInput=onOpnameInput; window.saveOpname=saveOpname; window.discardOpname=discardOpname;
   window.generatePlan=generatePlan; window.onPlanInput=onPlanInput; window.savePlan=savePlan; window.discardPlan=discardPlan;
+  window.togglePlanExclude=togglePlanExclude;
   window.exportExcel=exportExcel; window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
   window.openGroupModal=openGroupModal; window.closeGroupModal=closeGroupModal;

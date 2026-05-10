@@ -17,7 +17,6 @@
 </script>
 <script src="ppn.js"></script>
 <script src="sidebar.js"></script>
-<script src="push-setup.js" defer></script>
 </head>
 <body>
 
@@ -343,6 +342,7 @@
   <span id="toastMsg">OK</span>
 </div>
 
+<script src="push-setup.js"></script>
 <script>
 // ═══════════════════════════════════════════════
 // INIT SUPABASE — pakai APP_CONFIG dari config.js
@@ -3272,19 +3272,35 @@ window.openWAManual        = openWAManual;
 // ═══════════════════════════════════════════════
 async function initNotifOrderMasuk() {
   // ── 1. Setup Web Push (Service Worker + subscription ke DB) ──
-  await initWebPush(_sb, {
-    onSuccess: () => {
-      console.log('[Notif] Web Push aktif ✓ (muncul meski browser tutup)');
-    },
-    onDenied: () => {
-      console.warn('[Notif] Izin notifikasi ditolak oleh user');
-      showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
-    },
-    onError: (msg) => {
-      console.warn('[Notif] Web Push tidak tersedia:', msg);
-      // Fallback ke in-tab realtime notification saja
+  if (typeof initWebPush !== 'function') {
+    // push-setup.js belum dimuat atau gagal — fallback: minta izin langsung
+    console.warn('[Notif] initWebPush tidak tersedia, fallback ke Notification API langsung');
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        const perm = await Notification.requestPermission();
+        if (perm === 'denied') {
+          showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
+        }
+      } else if (Notification.permission === 'denied') {
+        console.warn('[Notif] Notifikasi diblokir oleh user — harus reset manual di pengaturan browser');
+        showToast('error', '⚠ Notifikasi diblokir. Klik ikon 🔒 di address bar → Izin → Notifikasi → Reset.');
+      }
     }
-  });
+  } else {
+    await initWebPush(_sb, {
+      onSuccess: () => {
+        console.log('[Notif] Web Push aktif ✓ (muncul meski browser tutup)');
+      },
+      onDenied: () => {
+        console.warn('[Notif] Izin notifikasi ditolak oleh user');
+        showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
+      },
+      onError: (msg) => {
+        console.warn('[Notif] Web Push tidak tersedia:', msg);
+        // Fallback ke in-tab realtime notification saja
+      }
+    });
+  }
 
   // ── 2. Tetap subscribe Realtime untuk toast & reload tabel ────
   //    (ini tetap jalan saat tab terbuka, melengkapi Web Push)
