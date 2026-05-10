@@ -25,11 +25,20 @@ function urlBase64ToUint8Array(base64String) {
 
 /**
  * Simpan subscription ke tabel push_subscriptions di Supabase
+ * Retry hingga 3x jika user session belum siap (race condition saat page load)
  */
 async function saveSubscriptionToDB(sb, subscription) {
-  const { data: { user } } = await sb.auth.getUser();
+  let user = null;
+
+  // Retry sampai 3x dengan delay 1 detik — Supabase kadang belum refresh token
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const { data } = await sb.auth.getUser();
+    if (data?.user) { user = data.user; break; }
+    if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+  }
+
   if (!user) {
-    console.warn('[Push] User belum login, skip simpan subscription');
+    console.warn('[Push] User belum login setelah 3x retry, skip simpan subscription');
     return;
   }
 
@@ -87,11 +96,35 @@ async function initWebPush(sb, opts = {}) {
     return;
   }
 
+  // file:// tidak didukung — Service Worker butuh http/https
+  if (location.protocol === 'file:') {
+    console.warn('[Push] Web Push tidak tersedia di file:// — buka via http/https');
+    opts.onError?.('file_protocol');
+    return;
+  }
+
   try {
-    // 1. Register / ambil Service Worker yang sudah ada
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    await navigator.serviceWorker.ready;
-    console.log('[Push] Service Worker siap ✓');
+    // 1. Register Service Worker
+    //    Pakai path relatif terhadap halaman ini, bukan hardcode '/sw.js'
+    //    Supaya benar di GitHub Pages subdirectory maupun custom domain:
+    //      https://user.github.io/Purchasing-os/ordermasuk.html
+    //        → swUrl  = /Purchasing-os/sw.js   ✓
+    //        → scope  = /Purchasing-os/         ✓
+    //      https://myapp.com/ordermasuk.html
+    //        → swUrl  = /sw.js                 ✓
+    //        → scope  = /                      ✓
+    let registration;
+    try {
+      const swUrl  = new URL('sw.js', location.href).pathname;
+      const swScope= new URL('./',    location.href).pathname;
+      registration = await navigator.serviceWorker.register(swUrl, { scope: swScope });
+      await navigator.serviceWorker.ready;
+      console.log('[Push] Service Worker siap ✓', swUrl, '(scope:', swScope + ')');
+    } catch (swErr) {
+      console.warn('[Push] Gagal register Service Worker:', swErr.message);
+      opts.onError?.('sw_register_failed');
+      return;
+    }
 
     // 2. Minta izin notifikasi
     const permission = await Notification.requestPermission();
@@ -105,7 +138,6 @@ async function initWebPush(sb, opts = {}) {
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
-      // Belum ada — buat subscription baru
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly     : true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)

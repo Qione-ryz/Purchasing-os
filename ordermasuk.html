@@ -34,6 +34,7 @@
     </div>
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
+      <button class="btn btn-ghost btn-sm" id="btnAktifkanNotif" onclick="aktifkanNotif()" style="display:none" title="Aktifkan notifikasi order baru">🔔 Aktifkan Notif</button>
       <button class="btn btn-ghost btn-sm" id="btnTabCancelled" onclick="toggleCancelledTab()" style="color:var(--muted)">Cancelled (—)</button>
       <button class="btn btn-ghost btn-sm admin-only" id="btnPurge" onclick="purgeCancelled()" style="color:var(--danger);border-color:rgba(248,113,113,0.3);display:none">🗑 Hapus Permanen</button>
       <button class="btn btn-ghost btn-sm" id="btnTabArsip" onclick="toggleArsipTab()" style="color:var(--muted)">📦 Arsip</button>
@@ -3270,40 +3271,98 @@ window.openWAManual        = openWAManual;
 // ═══════════════════════════════════════════════
 // PUSH NOTIFICATION — Order Masuk (Web Push)
 // ═══════════════════════════════════════════════
-async function initNotifOrderMasuk() {
-  // ── 1. Setup Web Push (Service Worker + subscription ke DB) ──
-  if (typeof initWebPush !== 'function') {
-    // push-setup.js belum dimuat atau gagal — fallback: minta izin langsung
-    console.warn('[Notif] initWebPush tidak tersedia, fallback ke Notification API langsung');
-    if ('Notification' in window) {
-      if (Notification.permission === 'default') {
-        const perm = await Notification.requestPermission();
-        if (perm === 'denied') {
-          showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
-        }
-      } else if (Notification.permission === 'denied') {
-        console.warn('[Notif] Notifikasi diblokir oleh user — harus reset manual di pengaturan browser');
-        showToast('error', '⚠ Notifikasi diblokir. Klik ikon 🔒 di address bar → Izin → Notifikasi → Reset.');
-      }
-    }
+
+/**
+ * Tampilkan/sembunyikan tombol notifikasi berdasarkan status permission.
+ * - 'default'  → belum pernah diminta → tampilkan tombol
+ * - 'granted'  → sudah aktif → sembunyikan tombol
+ * - 'denied'   → diblokir user → tombol berganti warna merah sebagai info
+ */
+function _updateNotifBtn() {
+  const btn = document.getElementById('btnAktifkanNotif');
+  if (!btn) return;
+  if (!('Notification' in window)) { btn.style.display = 'none'; return; }
+
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    btn.style.display = 'none';
+  } else if (perm === 'denied') {
+    btn.style.display = '';
+    btn.textContent   = '🔕 Notif Diblokir';
+    btn.style.color   = 'var(--danger)';
+    btn.style.borderColor = 'rgba(248,113,113,0.4)';
+    btn.onclick = () => showToast('error', '⚠ Buka pengaturan browser → Izin Situs → Notifikasi → Reset.');
   } else {
-    await initWebPush(_sb, {
-      onSuccess: () => {
-        console.log('[Notif] Web Push aktif ✓ (muncul meski browser tutup)');
-      },
-      onDenied: () => {
-        console.warn('[Notif] Izin notifikasi ditolak oleh user');
-        showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
-      },
-      onError: (msg) => {
-        console.warn('[Notif] Web Push tidak tersedia:', msg);
-        // Fallback ke in-tab realtime notification saja
-      }
-    });
+    // 'default' — belum pernah diminta
+    btn.style.display = '';
+    btn.textContent   = '🔔 Aktifkan Notif';
+    btn.style.color   = '';
+    btn.style.borderColor = '';
+    btn.onclick = aktifkanNotif;
+  }
+}
+
+/**
+ * Dipanggil saat user KLIK tombol "Aktifkan Notif".
+ * Harus dari user gesture agar dialog izin muncul di browser.
+ */
+async function aktifkanNotif() {
+  const btn = document.getElementById('btnAktifkanNotif');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Memproses...'; }
+
+  try {
+    if (typeof initWebPush === 'function') {
+      await initWebPush(_sb, {
+        onSuccess: () => {
+          showToast('success', '🔔 Notifikasi order baru aktif!');
+          _updateNotifBtn();
+        },
+        onDenied: () => {
+          showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
+          _updateNotifBtn();
+        },
+        onError: (msg) => {
+          console.warn('[Notif] Web Push tidak tersedia:', msg);
+          // Fallback: cukup minta izin browser biasa
+          _fallbackRequestPermission();
+        }
+      });
+    } else {
+      await _fallbackRequestPermission();
+    }
+  } catch(e) {
+    console.error('[Notif] aktifkanNotif error:', e);
+    if (btn) { btn.disabled = false; _updateNotifBtn(); }
+  }
+}
+
+async function _fallbackRequestPermission() {
+  if (!('Notification' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showToast('success', '🔔 Notifikasi browser aktif (tab harus terbuka)');
+  } else {
+    showToast('error', '⚠ Izin notifikasi ditolak. Aktifkan di pengaturan browser.');
+  }
+  _updateNotifBtn();
+}
+
+async function initNotifOrderMasuk() {
+  // ── 1. Tampilkan tombol notif sesuai status permission saat ini ──
+  //    JANGAN minta izin otomatis — harus dari klik user agar dialog muncul
+  _updateNotifBtn();
+
+  // Jika sudah pernah granted sebelumnya, daftarkan ulang subscription ke DB
+  // (tanpa meminta izin lagi — ini aman karena tidak memunculkan dialog)
+  if (typeof initWebPush === 'function' && Notification.permission === 'granted') {
+    initWebPush(_sb, {
+      onSuccess: () => console.log('[Notif] Web Push re-registered ✓'),
+      onDenied:  () => _updateNotifBtn(),
+      onError:   (msg) => console.warn('[Notif] Web Push error:', msg)
+    }).catch(e => console.warn('[Notif] re-register error:', e));
   }
 
-  // ── 2. Tetap subscribe Realtime untuk toast & reload tabel ────
-  //    (ini tetap jalan saat tab terbuka, melengkapi Web Push)
+  // ── 2. Realtime untuk toast & reload tabel (tetap jalan saat tab terbuka) ──
   await _sb.removeChannel(_sb.channel('order-masuk-notif'));
 
   _sb.channel('order-masuk-notif')
@@ -3314,11 +3373,7 @@ async function initNotifOrderMasuk() {
         const order   = payload.new;
         const brand   = brands[order.brand_id] || 'Brand';
         const pemesan = order.pemesan || order.created_by || 'Tim';
-
-        // Toast di dalam app (tetap tampil saat tab terbuka)
         showToast('success', `🛒 Order baru: [${brand}] dari ${pemesan}`);
-
-        // Reload tabel
         loadAll();
       }
     )
