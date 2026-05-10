@@ -189,7 +189,17 @@
               <span class="card-title" id="chartTitle">Top Kenaikan Harga</span>
               <div id="chartSubtitle" class="chart-subtitle">Pilih barang di kanan untuk lihat tren spesifik</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <!-- Toggle Mode Vendor -->
+              <div id="trenVendorToggleWrap" style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px">
+                <button id="trenModeAllVendor" class="btn btn-sm ppn-toggle-btn ppn-toggle-btn--active" onclick="setTrenVendorMode('all')" title="Tren harga dari semua perubahan, tidak melihat vendor">
+                  🌐 Semua Vendor
+                </button>
+                <button id="trenModeOneVendor" class="btn btn-sm ppn-toggle-btn" onclick="setTrenVendorMode('one')" title="Tren harga perubahan per vendor tertentu">
+                  🏪 Per Vendor
+                </button>
+              </div>
+
               <select class="filter-sel filter-sel--sm" id="chartGroupBy" onchange="renderChart()" style="display:none">
                 <option value="day">Per Hari</option>
                 <option value="week">Per Minggu</option>
@@ -197,8 +207,8 @@
               </select>
             </div>
           </div>
-          <div class="card-body">
-            <div class="chart-container">
+          <div class="card-body" style="flex:1;display:flex;flex-direction:column;padding:0">
+            <div class="chart-container" style="flex:1">
               <canvas id="priceChart"></canvas>
               <div class="chart-empty" id="chartEmpty" style="display:none">
                 <div class="chart-empty-icon">📊</div>
@@ -209,7 +219,7 @@
         </div>
 
         <!-- Daftar barang (right panel) -->
-        <div class="card anim" style="animation-delay:.3s">
+        <div class="card anim" style="animation-delay:.3s;display:flex;flex-direction:column">
           <div class="card-header" style="flex-wrap:wrap;gap:8px">
             <span class="card-title">Daftar Barang</span>
             <span id="barangListCount" class="barang-list-count"></span>
@@ -520,6 +530,7 @@
     /* Build barang dropdown setelah data tersedia */
     buildBarangDropdown(barRows || []);
     populateBandingBarangSel(barRows || []);
+
   }
 
   /* ── LOAD DARI RIWAYAT PEMBELIAN + SURVEY ──────────────────────── */
@@ -628,6 +639,8 @@
     gSortDir        : 'desc',
     gSearchTimer    : null,
     selectedGlobalBrands: [],
+    trenVendorMode  : 'all',   // 'all' = semua vendor | 'one' = per vendor tertentu
+    trenVendorId    : '',      // vendor yang dipilih di mode 'one'
   };
   window.PageState = PageState;
 
@@ -654,6 +667,19 @@
     updateStats(); renderBarangList(); renderCurrentTab();
   }
   window.setPPN = setPPN;
+
+  /* ── Toggle Mode Vendor di Tren Harga ── */
+  function setTrenVendorMode(mode) {
+    PageState.trenVendorMode = mode;
+    const btnAll = document.getElementById('trenModeAllVendor');
+    const btnOne = document.getElementById('trenModeOneVendor');
+    btnAll.classList.toggle('ppn-toggle-btn--active', mode === 'all');
+    btnOne.classList.toggle('ppn-toggle-btn--active', mode === 'one');
+    PageState.trenVendorId = '';
+    renderChart();
+  }
+  window.setTrenVendorMode = setTrenVendorMode;
+
   const CHART_COLORS = ['#4f8ef7','#38d9a9','#f7924f','#a78bfa','#f472b6','#facc15','#34d399'];
 
   /* ══════════════════════════════════════════
@@ -1037,6 +1063,16 @@
     const groupByEl  = document.getElementById('chartGroupBy');
     const subtitleEl = document.getElementById('chartSubtitle');
 
+    /* ── Baca mode vendor tren ── */
+    const trenMode     = PageState.trenVendorMode || 'all'; // 'all' | 'one'
+    const trenVendorId = ''; // Per Vendor mode: vendor diambil otomatis per barang dari data, bukan filter global
+
+    /* Sync tampilan toggle */
+    const btnAll2 = document.getElementById('trenModeAllVendor');
+    const btnOne2 = document.getElementById('trenModeOneVendor');
+    if (btnAll2) btnAll2.classList.toggle('ppn-toggle-btn--active', trenMode === 'all');
+    if (btnOne2) btnOne2.classList.toggle('ppn-toggle-btn--active', trenMode === 'one');
+
     const selBarangs = window._selectedBarangs || [];
     const isMulti    = selBarangs.length > 1;   // multi barang
     const isSingle   = selBarangs.length === 1 || !!selectedBarangId; // tepat 1 barang
@@ -1045,7 +1081,9 @@
     function rawForBarang(barangId) {
       const dateFrom = document.getElementById('hargaDateFrom')?.value || '';
       const dateTo   = document.getElementById('hargaDateTo')?.value   || '';
-      const vendor   = document.getElementById('fVendor').value;
+      // Saat mode 'one': filter ke vendor yang dipilih di tren
+      // Saat mode 'all': filter ke vendor global filter (jika ada) tapi tidak dipaksa
+      const vendor   = trenMode === 'one' ? trenVendorId : document.getElementById('fVendor').value;
       const fromDate = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
       const toDate   = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
       return (window.hargaRaw || []).filter(r => {
@@ -1138,8 +1176,11 @@
       const nama = chartData[0]?.nama_barang || 'Barang';
       document.getElementById('chartTitle').textContent = 'Tren Harga: '+nama;
 
+      // Mode 'one': hanya tampilkan vendor yang dipilih di toggle
+      // Mode 'all': tampilkan semua vendor sebagai garis terpisah
       const byVendor = {};
       chartData.forEach(r => {
+        if (trenMode === 'one' && trenVendorId && r.vendor_id !== trenVendorId) return;
         const vName = r.vendor_nama;
         if (!byVendor[vName]) byVendor[vName] = [];
         byVendor[vName].push(r);
@@ -1167,57 +1208,78 @@
       // Default: Top 10 barang dengan kenaikan harga terbesar
       groupByEl.style.display  = 'none';
       subtitleEl.style.display = '';
-      document.getElementById('chartTitle').textContent = 'Top Kenaikan Harga';
 
-      // Agregasi: hitung perubahan harga PER VENDOR YANG SAMA (bukan cross-vendor)
-      const barangMap = {};
-      filteredData.forEach(r => {
-        const bid = r.barang_id;
-        const vid = r.vendor_id || '__unknown__';
-        if (!barangMap[bid]) barangMap[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {}, allRows: [] };
-        if (!barangMap[bid].byVendor[vid]) barangMap[bid].byVendor[vid] = [];
-        barangMap[bid].byVendor[vid].push(getHarga(r));
-        barangMap[bid].allRows.push(r); // simpan semua rows untuk fallback lintas vendor
-      });
+      // Judul menyesuaikan mode vendor
+      if (trenMode === 'one') {
+        document.getElementById('chartTitle').textContent = 'Top Kenaikan Harga (Per Vendor)';
+        subtitleEl.textContent = 'Perubahan harga terbaru vs sebelumnya di vendor yang sama · hover bar untuk lihat vendornya';
+      } else {
+        document.getElementById('chartTitle').textContent = 'Top Kenaikan Harga';
+        subtitleEl.textContent = 'Pilih barang di kanan untuk lihat tren spesifik';
+      }
 
-      // Untuk setiap barang, ambil perubahan terbesar dari:
-      // 1. Vendor yang sama dengan ≥2 record (akurat, apples-to-apples)
-      // 2. Fallback: harga terbaru vs harga tertua lintas semua vendor (jika tidak ada vendor ≥2x)
-      const ranked = Object.values(barangMap).map(b => {
-        let bestNaik = 0, bestPct = 0;
-        // Coba per-vendor dulu
-        Object.values(b.byVendor).forEach(prices => {
-          if (prices.length < 2) return;
-          // prices[0] = terbaru (karena filteredData desc), prices terakhir = tertua
-          const newest = prices[0];
-          const oldest = prices[prices.length - 1];
-          const naik = newest - oldest;
-          if (Math.abs(naik) > Math.abs(bestNaik)) {
-            bestNaik = naik;
-            bestPct  = oldest > 0 ? (naik / oldest) * 100 : 0;
-          }
-        });
-        // Fallback lintas vendor: jika tidak ada perubahan per-vendor yang terdeteksi
-        if (bestNaik === 0 && b.allRows.length >= 2) {
-          // allRows sudah desc (terbaru dulu karena filteredData desc)
-          const newestH = getHarga(b.allRows[0]);
-          const oldestH = getHarga(b.allRows[b.allRows.length - 1]);
-          const naik = newestH - oldestH;
-          if (Math.abs(naik) >= 1) {
-            bestNaik = naik;
-            bestPct  = oldestH > 0 ? (naik / oldestH) * 100 : 0;
-          }
+      // Hitung ranked dengan IIFE — mode 'one' (per vendor) atau 'all' (semua vendor)
+      // ranked item: { id, nama, naik, pct, vendor } — vendor = nama vendor pembanding
+      const ranked = (() => {
+        if (trenMode === 'one') {
+          // Strict same-vendor: ambil 2 catatan terbaru per vendor, bandingkan harga[0] vs harga[1]
+          // vendor dengan perubahan terbesar (abs) yang menang → disimpan sebagai bestVendor
+          const bm = {};
+          filteredData.forEach(r => {
+            const bid = r.barang_id, vid = r.vendor_id || '__unknown__';
+            if (!bm[bid]) bm[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {} };
+            if (!bm[bid].byVendor[vid]) bm[bid].byVendor[vid] = { prices: [], nama: r.vendor_nama || vid };
+            if (bm[bid].byVendor[vid].prices.length < 2) bm[bid].byVendor[vid].prices.push(getHarga(r));
+          });
+          return Object.values(bm).map(b => {
+            let bestNaik = 0, bestPct = 0, bestVendor = '';
+            Object.values(b.byVendor).forEach(v => {
+              if (v.prices.length < 2) return;
+              const naik = v.prices[0] - v.prices[1];
+              if (Math.abs(naik) > Math.abs(bestNaik)) {
+                bestNaik = naik;
+                bestPct  = v.prices[1] > 0 ? (naik / v.prices[1]) * 100 : 0;
+                bestVendor = v.nama;
+              }
+            });
+            return { id: b.id, nama: b.nama.length > 28 ? b.nama.slice(0,26)+'…' : b.nama, naik: bestNaik, pct: bestPct, vendor: bestVendor };
+          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, 10);
+        } else {
+          // Semua vendor: per-vendor apples-to-apples, fallback lintas vendor
+          const bm = {};
+          filteredData.forEach(r => {
+            const bid = r.barang_id, vid = r.vendor_id || '__unknown__';
+            if (!bm[bid]) bm[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {}, allRows: [] };
+            if (!bm[bid].byVendor[vid]) bm[bid].byVendor[vid] = { prices: [], nama: r.vendor_nama || vid };
+            bm[bid].byVendor[vid].prices.push(getHarga(r));
+            bm[bid].allRows.push(r);
+          });
+          return Object.values(bm).map(b => {
+            let bestNaik = 0, bestPct = 0, bestVendor = '';
+            Object.values(b.byVendor).forEach(v => {
+              if (v.prices.length < 2) return;
+              const naik = v.prices[0] - v.prices[v.prices.length - 1];
+              if (Math.abs(naik) > Math.abs(bestNaik)) {
+                bestNaik = naik;
+                bestPct  = v.prices[v.prices.length - 1] > 0 ? (naik / v.prices[v.prices.length - 1]) * 100 : 0;
+                bestVendor = v.nama;
+              }
+            });
+            // Fallback lintas vendor jika tidak ada per-vendor ≥2
+            if (bestNaik === 0 && b.allRows.length >= 2) {
+              const newestH = getHarga(b.allRows[0]);
+              const oldestH = getHarga(b.allRows[b.allRows.length - 1]);
+              const naik = newestH - oldestH;
+              if (Math.abs(naik) >= 1) {
+                bestNaik   = naik;
+                bestPct    = oldestH > 0 ? (naik / oldestH) * 100 : 0;
+                bestVendor = b.allRows[0].vendor_nama || ''; // vendor terbaru sebagai referensi
+              }
+            }
+            return { id: b.id, nama: b.nama.length > 28 ? b.nama.slice(0,26)+'…' : b.nama, naik: bestNaik, pct: bestPct, vendor: bestVendor };
+          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, 10);
         }
-        return {
-          id:   b.id,
-          nama: b.nama.length > 28 ? b.nama.slice(0, 26) + '…' : b.nama,
-          naik: bestNaik,
-          pct:  bestPct
-        };
-      })
-        .filter(b => Math.abs(b.naik) >= 1)
-        .sort((a, b) => b.naik - a.naik)
-        .slice(0, 10);
+      })();
 
       if (!ranked.length) {
         canvas.style.display = 'none';
@@ -1263,7 +1325,7 @@
           responsive: true,
           maintainAspectRatio: false,
           clip: false,
-          layout: { padding: { right: 90 } },
+          layout: { padding: { right: 160 } },
           onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
           onClick: (e, els) => {
             if (!els.length) return;
@@ -1281,11 +1343,21 @@
               borderWidth: 1,
               titleColor: t.tooltipTitle,
               bodyColor: t.tooltipBody,
+              titleFont: { family: "'DM Mono', monospace", size: 11 },
+              bodyFont:  { family: "'DM Mono', monospace", size: 11 },
+              padding: 10,
               callbacks: {
                 label: ctx => {
                   const b = ranked[ctx.dataIndex];
                   const sign = b.naik > 0 ? '+' : '';
                   return ` ${sign}${b.naik.toLocaleString('id-ID')} (${sign}${b.pct.toFixed(1)}%)`;
+                },
+                afterLabel: ctx => {
+                  const b = ranked[ctx.dataIndex];
+                  if (!b.vendor) return '';
+                  return trenMode === 'one'
+                    ? ` 📦 vendor: ${b.vendor}`
+                    : ` 📦 vs ${b.vendor}`;
                 }
               }
             }
@@ -1333,7 +1405,16 @@
                 ctx.font = "10px 'DM Mono', monospace";
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(label, bar.x + 5, bar.y);
+                // Jika ada vendor, tampilkan di bawah label harga
+                if (b.vendor) {
+                  ctx.fillText(label, bar.x + 5, bar.y - 6);
+                  ctx.fillStyle = getCSSVar('--muted');
+                  ctx.font = "9px 'DM Sans', sans-serif";
+                  const vendorLabel = trenMode === 'one' ? b.vendor : '↕ ' + b.vendor;
+                  ctx.fillText(vendorLabel, bar.x + 5, bar.y + 7);
+                } else {
+                  ctx.fillText(label, bar.x + 5, bar.y);
+                }
                 ctx.restore();
               });
             });
