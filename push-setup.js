@@ -173,7 +173,7 @@ async function initWebPush(sb, opts = {}) {
  */
 async function disableWebPush(sb) {
   try {
-    const registration  = await navigator.serviceWorker.getRegistration('/');
+    const registration  = await navigator.serviceWorker.getRegistration();
     if (!registration) return;
     const subscription  = await registration.pushManager.getSubscription();
     if (!subscription)  return;

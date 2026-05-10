@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return;
 
-  const targetUrl = event.notification.data.url || '/Purchasing-os/ordermasuk.html';
+  const targetUrl = event.notification.data.url || './ordermasuk.html';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

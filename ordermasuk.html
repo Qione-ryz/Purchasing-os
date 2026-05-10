@@ -15,7 +15,7 @@
   // Apply theme sebelum render untuk mencegah flash — tidak bergantung body
   (function(){ try { if(localStorage.getItem('appTheme')==='light') document.documentElement.classList.add('light-mode'); } catch(e){} })();
 </script>
-<script src="ppn.js"></script>
+<script src="push-setup.js" defer></script>
 <script src="sidebar.js"></script>
 </head>
 <body>
@@ -343,7 +343,6 @@
   <span id="toastMsg">OK</span>
 </div>
 
-<script src="push-setup.js"></script>
 <script>
 // ═══════════════════════════════════════════════
 // INIT SUPABASE — pakai APP_CONFIG dari config.js
