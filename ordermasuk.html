@@ -931,9 +931,19 @@ async function loadAll() {
     const cancelledItemsMap = {}; // {order_id: true} — order yang punya setidaknya 1 item cancelled
     if (orderIds.length > 0) {
       try {
-        const { data: itemRows } = await _sb.from('order_items')
-          .select('order_id,qty_order,qty_terpenuhi,faktor_konversi,status_item')
-          .in('order_id', orderIds);
+        // Coba dengan status_item dulu; fallback ke select dasar jika kolom belum ada di DB
+        let itemRows = null;
+        try {
+          const { data } = await _sb.from('order_items')
+            .select('order_id,qty_order,qty_terpenuhi,faktor_konversi,status_item')
+            .in('order_id', orderIds);
+          itemRows = data;
+        } catch(_e1) {
+          const { data } = await _sb.from('order_items')
+            .select('order_id,qty_order,qty_terpenuhi,faktor_konversi')
+            .in('order_id', orderIds);
+          itemRows = data;
+        }
         (itemRows || []).forEach(it => {
           // Track cancelled items
           if ((it.status_item || 'pending') === 'cancelled') {
@@ -979,11 +989,11 @@ async function loadAll() {
     const allBarangIds = [...new Set(
       Object.values(progressMap).length > 0
         ? (await _sb.from('order_items')
-            .select('barang_id')
+            .select('barang_id,is_custom,status_item')
             .in('order_id', orderIds)
-            .eq('is_custom', false)
-            .neq('status_item', 'cancelled')
-            .then(({ data }) => (data || []).map(r => r.barang_id).filter(Boolean))
+            .then(({ data }) => (data || [])
+              .filter(r => !r.is_custom && (r.status_item || 'pending') !== 'cancelled')
+              .map(r => r.barang_id).filter(Boolean))
             .catch(() => []))
         : []
     )];
@@ -1487,12 +1497,44 @@ async function _runFifoSync(barangIds) {
   if (!barangIds || barangIds.length === 0) return {};
 
   // 1. Ambil semua competing order_items untuk barang-barang ini
-  const { data: allCompetingItems } = await _sb
-    .from('order_items')
-    .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, orders!inner(created_at, brand_id)')
-    .in('barang_id', barangIds)
-    .neq('status_item', 'cancelled')
-    .eq('is_custom', false);
+  //    Dua langkah (tanpa join) agar tidak butuh foreign key eksplisit di Supabase
+  //    Fallback ke select dasar jika kolom status_item/is_custom belum ada di DB
+  let _competingRaw = null;
+  try {
+    const { data } = await _sb
+      .from('order_items')
+      .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom')
+      .in('barang_id', barangIds);
+    _competingRaw = data;
+  } catch(_e1) {
+    const { data } = await _sb
+      .from('order_items')
+      .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi')
+      .in('barang_id', barangIds);
+    _competingRaw = data;
+  }
+
+  // Filter di JS — agar tidak bergantung kolom status_item/is_custom ada di DB sebagai filter
+  const _competingFiltered = (_competingRaw || []).filter(ci =>
+    !ci.is_custom && (ci.status_item || 'pending') !== 'cancelled'
+  );
+
+  // Fetch data orders (created_at, brand_id) untuk setiap order_id unik
+  const uniqueOrderIds = [...new Set((_competingFiltered || []).map(ci => ci.order_id).filter(Boolean))];
+  let _ordersMap = {};
+  if (uniqueOrderIds.length > 0) {
+    const { data: _ordersRaw } = await _sb
+      .from('orders')
+      .select('id, created_at, brand_id')
+      .in('id', uniqueOrderIds);
+    (_ordersRaw || []).forEach(o => { _ordersMap[o.id] = o; });
+  }
+
+  // Gabungkan: simulasi orders!inner
+  const allCompetingItems = (_competingFiltered || []).map(ci => ({
+    ...ci,
+    orders: _ordersMap[ci.order_id] || null,
+  })).filter(ci => ci.orders !== null);
 
   // 2. Cek item mana yang sudah punya record riwayat_beli_items dengan order_item_id
   //    Item seperti ini sudah diinput manual — TIDAK ikut distribusi FIFO
@@ -1516,12 +1558,29 @@ async function _runFifoSync(barangIds) {
   );
 
   // 3. Ambil total qty pembelian FIFO (hanya yang TIDAK terkait order_item_id)
-  const { data: allBeliItems } = await _sb
+  //    Dua langkah (tanpa join) agar tidak butuh foreign key eksplisit di Supabase
+  const { data: _beliItemsRaw } = await _sb
     .from('riwayat_beli_items')
-    .select('barang_id, qty, order_item_id, riwayat_beli!inner(tanggal, status, brand_id)')
+    .select('barang_id, qty, order_item_id, beli_id')
     .in('barang_id', barangIds)
-    .eq('riwayat_beli.status', 'selesai')
     .is('order_item_id', null);  // ← hanya record tanpa order_item_id (FIFO lama / legacy)
+
+  // Fetch header riwayat_beli (tanggal, status, brand_id) untuk beli_id unik
+  const uniqueBeliIds = [...new Set((_beliItemsRaw || []).map(bi => bi.beli_id).filter(Boolean))];
+  let _beliHeaderMap = {};
+  if (uniqueBeliIds.length > 0) {
+    const { data: _beliHeaders } = await _sb
+      .from('riwayat_beli')
+      .select('id, tanggal, status, brand_id')
+      .in('id', uniqueBeliIds)
+      .eq('status', 'selesai');
+    (_beliHeaders || []).forEach(h => { _beliHeaderMap[h.id] = h; });
+  }
+
+  // Gabungkan: simulasi riwayat_beli!inner, filter hanya status selesai
+  const allBeliItems = (_beliItemsRaw || [])
+    .map(bi => ({ ...bi, riwayat_beli: _beliHeaderMap[bi.beli_id] || null }))
+    .filter(bi => bi.riwayat_beli !== null);
 
   // beliTotalPerBarang dipakai UI untuk tahu apakah ada data beli sama sekali
   // (menentukan apakah progress bar dirender atau tidak)
@@ -2941,6 +3000,8 @@ async function batalkanSelesaiItem(itemId, orderId) {
   );
 }
 window.batalkanSelesaiItem = batalkanSelesaiItem;
+window.openBeliModal       = openBeliModal;
+window.submitBeli          = submitBeli;
 
 // Buka modal cancel item
 function openCancelItem(itemId, orderId, nama) {
