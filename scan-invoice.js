@@ -1457,22 +1457,8 @@ function applyScanItems(count) {
 // 7. INIT
 // ────────────────────────────────────────────────────────────────
 
-// Wrapper: jika dalam mode edit modal, arahkan ke applyEditScanItems
 window._applyScanItems = function(count) {
-  if (window._editScanMode && typeof window.applyEditScanItems === "function") {
-    // Kumpulkan data scan saat ini lalu kirim ke edit handler
-    const data = window._scanData;
-    if (!data) { applyScanItems(count); return; }
-
-    // Tutup modal review scan
-    document.getElementById("scanItemsOverlay")?.remove();
-
-    // Kirim ke edit handler
-    window.applyEditScanItems(data);
-    window._editScanMode = false;
-  } else {
-    applyScanItems(count);
-  }
+  applyScanItems(count);
 };
 
 // ── Review Ulang: buka modal review tanpa scan ulang, isi ulang field form ──

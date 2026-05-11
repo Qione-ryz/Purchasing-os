@@ -14,9 +14,8 @@
      editItems, editPpnMode  (state lokal edit modal)
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── state lokal edit modal ── */
-let editItems   = [];
-let editPpnMode = 'exc'; /* 'exc' | 'inc' */
+/* ── state lokal edit modal (dideklarasikan di pembelian.html) ── */
+/* editItems dan editPpnMode diakses dari global scope pembelian.html */
 
 /* ── Shorthand ke PageState — dibaca/ditulis via window proxy yang
    didefinisikan di pembelian.html sehingga nilai selalu sinkron. ──
@@ -504,15 +503,21 @@ function openEdit(id) {
   /* Tanggal — r.tanggal is already 'YYYY-MM-DD' */
   document.getElementById('eFTanggal').value = r.tanggal || '';
 
-  /* Vendor select */
-  const vendorSel = document.getElementById('eFVendor');
-  vendorSel.innerHTML = '<option value="">— Pilih Vendor —</option>';
-  (window.allVendors || []).forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v.id; opt.textContent = v.nama;
-    if (v.id === r.vendor_id) opt.selected = true;
-    vendorSel.appendChild(opt);
-  });
+  /* Vendor combo — set hidden input value + update combo label */
+  const vendorObj = (window.allVendors || []).find(v => v.id === r.vendor_id);
+  document.getElementById('eFVendor').value = r.vendor_id || '';
+  const eLbl = document.getElementById('eVendorComboLabel');
+  if (eLbl) {
+    if (vendorObj) {
+      eLbl.textContent = vendorObj.nama;
+      eLbl.style.color = 'var(--text)';
+    } else {
+      eLbl.textContent = 'Pilih vendor...';
+      eLbl.style.color = 'var(--muted)';
+    }
+  }
+  /* Pastikan dropdown panel tertutup saat modal dibuka */
+  if (typeof closeEditVendorPanel === 'function') closeEditVendorPanel();
 
   /* Detect PPN mode dari transaksi — items simpan harga_satuan sebagai exc PPN */
   const itemPpnIncluded = (r.items || [])[0]?.ppn_included ?? r.ppn_included ?? false;
@@ -536,6 +541,11 @@ function openEdit(id) {
 
 function closeEdit() {
   document.getElementById('editOverlay').classList.remove('show');
+  if (typeof closeEditVendorPanel === 'function') closeEditVendorPanel();
+  /* Reset combo label */
+  const eLbl = document.getElementById('eVendorComboLabel');
+  if (eLbl) { eLbl.textContent = 'Pilih vendor...'; eLbl.style.color = 'var(--muted)'; }
+  document.getElementById('eFVendor').value = '';
   editItems   = [];
   editPpnMode = 'exc';
 }

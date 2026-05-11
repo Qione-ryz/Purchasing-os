@@ -16,7 +16,7 @@
   (function(){ try { if(localStorage.getItem('appTheme')==='light') document.documentElement.classList.add('light-mode'); } catch(e){} })();
 </script>
 <script src="push-setup.js" defer></script>
-<script src="sidebar.js"></script>
+<script src="sidebar.js" defer></script>
 </head>
 <body>
 
@@ -622,39 +622,9 @@ async function _aksiOrderedGroup(groupKey, orderId, allOrdered) {
     if (error) throw error;
 
     if (allOrdered) {
-      // Toggle OFF — hapus draft pending yang terkait (jika ada)
-      const { data: itemRows } = await _sb.from('order_items')
-        .select('draft_beli_id').in('id', ids).not('draft_beli_id', 'is', null).limit(1);
-      const draftId = itemRows?.[0]?.draft_beli_id;
-      if (draftId) await _deleteDraftBeli(draftId);
       showToast('success', '↩ Tanda dipesan dihapus');
     } else {
-      // Toggle ON — buat draft otomatis
-      const vendorId = window._groupVendorMap?.[groupKey] || null;
-      const order    = allOrders.find(o => o.id === orderId);
-      const brandId  = order?.brand_id || null;
-
-      if (vendorId && brandId) {
-        const { data: itemRows } = await _sb.from('order_items')
-          .select('id,barang_id,nama_barang,satuan,satuan_db,qty_order,faktor_konversi')
-          .in('id', ids);
-        const itemInfos = (itemRows || []).map(it => ({
-          itemId:   it.id,
-          barangId: it.barang_id,
-          nama:     it.nama_barang,
-          satuan:   it.satuan_db || it.satuan || '',
-          qty:      it.qty_order,
-          faktor:   it.faktor_konversi || 1,
-        }));
-        const beliId = await _createDraftBeli(brandId, vendorId, itemInfos);
-        if (beliId) {
-          showToast('success', '✓ Semua item ditandai dipesan · Draft pembelian dibuat');
-        } else {
-          showToast('success', '✓ Semua item vendor ditandai dipesan');
-        }
-      } else {
-        showToast('success', '✓ Semua item vendor ditandai dipesan');
-      }
+      showToast('success', '✓ Semua item vendor ditandai dipesan');
     }
 
     await _refreshDetailBody(orderId);
@@ -690,10 +660,16 @@ async function _aksiOrdered(itemId, orderId) {
   const modal = document.getElementById('modalDetail');
   if (!modal) return;
 
-  // Fetch current status + info item sekaligus
-  const { data: itemRow } = await _sb.from('order_items')
-    .select('status_item,draft_beli_id,barang_id,nama_barang,satuan,satuan_db,qty_order,faktor_konversi,order_id')
+  // Fetch current status + info item sekaligus — fallback jika kolom opsional belum ada
+  let { data: itemRow } = await _sb.from('order_items')
+    .select('status_item,barang_id,nama_barang,satuan,satuan_db,qty_order,faktor_konversi,order_id')
     .eq('id', itemId).single();
+  if (!itemRow) {
+    const { data: itemRowFallback } = await _sb.from('order_items')
+      .select('barang_id,nama_barang,satuan,qty_order,faktor_konversi,order_id')
+      .eq('id', itemId).single();
+    itemRow = itemRowFallback;
+  }
   if (!itemRow) return;
 
   const curStatus = itemRow.status_item || 'pending';
@@ -706,42 +682,8 @@ async function _aksiOrdered(itemId, orderId) {
   if (error) { showToast('error', '✕ Gagal: ' + error.message); return; }
 
   if (newStatus === 'ordered') {
-    // Toggle ON — buat draft pembelian
-    // Ambil brand dari order parent
-    const order = allOrders.find(o => o.id === orderId);
-    const brandId = order?.brand_id || null;
-
-    // Cari vendor terbaik dari riwayat_harga untuk barang ini
-    let vendorId = null;
-    if (itemRow.barang_id) {
-      const { data: hRows } = await _sb.from('riwayat_harga')
-        .select('vendor_id,harga,tanggal')
-        .eq('barang_id', itemRow.barang_id)
-        .not('vendor_id', 'is', null)
-        .order('tanggal', { ascending: false })
-        .limit(1);
-      vendorId = hRows?.[0]?.vendor_id || null;
-    }
-
-    if (brandId && vendorId) {
-      const itemInfos = [{
-        itemId:   itemId,
-        barangId: itemRow.barang_id,
-        nama:     itemRow.nama_barang,
-        satuan:   itemRow.satuan_db || itemRow.satuan || '',
-        qty:      itemRow.qty_order,
-        faktor:   itemRow.faktor_konversi || 1,
-      }];
-      const beliId = await _createDraftBeli(brandId, vendorId, itemInfos);
-      showToast('success', beliId
-        ? '🛒 Item ditandai dipesan · Draft pembelian dibuat'
-        : '🛒 Item ditandai sudah dipesan');
-    } else {
-      showToast('success', '🛒 Item ditandai sudah dipesan');
-    }
+    showToast('success', '🛒 Item ditandai sudah dipesan');
   } else {
-    // Toggle OFF — hapus draft jika masih pending
-    if (itemRow.draft_beli_id) await _deleteDraftBeli(itemRow.draft_beli_id);
     showToast('success', '↩ Tanda dipesan dihapus');
   }
 
@@ -911,65 +853,68 @@ async function loadAll() {
   const tbody = document.getElementById('orderTbody');
   tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Memuat order...</div></div></td></tr>`;
   try {
-    // Fetch orders
-    const { data: ordersRaw, error: errOrders } = await _sb
-      .from('orders')
-      .select('id,status,catatan,created_at,brand_id,pemesan_id,selesai_at')
-      .neq('status', 'archived')          // arsip tidak diload di query utama
-      .order('created_at', { ascending: false });
+    // ── OPTIMASI 1: Fetch orders + pemesan secara paralel ──
+    const [
+      { data: ordersRaw, error: errOrders },
+      { data: pemesanRows }
+    ] = await Promise.all([
+      _sb.from('orders')
+        .select('id,status,catatan,created_at,brand_id,pemesan_id,selesai_at')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false }),
+      _sb.from('pemesan').select('id,kode,nama')
+    ]);
 
     if (errOrders) throw errOrders;
 
-    // Fetch pemesan map
-    const { data: pemesanRows } = await _sb.from('pemesan').select('id,kode,nama');
     const pemesanMap = {};
     (pemesanRows || []).forEach(p => { pemesanMap[p.id] = p; });
 
-    // Fetch aggregate progress per order (qty per item, skip cancelled)
     const orderIds = (ordersRaw || []).map(o => o.id);
-    const progressMap = {}; // {order_id: {totalItems, doneItems, pct}}
-    const cancelledItemsMap = {}; // {order_id: true} — order yang punya setidaknya 1 item cancelled
+    const progressMap = {};
+    const cancelledItemsMap = {};
+
+    // ── OPTIMASI 2: Fetch order_items SATU KALI dengan kolom lengkap untuk progress + FIFO ──
+    let allItemRows = [];
     if (orderIds.length > 0) {
       try {
-        // Coba dengan status_item dulu; fallback ke select dasar jika kolom belum ada di DB
-        let itemRows = null;
-        try {
-          const { data } = await _sb.from('order_items')
-            .select('order_id,qty_order,qty_terpenuhi,faktor_konversi,status_item')
-            .in('order_id', orderIds);
-          itemRows = data;
-        } catch(_e1) {
-          const { data } = await _sb.from('order_items')
-            .select('order_id,qty_order,qty_terpenuhi,faktor_konversi')
-            .in('order_id', orderIds);
-          itemRows = data;
+        allItemRows = await _inBatch(
+          'order_items',
+          'id,order_id,barang_id,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
+          'order_id', orderIds
+        );
+        if (!allItemRows.length) {
+          allItemRows = await _inBatch(
+            'order_items',
+            'id,order_id,barang_id,qty_order,qty_terpenuhi,faktor_konversi',
+            'order_id', orderIds
+          );
         }
-        (itemRows || []).forEach(it => {
-          // Track cancelled items
-          if ((it.status_item || 'pending') === 'cancelled') {
-            cancelledItemsMap[it.order_id] = true;
-            return;
-          }
-          if (!progressMap[it.order_id]) progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
-          const f   = it.faktor_konversi || 1;
-          const need = it.qty_order * f;
-          const got  = it.qty_terpenuhi || 0;
-          progressMap[it.order_id].totalOrder     += need;
-          progressMap[it.order_id].totalTerpenuhi += Math.min(got, need);
-          progressMap[it.order_id].totalItems     += 1;
-          if (got >= need) progressMap[it.order_id].doneItems += 1;
-        });
-        // Pastikan order yang semua item-nya cancelled punya entry progress 0/0
-        // (bukan null) agar progress cell tidak tampil "—"
-        (itemRows || []).forEach(it => {
-          if (!progressMap[it.order_id]) {
-            progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
-          }
-        });
-      } catch(e) { console.warn('fetch items for progress failed:', e); }
+      } catch(e) { console.warn('fetch items failed:', e); }
     }
 
-    // Bangun allOrders cache awal (sebelum FIFO)
+    // Hitung progressMap dari allItemRows (sama seperti sebelumnya)
+    (allItemRows || []).forEach(it => {
+      if ((it.status_item || 'pending') === 'cancelled') {
+        cancelledItemsMap[it.order_id] = true;
+        return;
+      }
+      if (!progressMap[it.order_id]) progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+      const f    = it.faktor_konversi || 1;
+      const need = it.qty_order * f;
+      const got  = it.qty_terpenuhi || 0;
+      progressMap[it.order_id].totalOrder     += need;
+      progressMap[it.order_id].totalTerpenuhi += Math.min(got, need);
+      progressMap[it.order_id].totalItems     += 1;
+      if (got >= need) progressMap[it.order_id].doneItems += 1;
+    });
+    (allItemRows || []).forEach(it => {
+      if (!progressMap[it.order_id]) {
+        progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+      }
+    });
+
+    // Bangun allOrders cache awal
     allOrders = (ordersRaw || []).map(o => ({
       ...o,
       pemesan:             pemesanMap[o.pemesan_id] || { kode: '—', nama: '—' },
@@ -977,100 +922,65 @@ async function loadAll() {
       has_cancelled_items: !!(cancelledItemsMap[o.id] && o.status !== 'cancelled'),
     }));
 
-    // Auto-archive SEBELUM render — agar order yang perlu diarsip
-    // tidak sempat tampil di tabel lalu hilang setelah refresh
+    // Auto-archive tetap blocking agar order arsip tidak sempat tampil
     await _autoArchiveSelesai();
 
+    // ── OPTIMASI 3: Render tabel SEGERA, FIFO jalan di background ──
     updateStats();
     applyFilters();
 
-    // Jalankan FIFO sync di background untuk semua barang aktif
-    // Non-blocking: render tabel dulu, FIFO jalan di belakang
-    const allBarangIds = [...new Set(
-      Object.values(progressMap).length > 0
-        ? (await _sb.from('order_items')
-            .select('barang_id,is_custom,status_item')
-            .in('order_id', orderIds)
-            .then(({ data }) => (data || [])
-              .filter(r => !r.is_custom && (r.status_item || 'pending') !== 'cancelled')
-              .map(r => r.barang_id).filter(Boolean))
-            .catch(() => []))
-        : []
-    )];
+    // FIFO sync di background — tidak memblokir tampilan awal
+    if (allItemRows.length > 0) {
+      (async () => {
+        try {
+          const allBarangIds = [...new Set(
+            allItemRows
+              .filter(r => !r.is_custom && (r.status_item || 'pending') !== 'cancelled' && r.barang_id)
+              .map(r => r.barang_id)
+          )];
 
-    if (allBarangIds.length > 0) {
-      _runFifoSync(allBarangIds)
-        .then(({ fifoResultMap, allCompetingItems }) => {
-          if (!fifoResultMap || Object.keys(fifoResultMap).length === 0) return;
+          if (allBarangIds.length === 0) return;
 
-          // Update progressMap dan status di allOrders cache dari hasil FIFO
-          const newProgressMap = {};
-          (allCompetingItems || []).forEach(ci => {
-            if (!newProgressMap[ci.order_id]) {
-              newProgressMap[ci.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+          const { fifoResultMap } = await _runFifoSync(allBarangIds);
+
+          // Hitung ulang progress dari hasil FIFO
+          const fifoProgressMap = {};
+          allItemRows.forEach(it => {
+            if ((it.status_item || 'pending') === 'cancelled') return;
+            if (!fifoProgressMap[it.order_id]) {
+              fifoProgressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
             }
-            const f        = ci.faktor_konversi || 1;
-            const kebutuhan = (ci.qty_order || 0) * f;
-            // Item yang sudah selesai manual: pakai qty_terpenuhi dari DB (sudah penuh), bukan FIFO
-            const dapat = (ci.status_item === 'selesai')
-              ? (ci.qty_terpenuhi || kebutuhan)
-              : (fifoResultMap[ci.id] ?? 0);
-            newProgressMap[ci.order_id].totalOrder     += kebutuhan;
-            newProgressMap[ci.order_id].totalTerpenuhi += Math.min(dapat, kebutuhan);
-            newProgressMap[ci.order_id].totalItems     += 1;
-            if (dapat >= kebutuhan) newProgressMap[ci.order_id].doneItems += 1;
+            const f         = it.faktor_konversi || 1;
+            const kebutuhan = (it.qty_order || 0) * f;
+            const dapat     = (it.status_item === 'selesai')
+              ? (it.qty_terpenuhi || kebutuhan)
+              : (it.is_custom ? (it.qty_terpenuhi || 0) : (fifoResultMap[it.id] ?? it.qty_terpenuhi ?? 0));
+            fifoProgressMap[it.order_id].totalOrder     += kebutuhan;
+            fifoProgressMap[it.order_id].totalTerpenuhi += Math.min(dapat, kebutuhan);
+            fifoProgressMap[it.order_id].totalItems     += 1;
+            if (dapat >= kebutuhan) fifoProgressMap[it.order_id].doneItems += 1;
           });
 
-          // Update allOrders cache + DOM row per row
+          // Terapkan ke allOrders + update status
           const statusUpdates = [];
           allOrders.forEach(o => {
             if (o.status === 'cancelled') return;
-            const prog = newProgressMap[o.id];
-            if (!prog || prog.totalItems === 0) return;
-
+            const prog = fifoProgressMap[o.id];
+            if (!prog) return;
             o.progress = prog;
-
-            // Recalc status
             const pct = prog.totalOrder > 0 ? prog.totalTerpenuhi / prog.totalOrder : 0;
             const newStatus = pct >= 1 ? 'selesai' : pct > 0 ? 'partial' : 'pending';
-
-            // Update progress cell di DOM
-            const progCell = document.querySelector(`#row-${o.id} td[data-prog]`);
-            if (progCell) progCell.innerHTML = _buildProgressCell(prog);
-
-            // Update status jika berubah
             if (newStatus !== o.status) {
               o.status = newStatus;
-              _refreshRowBadge(o.id, newStatus);
               statusUpdates.push({ id: o.id, status: newStatus });
             }
-            // Update status cell di DOM
-            const statusCell = document.getElementById('status-' + o.id);
-            if (statusCell) {
-              const badgeMap = {
-                pending:   '<span class="badge badge-gray">Pending</span>',
-                partial:   '<span class="badge badge-orange">Partial</span>',
-                selesai:   '<span class="badge badge-green">Selesai</span>',
-                cancelled: '<span class="badge badge-red">Cancelled</span>',
-              };
-              const cancelledInd = (o.has_cancelled_items && newStatus !== 'cancelled')
-                ? `<div style="margin-top:4px"><span style="font-size:9px;font-family:var(--mono);background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.3);border-radius:3px;padding:2px 6px;letter-spacing:.3px">⚠ ada item dibatalkan</span></div>`
-                : '';
-              statusCell.innerHTML = (badgeMap[newStatus] || '<span class="badge badge-gray">—</span>') + cancelledInd;
-            }
           });
 
-          // Update aksi cell SEMUA order di halaman — bukan hanya yang ada di newProgressMap
-          // Ini memastikan tombol 📦 muncul setelah status berubah ke selesai
-          allOrders.forEach(o => {
-            const aksiCell = document.getElementById('aksi-' + o.id);
-            if (aksiCell) aksiCell.innerHTML = _buildAksiCell(o);
-          });
-
-          // Update stats strip (angka total/pending/partial/selesai)
+          // Re-render tabel setelah FIFO selesai (update progress & status)
           updateStats();
+          applyFilters();
 
-          // Update status stale ke DB (background, non-blocking)
+          // Simpan perubahan status ke DB (background)
           if (statusUpdates.length > 0) {
             (async () => {
               for (const { id, status } of statusUpdates) {
@@ -1086,8 +996,8 @@ async function loadAll() {
               }
             })();
           }
-        })
-        .catch(e => console.warn('FIFO background sync failed:', e));
+        } catch(e) { console.warn('FIFO sync on load failed:', e); }
+      })();
     }
 
   } catch(e) {
@@ -1488,6 +1398,24 @@ function toggleArsipTab() {
 }
 
 // ═══════════════════════════════════════════════
+// HELPER — batch .in() queries (Supabase URL limit ~8KB)
+// Pecah array besar menjadi batch kecil, jalankan paralel, gabungkan hasilnya
+// ═══════════════════════════════════════════════
+const _IN_BATCH_SIZE = 100; // max IDs per request agar URL tetap pendek
+
+async function _inBatch(table, selectCols, filterCol, ids) {
+  if (!ids || ids.length === 0) return [];
+  const results = [];
+  for (let i = 0; i < ids.length; i += _IN_BATCH_SIZE) {
+    const batch = ids.slice(i, i + _IN_BATCH_SIZE);
+    const { data, error } = await _sb.from(table).select(selectCols).in(filterCol, batch);
+    if (error) console.warn(`[_inBatch] ${table} error:`, error.code, error.message);
+    if (data) results.push(...data);
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════════
 // FIFO SYNC — bisa dipanggil dari loadAll maupun openDetail
 // ═══════════════════════════════════════════════
 // Menerima daftar barangIds yang perlu disync.
@@ -1496,22 +1424,19 @@ function toggleArsipTab() {
 async function _runFifoSync(barangIds) {
   if (!barangIds || barangIds.length === 0) return {};
 
-  // 1. Ambil semua competing order_items untuk barang-barang ini
-  //    Dua langkah (tanpa join) agar tidak butuh foreign key eksplisit di Supabase
-  //    Fallback ke select dasar jika kolom status_item/is_custom belum ada di DB
-  let _competingRaw = null;
-  try {
-    const { data } = await _sb
-      .from('order_items')
-      .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom')
-      .in('barang_id', barangIds);
-    _competingRaw = data;
-  } catch(_e1) {
-    const { data } = await _sb
-      .from('order_items')
-      .select('id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi')
-      .in('barang_id', barangIds);
-    _competingRaw = data;
+  // 1. Ambil semua competing order_items — pakai batch agar URL tidak terlalu panjang
+  let _competingRaw = await _inBatch(
+    'order_items',
+    'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom',
+    'barang_id', barangIds
+  );
+  // Fallback jika kolom opsional belum ada (error akan di-warn oleh _inBatch)
+  if (!_competingRaw.length) {
+    _competingRaw = await _inBatch(
+      'order_items',
+      'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi',
+      'barang_id', barangIds
+    );
   }
 
   // Filter di JS — agar tidak bergantung kolom status_item/is_custom ada di DB sebagai filter
@@ -1519,15 +1444,12 @@ async function _runFifoSync(barangIds) {
     !ci.is_custom && (ci.status_item || 'pending') !== 'cancelled'
   );
 
-  // Fetch data orders (created_at, brand_id) untuk setiap order_id unik
+  // Fetch data orders (created_at, brand_id) untuk setiap order_id unik — pakai batch
   const uniqueOrderIds = [...new Set((_competingFiltered || []).map(ci => ci.order_id).filter(Boolean))];
   let _ordersMap = {};
   if (uniqueOrderIds.length > 0) {
-    const { data: _ordersRaw } = await _sb
-      .from('orders')
-      .select('id, created_at, brand_id')
-      .in('id', uniqueOrderIds);
-    (_ordersRaw || []).forEach(o => { _ordersMap[o.id] = o; });
+    const _ordersRaw = await _inBatch('orders', 'id, created_at, brand_id', 'id', uniqueOrderIds);
+    _ordersRaw.forEach(o => { _ordersMap[o.id] = o; });
   }
 
   // Gabungkan: simulasi orders!inner
@@ -1536,20 +1458,12 @@ async function _runFifoSync(barangIds) {
     orders: _ordersMap[ci.order_id] || null,
   })).filter(ci => ci.orders !== null);
 
-  // 2. Cek item mana yang sudah punya record riwayat_beli_items dengan order_item_id
-  //    Item seperti ini sudah diinput manual — TIDAK ikut distribusi FIFO
-  //    untuk mencegah stok pembelian satu order "bocor" ke order lain
+  // 2. Cek item mana yang sudah punya record riwayat_beli_items dengan order_item_id — pakai batch
   const allItemIds = (allCompetingItems || []).map(ci => ci.id);
   let manuallyLinkedItemIds = new Set();
   if (allItemIds.length > 0) {
-    const { data: linkedRows } = await _sb
-      .from('riwayat_beli_items')
-      .select('order_item_id')
-      .in('order_item_id', allItemIds)
-      .not('order_item_id', 'is', null);
-    (linkedRows || []).forEach(r => {
-      if (r.order_item_id) manuallyLinkedItemIds.add(r.order_item_id);
-    });
+    const linkedRows = await _inBatch('riwayat_beli_items', 'order_item_id', 'order_item_id', allItemIds);
+    linkedRows.forEach(r => { if (r.order_item_id) manuallyLinkedItemIds.add(r.order_item_id); });
   }
 
   // Item yang sudah diinput manual dikeluarkan dari kompetisi FIFO
@@ -1557,24 +1471,22 @@ async function _runFifoSync(barangIds) {
     !manuallyLinkedItemIds.has(ci.id)
   );
 
-  // 3. Ambil total qty pembelian FIFO (hanya yang TIDAK terkait order_item_id)
-  //    Dua langkah (tanpa join) agar tidak butuh foreign key eksplisit di Supabase
-  const { data: _beliItemsRaw } = await _sb
-    .from('riwayat_beli_items')
-    .select('barang_id, qty, order_item_id, beli_id')
-    .in('barang_id', barangIds)
-    .is('order_item_id', null);  // ← hanya record tanpa order_item_id (FIFO lama / legacy)
+  // 3. Ambil total qty pembelian FIFO — pakai batch
+  const _beliItemsRawAll = await _inBatch(
+    'riwayat_beli_items', 'barang_id, qty, order_item_id, beli_id', 'barang_id', barangIds
+  );
+  // Filter order_item_id null di JS
+  const _beliItemsRaw = _beliItemsRawAll.filter(bi => bi.order_item_id === null || bi.order_item_id === undefined);
 
-  // Fetch header riwayat_beli (tanggal, status, brand_id) untuk beli_id unik
+  // Fetch header riwayat_beli — pakai batch
   const uniqueBeliIds = [...new Set((_beliItemsRaw || []).map(bi => bi.beli_id).filter(Boolean))];
   let _beliHeaderMap = {};
   if (uniqueBeliIds.length > 0) {
-    const { data: _beliHeaders } = await _sb
-      .from('riwayat_beli')
-      .select('id, tanggal, status, brand_id')
-      .in('id', uniqueBeliIds)
-      .eq('status', 'selesai');
-    (_beliHeaders || []).forEach(h => { _beliHeaderMap[h.id] = h; });
+    const _beliHeaders = await _inBatch('riwayat_beli', 'id, tanggal, status, brand_id', 'id', uniqueBeliIds);
+    // Filter status selesai di JS
+    _beliHeaders
+      .filter(h => h.status === 'selesai')
+      .forEach(h => { _beliHeaderMap[h.id] = h; });
   }
 
   // Gabungkan: simulasi riwayat_beli!inner, filter hanya status selesai
@@ -1707,14 +1619,12 @@ async function _runFifoSync(barangIds) {
 async function _refreshDetailBody(orderId) {
   const modal = document.getElementById('modalDetail');
   if (!modal || !modal.classList.contains('show')) {
-    // Modal tidak terbuka — fallback ke openDetail biasa
     await openDetail(orderId);
     return;
   }
   const body = document.getElementById('detailBody');
   const scrollTop = body ? body.scrollTop : 0;
 
-  // Tampilkan spinner tipis di atas konten yang ada (opacity, bukan replace)
   if (body) body.style.opacity = '0.4';
 
   try {
@@ -1728,16 +1638,140 @@ async function _refreshDetailBody(orderId) {
 
     const barangIds = itemsArr.map(it => it.barang_id).filter(Boolean);
     let vendorPerBarang = {}, bestVendorPerBarang = {};
+
+    // ── Render segera dengan data items terkini (tanpa menunggu harga & FIFO) ──
+    window._lastDetailItems    = itemsArr;
+    window._lastVendorPerBarang = vendorPerBarang;
+    buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
+    _updateTableRowProgress(orderId, o, itemsArr);
+    if (body) { body.style.opacity = ''; body.scrollTop = scrollTop; }
+
+    // ── riwayat_harga + FIFO di background, lalu re-render ──
+    (async () => {
+      try {
+        if (barangIds.length > 0) {
+          try {
+            const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
+            const cutoffISO = cutoff1M.toISOString().split('T')[0];
+            const _hRowsRaw = await _inBatch('riwayat_harga', 'barang_id,vendor_id,harga,tanggal', 'barang_id', barangIds);
+            const hRows = _hRowsRaw.sort((a, b) => (b.tanggal || '') < (a.tanggal || '') ? -1 : 1);
+            (hRows || []).filter(h => h.vendor_id).forEach(h => {
+              if (!vendorPerBarang[h.barang_id]) vendorPerBarang[h.barang_id] = new Set();
+              vendorPerBarang[h.barang_id].add(h.vendor_id);
+            });
+            const recent = {};
+            (hRows || []).forEach(h => {
+              if (!h.tanggal || h.tanggal < cutoffISO) return;
+              if (!recent[h.barang_id]) recent[h.barang_id] = {};
+              const cur = recent[h.barang_id][h.vendor_id];
+              if (cur === undefined || (h.harga && h.harga < cur)) recent[h.barang_id][h.vendor_id] = h.harga || 0;
+            });
+            for (const [bid, vmap] of Object.entries(recent)) {
+              let bestVid = null, bestHarga = Infinity;
+              for (const [vid, harga] of Object.entries(vmap)) {
+                if (harga < bestHarga || bestVid === null) { bestVid = vid; bestHarga = harga; }
+              }
+              if (bestVid) bestVendorPerBarang[bid] = bestVid;
+            }
+            const seenFallback = {};
+            (hRows || []).forEach(h => {
+              if (bestVendorPerBarang[h.barang_id]) return;
+              if (!seenFallback[h.barang_id]) { seenFallback[h.barang_id] = true; bestVendorPerBarang[h.barang_id] = h.vendor_id; }
+            });
+          } catch(e) { console.warn('riwayat_harga lookup failed:', e); }
+        }
+
+        if (!_showArsip) {
+          const activeItemsForSync = itemsArr.filter(it =>
+            !it.is_custom && it.barang_id && (it.status_item || 'pending') !== 'cancelled'
+          );
+          if (activeItemsForSync.length > 0) {
+            try {
+              const barangIdsSync = [...new Set(activeItemsForSync.map(it => it.barang_id))];
+              const { fifoResultMap, beliTotalPerBarang } = await _runFifoSync(barangIdsSync);
+              const adaData = Object.keys(beliTotalPerBarang).length > 0;
+              for (const it of activeItemsForSync) {
+                if ((it.status_item || 'pending') === 'selesai') continue;
+                const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
+                if (newQty === undefined) continue;
+                it.qty_terpenuhi = newQty;
+              }
+              const activeItems = itemsArr.filter(it => (it.status_item || 'pending') !== 'cancelled');
+              if (activeItems.length > 0) {
+                const allDone    = activeItems.every(it => { const f = it.faktor_konversi||1; return (it.qty_terpenuhi||0) >= (it.qty_order*f); });
+                const anyPartial = activeItems.some(it => (it.qty_terpenuhi||0) > 0);
+                const newStatus  = allDone ? 'selesai' : anyPartial ? 'partial' : 'pending';
+                if (newStatus !== o.status) {
+                  o.status = newStatus;
+                  const upd = { status: newStatus };
+                  if (newStatus === 'selesai' && !o.selesai_at) { upd.selesai_at = new Date().toISOString(); o.selesai_at = upd.selesai_at; }
+                  await _sb.from('orders').update(upd).eq('id', orderId);
+                  _refreshRowBadge(orderId, newStatus);
+                }
+              }
+            } catch(e) { console.warn('FIFO sync failed:', e); }
+          }
+        }
+
+        // Re-render hanya jika modal masih terbuka untuk order yang sama
+        const modalNow = document.getElementById('modalDetail');
+        if (!modalNow || !modalNow.classList.contains('show') || modalNow._orderId !== orderId) return;
+
+        const bodyNow = document.getElementById('detailBody');
+        const st = bodyNow ? bodyNow.scrollTop : 0;
+
+        window._lastDetailItems    = itemsArr;
+        window._lastVendorPerBarang = vendorPerBarang;
+        buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
+        _updateTableRowProgress(orderId, o, itemsArr);
+
+        if (bodyNow) bodyNow.scrollTop = st;
+      } catch(e) { console.warn('_refreshDetailBody background failed:', e); }
+    })();
+
+  } catch(e) {
+    if (body) { body.style.opacity = ''; }
+    console.warn('_refreshDetailBody error:', e);
+  }
+}
+
+async function openDetail(orderId) {
+  // Arsip: cari di archivedOrders jika tab arsip aktif
+  const o = _showArsip
+    ? archivedOrders.find(x=>x.id===orderId)
+    : allOrders.find(x=>x.id===orderId);
+  if (!o) { showToast('error', '✕ Order tidak ditemukan'); return; }
+  const brandNama = brands[o.brand_id]||'—';
+  const tgl = new Date(o.created_at).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const jam = new Date(o.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+
+  _waOrderId = orderId;
+  _waBrandId = o.brand_id;
+  buildDetailModal._groupByVendor = true;
+
+  document.getElementById('detailTitle').innerHTML = brandNama + ' · ' + tgl + ' <span style="font-size:13px;font-weight:400;color:var(--muted);font-family:var(--mono)">🕐 ' + jam + '</span>';
+  document.getElementById('detailMeta').textContent = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}`;
+  document.getElementById('detailBody').innerHTML    = '<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
+  const _mdEl = document.getElementById('modalDetail'); _mdEl.classList.add('show'); _mdEl._orderId = orderId;
+
+  try {
+    const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
+    const cutoffISO = cutoff1M.toISOString().split('T')[0];
+
+    // ── Fetch order_items dulu untuk dapat barang_ids, lalu fetch riwayat_harga ──
+    // riwayat_harga harus ada di render pertama agar grouping vendor langsung tampil
+    const itemsRaw = await supaGet('order_items', `order_id=eq.${orderId}&select=*&order=created_at`);
+    const itemsArr = Array.isArray(itemsRaw) ? itemsRaw : [];
+    const barangIds = itemsArr.map(it => it.barang_id).filter(Boolean);
+
+    let vendorPerBarang = {};
+    let bestVendorPerBarang = {};
+
     if (barangIds.length > 0) {
       try {
-        const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
-        const cutoffISO = cutoff1M.toISOString().split('T')[0];
-        const { data: hRows } = await _sb.from('riwayat_harga')
-          .select('barang_id,vendor_id,harga,tanggal')
-          .in('barang_id', barangIds)
-          .not('vendor_id', 'is', null)
-          .order('tanggal', { ascending: false });
-        (hRows || []).forEach(h => {
+        const _hRowsRaw = await _inBatch('riwayat_harga', 'barang_id,vendor_id,harga,tanggal', 'barang_id', barangIds);
+        const hRows = _hRowsRaw.sort((a, b) => (b.tanggal || '') < (a.tanggal || '') ? -1 : 1);
+        (hRows || []).filter(h => h.vendor_id).forEach(h => {
           if (!vendorPerBarang[h.barang_id]) vendorPerBarang[h.barang_id] = new Set();
           vendorPerBarang[h.barang_id].add(h.vendor_id);
         });
@@ -1763,167 +1797,141 @@ async function _refreshDetailBody(orderId) {
       } catch(e) { console.warn('riwayat_harga lookup failed:', e); }
     }
 
-    // FIFO sync — skip untuk order arsip
-    if (!_showArsip) {
-      const activeItemsForSync = itemsArr.filter(it =>
-        !it.is_custom && it.barang_id && (it.status_item || 'pending') !== 'cancelled'
-      );
-      if (activeItemsForSync.length > 0) {
-        try {
-          const barangIdsSync = [...new Set(activeItemsForSync.map(it => it.barang_id))];
-          const { fifoResultMap, beliTotalPerBarang } = await _runFifoSync(barangIdsSync);
-          const adaData = Object.keys(beliTotalPerBarang).length > 0;
-          for (const it of activeItemsForSync) {
-            if ((it.status_item || 'pending') === 'selesai') continue;
-            const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
-            if (newQty === undefined) continue;
-            it.qty_terpenuhi = newQty;
-          }
-          const activeItems = itemsArr.filter(it => (it.status_item || 'pending') !== 'cancelled');
-          if (activeItems.length > 0) {
-            const allDone    = activeItems.every(it => { const f = it.faktor_konversi||1; return (it.qty_terpenuhi||0) >= (it.qty_order*f); });
-            const anyPartial = activeItems.some(it => (it.qty_terpenuhi||0) > 0);
-            const newStatus  = allDone ? 'selesai' : anyPartial ? 'partial' : 'pending';
-            if (newStatus !== o.status) {
-              o.status = newStatus;
-              const upd = { status: newStatus };
-              if (newStatus === 'selesai' && !o.selesai_at) { upd.selesai_at = new Date().toISOString(); o.selesai_at = upd.selesai_at; }
-              await _sb.from('orders').update(upd).eq('id', orderId);
-              _refreshRowBadge(orderId, newStatus);
-            }
-          }
-        } catch(e) { console.warn('FIFO sync failed:', e); }
-      }
-    }
-
+    // ── Render modal — grouping vendor sudah tersedia sejak render pertama ──
+    _updateTableRowProgress(orderId, o, itemsArr);
     window._lastDetailItems    = itemsArr;
     window._lastVendorPerBarang = vendorPerBarang;
     buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
 
-    // Kembalikan scroll position setelah render
-    const bodyAfter = document.getElementById('detailBody');
-    if (bodyAfter) { bodyAfter.style.opacity = ''; bodyAfter.scrollTop = scrollTop; }
-  } catch(e) {
-    if (body) { body.style.opacity = ''; }
-    console.warn('_refreshDetailBody error:', e);
-  }
-}
-
-async function openDetail(orderId) {
-  // Arsip: cari di archivedOrders jika tab arsip aktif
-  const o = _showArsip
-    ? archivedOrders.find(x=>x.id===orderId)
-    : allOrders.find(x=>x.id===orderId);
-  if (!o) { showToast('error', '✕ Order tidak ditemukan'); return; }
-  const brandNama = brands[o.brand_id]||'—';
-  const tgl = new Date(o.created_at).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  const jam = new Date(o.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-
-  _waOrderId = orderId;
-  _waBrandId = o.brand_id;
-  buildDetailModal._groupByVendor = true; // reset toggle ke default (by vendor) setiap buka detail baru
-
-  document.getElementById('detailTitle').innerHTML = brandNama + ' · ' + tgl + ' <span style="font-size:13px;font-weight:400;color:var(--muted);font-family:var(--mono)">🕐 ' + jam + '</span>';
-  document.getElementById('detailMeta').textContent = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}`;
-  document.getElementById('detailBody').innerHTML    = '<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
-  const _mdEl = document.getElementById('modalDetail'); _mdEl.classList.add('show'); _mdEl._orderId = orderId;
-
-  try {
-    const items = await supaGet('order_items', `order_id=eq.${orderId}&select=*&order=created_at`);
-    const itemsArr = Array.isArray(items) ? items : [];
-
-    // Fetch vendor histori per barang_id dari riwayat_harga (dengan tanggal & harga untuk logika cerdas)
-    const barangIds = itemsArr.map(it => it.barang_id).filter(Boolean);
-    let vendorPerBarang = {}; // {barang_id: Set<vendor_id>} — semua histori
-    let bestVendorPerBarang = {}; // {barang_id: vendor_id} — vendor terbaik (1 bulan terakhir + termurah)
-    if (barangIds.length > 0) {
+    // ── FIFO di background — hanya update progress, tidak perlu re-render vendor ──
+    (async () => {
       try {
-        const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
-        const cutoffISO = cutoff1M.toISOString().split('T')[0];
-        const { data: hRows } = await _sb.from('riwayat_harga')
-          .select('barang_id,vendor_id,harga,tanggal')
-          .in('barang_id', barangIds)
-          .not('vendor_id', 'is', null)
-          .order('tanggal', { ascending: false });
-        // Semua histori (untuk fallback)
-        (hRows || []).forEach(h => {
-          if (!vendorPerBarang[h.barang_id]) vendorPerBarang[h.barang_id] = new Set();
-          vendorPerBarang[h.barang_id].add(h.vendor_id);
-        });
-        // Smart selection: 1 bulan terakhir → pilih termurah
-        // {barang_id: {vendor_id: min_harga}}
-        const recent = {}; // {barang_id: {vendor_id: min_harga}}
-        (hRows || []).forEach(h => {
-          if (!h.tanggal || h.tanggal < cutoffISO) return;
-          if (!recent[h.barang_id]) recent[h.barang_id] = {};
-          const cur = recent[h.barang_id][h.vendor_id];
-          if (cur === undefined || (h.harga && h.harga < cur)) {
-            recent[h.barang_id][h.vendor_id] = h.harga || 0;
-          }
-        });
-        // Pilih vendor termurah per barang dari data 1 bulan terakhir
-        for (const [bid, vmap] of Object.entries(recent)) {
-          let bestVid = null, bestHarga = Infinity;
-          for (const [vid, harga] of Object.entries(vmap)) {
-            if (harga < bestHarga || bestVid === null) { bestVid = vid; bestHarga = harga; }
-          }
-          if (bestVid) bestVendorPerBarang[bid] = bestVid;
-        }
-        // Fallback: jika tidak ada data 1 bulan terakhir, pakai histori terakhir (tanggal terbaru)
-        const seenFallback = {};
-        (hRows || []).forEach(h => {
-          if (bestVendorPerBarang[h.barang_id]) return; // sudah punya best vendor
-          if (!seenFallback[h.barang_id]) { // hRows sudah sorted desc, jadi yang pertama = terbaru
-            seenFallback[h.barang_id] = true;
-            bestVendorPerBarang[h.barang_id] = h.vendor_id;
-          }
-        });
-      } catch(e) { console.warn('riwayat_harga lookup failed:', e); }
-    }
-
-    // FIFO sync — skip untuk order arsip
-    if (!_showArsip) {
-      const activeItemsForSync = itemsArr.filter(it =>
-        !it.is_custom && it.barang_id && (it.status_item || 'pending') !== 'cancelled'
-      );
-      if (activeItemsForSync.length > 0) {
-        try {
-          const barangIdsSync = [...new Set(activeItemsForSync.map(it => it.barang_id))];
-          const { fifoResultMap, beliTotalPerBarang } = await _runFifoSync(barangIdsSync);
-          const adaData = Object.keys(beliTotalPerBarang).length > 0;
-          for (const it of activeItemsForSync) {
-            // Jangan timpa qty_terpenuhi item yang sudah selesai manual
-            if ((it.status_item || 'pending') === 'selesai') continue;
-            const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
-            if (newQty === undefined) continue;
-            it.qty_terpenuhi = newQty;
-          }
-          const activeItems = itemsArr.filter(it => (it.status_item || 'pending') !== 'cancelled');
-          if (activeItems.length > 0) {
-            const allDone    = activeItems.every(it => { const f = it.faktor_konversi||1; return (it.qty_terpenuhi||0) >= (it.qty_order*f); });
-            const anyPartial = activeItems.some(it => (it.qty_terpenuhi||0) > 0);
-            const newStatus  = allDone ? 'selesai' : anyPartial ? 'partial' : 'pending';
-            if (newStatus !== o.status) {
-              o.status = newStatus;
-              const upd = { status: newStatus };
-              if (newStatus === 'selesai' && !o.selesai_at) {
-                upd.selesai_at = new Date().toISOString();
-                o.selesai_at = upd.selesai_at;
+        // FIFO sync — skip untuk order arsip
+        if (!_showArsip) {
+          const activeItemsForSync = itemsArr.filter(it =>
+            !it.is_custom && it.barang_id && (it.status_item || 'pending') !== 'cancelled'
+          );
+          if (activeItemsForSync.length > 0) {
+            try {
+              const barangIdsSync = [...new Set(activeItemsForSync.map(it => it.barang_id))];
+              const { fifoResultMap, beliTotalPerBarang } = await _runFifoSync(barangIdsSync);
+              const adaData = Object.keys(beliTotalPerBarang).length > 0;
+              for (const it of activeItemsForSync) {
+                if ((it.status_item || 'pending') === 'selesai') continue;
+                const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
+                if (newQty === undefined) continue;
+                it.qty_terpenuhi = newQty;
               }
-              await _sb.from('orders').update(upd).eq('id', orderId);
-              _refreshRowBadge(orderId, newStatus);
-            }
+              const activeItems = itemsArr.filter(it => (it.status_item || 'pending') !== 'cancelled');
+              if (activeItems.length > 0) {
+                const allDone    = activeItems.every(it => { const f = it.faktor_konversi||1; return (it.qty_terpenuhi||0) >= (it.qty_order*f); });
+                const anyPartial = activeItems.some(it => (it.qty_terpenuhi||0) > 0);
+                const newStatus  = allDone ? 'selesai' : anyPartial ? 'partial' : 'pending';
+                if (newStatus !== o.status) {
+                  o.status = newStatus;
+                  const upd = { status: newStatus };
+                  if (newStatus === 'selesai' && !o.selesai_at) { upd.selesai_at = new Date().toISOString(); o.selesai_at = upd.selesai_at; }
+                  await _sb.from('orders').update(upd).eq('id', orderId);
+                  _refreshRowBadge(orderId, newStatus);
+                }
+              }
+            } catch(e) { console.warn('FIFO sync failed:', e); }
           }
-        } catch(e) { console.warn('FIFO sync failed:', e); }
-      }
-    }
+        }
 
-    window._lastDetailItems       = itemsArr;
-    window._lastVendorPerBarang    = vendorPerBarang;
-    buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
+        // Setelah FIFO selesai: hanya update progress di modal (vendor grouping tidak berubah)
+        const modalNow = document.getElementById('modalDetail');
+        if (!modalNow || !modalNow.classList.contains('show') || modalNow._orderId !== orderId) return;
+
+        _updateTableRowProgress(orderId, o, itemsArr);
+        window._lastDetailItems = itemsArr;
+
+        // Update progress bar & badge tiap item langsung di DOM — tanpa rebuild modal
+        itemsArr.forEach(it => {
+          const faktor = it.faktor_konversi || 1;
+          const hasFaktor = it.satuan_db && faktor > 1;
+          const qtyTerpenuhiOrder = hasFaktor ? (it.qty_terpenuhi / faktor) : it.qty_terpenuhi;
+          const pct = it.qty_order > 0 ? Math.min(100, Math.round(qtyTerpenuhiOrder / it.qty_order * 100)) : 0;
+          const progressLabel = hasFaktor
+            ? `${qtyTerpenuhiOrder.toFixed(1)}/${it.qty_order} ${it.satuan}`
+            : `${it.qty_terpenuhi}/${it.qty_order} ${it.satuan || ''}`;
+
+          // Cari row item di dalam modal body berdasarkan data-item-id
+          const row = document.querySelector(`#detailBody tr[data-item-id="${it.id}"]`);
+          if (!row) return;
+
+          const progBar = row.querySelector('.prog-bar');
+          if (progBar) { progBar.style.width = pct + '%'; progBar.className = 'prog-bar ' + (pct >= 100 ? 'done' : pct > 0 ? 'partial' : 'zero'); }
+          const progText = row.querySelector('.prog-text');
+          if (progText) progText.textContent = progressLabel;
+        });
+      } catch(e) { console.warn('openDetail background refresh failed:', e); }
+    })();
+
   } catch(e) {
     document.getElementById('detailBody').innerHTML = '<div style="color:var(--danger);font-size:13px">Gagal memuat items.</div>';
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helper: recalc progress dari itemsArr (sudah ter-FIFO) lalu
+// update progress cell + status badge di baris tabel utama.
+// Dipanggil dari openDetail DAN _refreshDetailBody.
+// ─────────────────────────────────────────────────────────────
+function _updateTableRowProgress(orderId, o, itemsArr) {
+  const activeItems = (itemsArr || []).filter(it => (it.status_item || 'pending') !== 'cancelled');
+  let totalOrder = 0, totalTerpenuhi = 0, totalItems = 0, doneItems = 0;
+  activeItems.forEach(it => {
+    const f    = it.faktor_konversi || 1;
+    const need = it.qty_order * f;
+    const got  = it.qty_terpenuhi || 0;
+    totalOrder     += need;
+    totalTerpenuhi += Math.min(got, need);
+    totalItems     += 1;
+    if (got >= need) doneItems += 1;
+  });
+  const newProg = { totalOrder, totalTerpenuhi, totalItems, doneItems };
+  o.progress = newProg;
+
+  // Update progress cell di baris tabel
+  const progCell = document.querySelector(`#row-${orderId} td[data-prog]`);
+  if (progCell) progCell.innerHTML = _buildProgressCell(newProg);
+
+  // Recalc status
+  const pct = totalOrder > 0 ? totalTerpenuhi / totalOrder : 0;
+  const newStatus = pct >= 1 ? 'selesai' : pct > 0 ? 'partial' : 'pending';
+  if (newStatus !== o.status) {
+    o.status = newStatus;
+    _refreshRowBadge(orderId, newStatus);
+    const upd = { status: newStatus };
+    if (newStatus === 'selesai' && !o.selesai_at) {
+      upd.selesai_at = new Date().toISOString();
+      o.selesai_at = upd.selesai_at;
+    }
+    _sb.from('orders').update(upd).eq('id', orderId)
+      .then(() => {}).catch(e => console.warn('status update failed:', e));
+  }
+
+  // Selalu update status badge cell (pakai o.status yang sudah di-update)
+  const statusCell = document.getElementById('status-' + orderId);
+  if (statusCell) {
+    const badgeMap = {
+      pending:   '<span class="badge badge-gray">Pending</span>',
+      partial:   '<span class="badge badge-orange">Partial</span>',
+      selesai:   '<span class="badge badge-green">Selesai</span>',
+      cancelled: '<span class="badge badge-red">Cancelled</span>',
+    };
+    const cancelledInd = (o.has_cancelled_items && o.status !== 'cancelled')
+      ? `<div style="margin-top:4px"><span style="font-size:9px;font-family:var(--mono);background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.3);border-radius:3px;padding:2px 6px;letter-spacing:.3px">⚠ ada item dibatalkan</span></div>`
+      : '';
+    statusCell.innerHTML = (badgeMap[o.status] || '<span class="badge badge-gray">—</span>') + cancelledInd;
+  }
+
+  // Update aksi cell (tombol 📦 muncul saat selesai)
+  const aksiCell = document.getElementById('aksi-' + orderId);
+  if (aksiCell) aksiCell.innerHTML = _buildAksiCell(o);
+
+  updateStats();
 }
 
 // _refreshRowBadge — didefinisikan di bawah dekat _recalcOrderStatus
@@ -1975,14 +1983,14 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     } else if (isDone) {
       badgeCell = `<span class="badge badge-green">Selesai</span>`;
       progressCell = `<div>
-        <div style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
+        <div class="prog-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
         <div class="prog-wrap" style="margin-top:3px;margin-bottom:0"><div class="prog-bar done" style="width:100%"></div></div>
       </div>`;
     } else if (pct > 0) {
       badgeCell = `<span class="badge badge-orange">Diproses</span>
         ${isOrdered ? `<div style="margin-top:3px"><span style="font-size:9px;font-family:var(--mono);background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);border-radius:3px;padding:2px 6px">Dipesan</span></div>` : ''}`;
       progressCell = `<div>
-        <div style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
+        <div class="prog-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
         <div class="prog-wrap" style="margin-top:3px;margin-bottom:0"><div class="prog-bar partial" style="width:${pct}%"></div></div>
       </div>`;
     } else {
@@ -1990,7 +1998,7 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
         ? `<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.3)">Dipesan</span>`
         : `<span class="badge badge-gray">Pending</span>`}`;
       progressCell = `<div>
-        <div style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
+        <div class="prog-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
         <div class="prog-wrap" style="margin-top:3px;margin-bottom:0"><div class="prog-bar zero" style="width:0%"></div></div>
       </div>`;
     }
@@ -2038,7 +2046,7 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
          </div>`
       : '';
 
-    return `<tr style="${isCancelled?'opacity:0.45':''}">
+    return `<tr data-item-id="${it.id}" style="${isCancelled?'opacity:0.45':''}">
       <td class="col-barang" style="vertical-align:middle">
         <div style="font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(it.nama_barang||'').replace(/"/g,'&quot;')}">${it.nama_barang}${it.is_custom?'<span class="custom-tag">custom</span>':''}</div>
         ${beliLink}
@@ -2376,12 +2384,11 @@ async function _fetchWAHistori() {
     try {
       const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
       const cutoffISO = cutoff1M.toISOString().split('T')[0];
-      const { data: hRows } = await _sb.from('riwayat_harga')
-        .select('barang_id,vendor_id,harga,tanggal')
-        .in('barang_id', barangIds)
-        .not('vendor_id', 'is', null)
-        .order('tanggal', { ascending: false });
-      (hRows || []).forEach(h => {
+      // Pakai _inBatch lalu sort di JS
+      const _hRowsRaw = await _inBatch('riwayat_harga', 'barang_id,vendor_id,harga,tanggal', 'barang_id', barangIds);
+      const hRows = _hRowsRaw.sort((a, b) => (b.tanggal || '') < (a.tanggal || '') ? -1 : 1);
+      // Filter vendor_id null di JS — tidak bisa chain filter lain setelah .in()
+      (hRows || []).filter(h => h.vendor_id).forEach(h => {
         if (!vendorPerBarang[h.barang_id]) vendorPerBarang[h.barang_id] = new Set();
         vendorPerBarang[h.barang_id].add(h.vendor_id);
       });
@@ -2822,8 +2829,11 @@ async function submitBeli() {
   btn.disabled  = true;
 
   try {
-    // 1. Ambil data item terkini
-    const itemRows = await supaGet('order_items', `id=eq.${beliState.itemId}&select=qty_terpenuhi,qty_order,faktor_konversi,satuan_db,order_id,status_item`);
+    // 1. Ambil data item terkini — fallback jika kolom opsional belum ada di DB
+    let itemRows = await supaGet('order_items', `id=eq.${beliState.itemId}&select=qty_terpenuhi,qty_order,faktor_konversi,satuan_db,order_id,status_item`).catch(() => null);
+    if (!itemRows || !itemRows[0]) {
+      itemRows = await supaGet('order_items', `id=eq.${beliState.itemId}&select=qty_terpenuhi,qty_order,faktor_konversi,order_id`);
+    }
     const item = Array.isArray(itemRows) ? itemRows[0] : null;
     if (!item) throw new Error('Item tidak ditemukan');
 
