@@ -977,8 +977,13 @@ input[type="date"] { color-scheme: dark; }
 .stat-icon { position:absolute; top:14px; right:14px; font-size:24px; opacity:.12; }
 
 /* ── LAYOUT ── */
-.main-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; margin-bottom:20px; align-items:stretch; }
+.main-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; margin-bottom:20px; align-items:start; }
 .main-grid > .card { display:flex; flex-direction:column; height:560px; }
+/* Chart card: default 560px, JS bisa override untuk bar chart */
+#chartCard { height:560px; overflow:visible; }
+/* chart-container di bar mode: tinggi eksplisit via JS, canvas mengisi */
+#chartCard .chart-container { overflow:visible; }
+#chartCard .chart-container canvas { display:block; }
 
 /* ── CHART CARD ── */
 .card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }

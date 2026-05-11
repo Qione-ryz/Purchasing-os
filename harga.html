@@ -181,15 +181,15 @@
 
     <!-- TAB: TREN HARGA -->
     <div id="tabTren">
-      <div class="main-grid">
+      <div class="main-grid" id="trenMainGrid">
         <!-- Chart -->
-        <div class="card anim" style="animation-delay:.25s">
-          <div class="card-header">
-            <div>
+        <div class="card anim" id="chartCard" style="animation-delay:.25s">
+          <div class="card-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:nowrap">
+            <div style="min-width:0;flex:1">
               <span class="card-title" id="chartTitle">Top Kenaikan Harga</span>
               <div id="chartSubtitle" class="chart-subtitle">Pilih barang di kanan untuk lihat tren spesifik</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
               <!-- Toggle Mode Vendor -->
               <div id="trenVendorToggleWrap" style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px">
                 <button id="trenModeAllVendor" class="btn btn-sm ppn-toggle-btn ppn-toggle-btn--active" onclick="setTrenVendorMode('all')" title="Tren harga dari semua perubahan, tidak melihat vendor">
@@ -200,6 +200,12 @@
                 </button>
               </div>
 
+              <select class="filter-sel filter-sel--sm" id="chartTopN" onchange="renderChart()" title="Jumlah item ditampilkan">
+                <option value="10">Top 10</option>
+                <option value="25">Top 25</option>
+                <option value="50">Top 50</option>
+                <option value="0">Semua</option>
+              </select>
               <select class="filter-sel filter-sel--sm" id="chartGroupBy" onchange="renderChart()" style="display:none">
                 <option value="day">Per Hari</option>
                 <option value="week">Per Minggu</option>
@@ -1074,8 +1080,13 @@
     if (btnOne2) btnOne2.classList.toggle('ppn-toggle-btn--active', trenMode === 'one');
 
     const selBarangs = window._selectedBarangs || [];
-    const isMulti    = selBarangs.length > 1;   // multi barang
-    const isSingle   = selBarangs.length === 1 || !!selectedBarangId; // tepat 1 barang
+    const isMulti    = selBarangs.length > 1;
+    const isSingle   = selBarangs.length === 1 || !!selectedBarangId;
+
+    /* ── Top-N dropdown ── */
+    const topNEl  = document.getElementById('chartTopN');
+    const topNVal = topNEl ? parseInt(topNEl.value, 10) : 10;
+    if (topNEl) topNEl.style.display = (!isMulti && !isSingle) ? '' : 'none';
 
     /* Helper: filter hargaRaw untuk barang tertentu (abaikan filter brand, pakai filter tanggal & vendor) */
     function rawForBarang(barangId) {
@@ -1133,7 +1144,15 @@
         return;
       }
       canvas.style.display = ''; canvas.style.position = '';
+      canvas.style.height = ''; canvas.style.minHeight = '';
       empty.style.display = 'none';
+      // Reset card & container ke default CSS (560px) untuk line chart
+      const _cc2   = document.getElementById('chartCard');
+      const _cont2 = canvas.parentElement;
+      if (_cc2)   { _cc2.style.height = ''; _cc2.style.overflow = ''; }
+      if (_cont2) { _cont2.style.height = ''; _cont2.style.overflowY = ''; }
+      const _trenGrid = document.getElementById('trenMainGrid');
+      if (_trenGrid) _trenGrid.style.alignItems = 'stretch';
 
       const datasets = barangDatasets.map(({ nama, priceMap, colorIdx }) => ({
         label: nama.length > 30 ? nama.slice(0, 28) + '…' : nama,
@@ -1165,7 +1184,15 @@
     }
     canvas.style.display = '';
     canvas.style.position = '';
+    canvas.style.height = ''; canvas.style.minHeight = '';
     empty.style.display  = 'none';
+    // Reset card & container ke default CSS (560px) untuk line chart
+    const _ccReset   = document.getElementById('chartCard');
+    const _contReset = canvas.parentElement;
+    if (_ccReset)   { _ccReset.style.height = ''; _ccReset.style.overflow = ''; }
+    if (_contReset) { _contReset.style.height = ''; _contReset.style.overflowY = ''; }
+    const _tgReset = document.getElementById('trenMainGrid');
+    if (_tgReset) _tgReset.style.alignItems = 'stretch';
 
     const groupBy = groupByEl.value;
 
@@ -1222,28 +1249,53 @@
       // ranked item: { id, nama, naik, pct, vendor } — vendor = nama vendor pembanding
       const ranked = (() => {
         if (trenMode === 'one') {
-          // Strict same-vendor: ambil 2 catatan terbaru per vendor, bandingkan harga[0] vs harga[1]
-          // vendor dengan perubahan terbesar (abs) yang menang → disimpan sebagai bestVendor
+          // Strict same-vendor: gunakan hargaRaw (semua waktu), filter hanya vendor global & barang spesifik.
+          // Brand filter TIDAK diterapkan di sini agar semua barang bisa muncul di ranking harga.
+          const gVendor   = document.getElementById('fVendor').value;
+          const sourceRows = (window.hargaRaw || []).filter(r => {
+            if (gVendor && r.vendor_id !== gVendor) return false;
+            // Jika ada filter barang spesifik dari panel kiri, terapkan juga
+            const selBarangs2 = window._selectedBarangs || [];
+            if (selBarangs2.length > 0 && !selBarangs2.includes(r.barang_id)) return false;
+            return true;
+          });
           const bm = {};
-          filteredData.forEach(r => {
+          sourceRows.forEach(r => {
             const bid = r.barang_id, vid = r.vendor_id || '__unknown__';
             if (!bm[bid]) bm[bid] = { id: bid, nama: r.nama_barang||'—', byVendor: {} };
-            if (!bm[bid].byVendor[vid]) bm[bid].byVendor[vid] = { prices: [], nama: r.vendor_nama || vid };
-            if (bm[bid].byVendor[vid].prices.length < 2) bm[bid].byVendor[vid].prices.push(getHarga(r));
+            if (!bm[bid].byVendor[vid]) bm[bid].byVendor[vid] = { rows: [], nama: r.vendor_nama || vid };
+            bm[bid].byVendor[vid].rows.push(r);
           });
           return Object.values(bm).map(b => {
             let bestNaik = 0, bestPct = 0, bestVendor = '';
             Object.values(b.byVendor).forEach(v => {
-              if (v.prices.length < 2) return;
-              const naik = v.prices[0] - v.prices[1];
+              // Sort terbaru dulu, lalu deduplikasi: buang baris yang tanggalnya sama dengan sebelumnya
+              // (misal 2 faktur di hari yang sama — ambil harga rata-rata per tanggal)
+              const sorted = [...v.rows].sort((a, b) => b.tanggal_js - a.tanggal_js);
+              const deduped = [];
+              sorted.forEach(r => {
+                const tgl = r.tanggal;
+                const last = deduped[deduped.length - 1];
+                if (last && last.tanggal === tgl) {
+                  // Sama tanggal — rata-rata harga
+                  last._hargaSum += getHarga(r);
+                  last._count++;
+                  last._avgH = last._hargaSum / last._count;
+                } else {
+                  const h = getHarga(r);
+                  deduped.push({ tanggal: tgl, _hargaSum: h, _count: 1, _avgH: h });
+                }
+              });
+              if (deduped.length < 2) return;
+              const naik = deduped[0]._avgH - deduped[1]._avgH;
               if (Math.abs(naik) > Math.abs(bestNaik)) {
                 bestNaik = naik;
-                bestPct  = v.prices[1] > 0 ? (naik / v.prices[1]) * 100 : 0;
+                bestPct  = deduped[1]._avgH > 0 ? (naik / deduped[1]._avgH) * 100 : 0;
                 bestVendor = v.nama;
               }
             });
             return { id: b.id, nama: b.nama.length > 28 ? b.nama.slice(0,26)+'…' : b.nama, naik: bestNaik, pct: bestPct, vendor: bestVendor };
-          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, 10);
+          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, topNVal > 0 ? topNVal : undefined);
         } else {
           // Semua vendor: per-vendor apples-to-apples, fallback lintas vendor
           const bm = {};
@@ -1277,7 +1329,7 @@
               }
             }
             return { id: b.id, nama: b.nama.length > 28 ? b.nama.slice(0,26)+'…' : b.nama, naik: bestNaik, pct: bestPct, vendor: bestVendor };
-          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, 10);
+          }).filter(b => Math.abs(b.naik) >= 1).sort((a,b) => b.naik - a.naik).slice(0, topNVal > 0 ? topNVal : undefined);
         }
       })();
 
@@ -1296,6 +1348,35 @@
       const turun  = ranked.map(b => b.naik < 0 ? Math.abs(b.naik) : null);
 
       if (chartInst) { chartInst.destroy(); chartInst = null; }
+
+      /* ── Tinggi card & canvas selalu = jumlah item × ROW_PX ──
+         Setiap opsi (Top 10 / 25 / 50 / Semua) punya ukuran sendiri
+         sesuai jumlah item ranked yang benar-benar ditampilkan.
+         Card ikut memanjang, grid align start agar panel kanan tidak ikut.
+      */
+      const ROW_PX    = 44;
+      const chartCard = document.getElementById('chartCard');
+      const trenGrid  = document.getElementById('trenMainGrid');
+      const container = canvas.parentElement; // .chart-container
+
+      const headerH  = chartCard ? (chartCard.querySelector('.card-header')?.offsetHeight ?? 90) : 90;
+      const canvasH  = ranked.length * ROW_PX;
+      const totalH   = canvasH + headerH;
+
+      // Reset dulu semua inline style agar tidak ada sisa dari render sebelumnya
+      canvas.style.height    = '';
+      canvas.style.minHeight = '';
+      container.style.overflowY = '';
+
+      // Terapkan tinggi baru — card mengikuti canvas secara natural
+      container.style.height = canvasH + 'px';
+      if (chartCard) {
+        chartCard.style.height   = totalH + 'px';
+        chartCard.style.overflow = 'visible';
+      }
+      // Grid align start agar panel kanan (Daftar Barang) tidak ikut memanjang
+      if (trenGrid) trenGrid.style.alignItems = 'start';
+
       const t = getChartTheme();
       chartInst = new Chart(canvas, {
         type: 'bar',
@@ -1309,6 +1390,7 @@
               borderColor: '#f87171',
               borderWidth: 1,
               borderRadius: 4,
+              barThickness: 14,
             },
             {
               label: 'Turun (Rp)',
@@ -1317,6 +1399,7 @@
               borderColor: '#38d9a9',
               borderWidth: 1,
               borderRadius: 4,
+              barThickness: 14,
             }
           ]
         },
@@ -1325,7 +1408,7 @@
           responsive: true,
           maintainAspectRatio: false,
           clip: false,
-          layout: { padding: { right: 160 } },
+          layout: { padding: { right: 200 } },
           onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
           onClick: (e, els) => {
             if (!els.length) return;
@@ -1405,16 +1488,7 @@
                 ctx.font = "10px 'DM Mono', monospace";
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                // Jika ada vendor, tampilkan di bawah label harga
-                if (b.vendor) {
-                  ctx.fillText(label, bar.x + 5, bar.y - 6);
-                  ctx.fillStyle = getCSSVar('--muted');
-                  ctx.font = "9px 'DM Sans', sans-serif";
-                  const vendorLabel = trenMode === 'one' ? b.vendor : '↕ ' + b.vendor;
-                  ctx.fillText(vendorLabel, bar.x + 5, bar.y + 7);
-                } else {
-                  ctx.fillText(label, bar.x + 5, bar.y);
-                }
+                ctx.fillText(label, bar.x + 5, bar.y);
                 ctx.restore();
               });
             });
