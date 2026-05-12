@@ -286,16 +286,17 @@ async function cbExport() {
     const dateFrom = document.getElementById('cbDateFrom').value || 'semua';
     const dateTo   = document.getElementById('cbDateTo').value   || 'semua';
 
+    const ppn = window._ppnRate || 11;
     const rows = [
-      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty','Total Nilai (Inc PPN)','Jumlah Transaksi']
+      ['Nama Barang','SKU','Satuan','Brand','Kategori','Total Qty',`Total Nilai (Exc PPN)`,`Total Nilai (Inc PPN ${ppn}%)`,'Jumlah Transaksi']
     ];
     PageState.cbFiltered.forEach(r => {
       const brandNama = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || '—';
-      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalInc, r.transaksi]);
+      rows.push([r.nama, r.sku||'', r.satuan||'', brandNama, r.kategori||'', r.totalQty, r.totalExc, r.totalInc, r.transaksi]);
     });
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [28,14,10,16,14,10,20,16].map(w => ({ wch: w }));
+    ws['!cols'] = [28,14,10,16,14,10,20,20,16].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, 'Rekap Barang');
     const tgl = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `rekap_barang_${dateFrom}_sd_${dateTo}_${tgl}.xlsx`);

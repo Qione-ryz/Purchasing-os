@@ -28,7 +28,11 @@ async function _fetchAllFiltered() {
   const kat    = document.getElementById('filterKategori').value;
   const sat    = document.getElementById('filterSatuan').value;
 
-  let q = window._sb.from('barang').select('*, barang_brands(brand_id)').order('nama');
+  /* [FIX] Ikut sortField & sortDir yang sedang aktif di tabel */
+  const sf  = window.PageState?.sortField || 'nama';
+  const asc = (window.PageState?.sortDir || 'asc') === 'asc';
+
+  let q = window._sb.from('barang').select('*, barang_brands(brand_id)').order(sf, { ascending: asc });
   if (kat) q = q.eq('kategori', kat);
   if (sat) q = q.eq('satuan', sat);
   const { data: allRaw } = await q;
@@ -129,14 +133,21 @@ async function exportBarangPDF() {
   const hargaMap = await _fetchHargaMap(data.map(b => b.id));
 
   const filterInfo = [];
+  /* [FIX] Optional chaining agar tidak error jika elemen tidak ditemukan */
   const fBrand  = document.getElementById('filterBrand');
   const fKat    = document.getElementById('filterKategori');
   const fSat    = document.getElementById('filterSatuan');
   const fSearch = document.getElementById('searchInput');
-  if (fBrand.value)  filterInfo.push('Brand: ' + fBrand.options[fBrand.selectedIndex].text);
-  if (fKat.value)    filterInfo.push('Kategori: ' + fKat.options[fKat.selectedIndex].text);
-  if (fSat.value)    filterInfo.push('Satuan: ' + fSat.value);
-  if (fSearch.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
+  if (fBrand?.value)  filterInfo.push('Brand: '     + fBrand.options[fBrand.selectedIndex].text);
+  if (fKat?.value)    filterInfo.push('Kategori: '  + fKat.options[fKat.selectedIndex].text);
+  if (fSat?.value)    filterInfo.push('Satuan: '    + fSat.value);
+  if (fSearch?.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
+
+  /* [FIX] Info sort aktif */
+  const sortLabel = { nama:'Nama', sku:'SKU', kategori:'Kategori', satuan:'Satuan', harga_satuan:'Harga' };
+  const sf = window.PageState?.sortField || 'nama';
+  const sd = window.PageState?.sortDir   || 'asc';
+  const sortInfo = `Urutan: ${sortLabel[sf]||sf} (${sd==='asc'?'A→Z':'Z→A'})`;
 
   const fmt = n => n ? 'Rp ' + Math.round(n).toLocaleString('id-ID') : '—';
 
@@ -170,7 +181,7 @@ async function exportBarangPDF() {
     @media print { body { padding: 14px; } }
   </style></head><body>
   <h1>Daftar Barang — PurchaseOS</h1>
-  <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} barang &nbsp;·&nbsp; PPN ${ppn}%</div>
+  <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} barang &nbsp;·&nbsp; PPN ${ppn}% &nbsp;·&nbsp; ${sortInfo}</div>
   ${filterInfo.length ? `<div class="filters">Filter aktif: ${filterInfo.join(' | ')}</div>` : ''}
   <table>
     <thead><tr>

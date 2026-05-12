@@ -720,7 +720,7 @@ async function exportRiwayat() {
     let data;
     const search = document.getElementById('rSearch').value.toLowerCase().trim();
 
-    if (search && PageState.riwayatData && PageState.riwayatData.length >= 0) {
+    if (search && PageState.riwayatData && PageState.riwayatData.length > 0) {
       /* Search aktif: pakai data hasil filter yang sudah ada di memory */
       data = PageState.riwayatData;
     } else {

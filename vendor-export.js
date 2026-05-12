@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    vendor-export.js — Export Excel & PDF untuk halaman Vendor
    Depends on: window._sb, window._ppnRate, window.allBrands,
-               getFiltered(), getBrandName(), showToast()
+               window.allBarang, getFiltered(), getBrandName(), showToast()
    ═══════════════════════════════════════════════════════ */
 
 /* ── EXPORT MENU TOGGLE ── */
@@ -25,6 +25,12 @@ function closeExportMenu() {
 async function exportVendorExcel() {
   const data = getFiltered();
   if (!data.length) return showToast('Tidak ada data untuk diexport', 'error');
+
+  /* [FIX 1] Guard: allBarang belum selesai di-load (race condition saat halaman baru dibuka) */
+  if (!window.allBarang?.length) {
+    return showToast('Data barang masih dimuat, coba lagi sebentar', 'error');
+  }
+
   showToast('Menyiapkan export...', 'success');
 
   const ppn       = window._ppnRate || 11;
@@ -39,7 +45,8 @@ async function exportVendorExcel() {
       .map(id => getBrandName(id)).join(', ');
     sheet1.push([
       v.nama||'', v.kode||'', brandNames, v.kategori||'',
-      v.pic||'', v.telp||v.telepon||'', v.email||'', v.website||'',
+      /* [FIX 2] Hapus fallback v.telepon — kolom DB hanya 'telp' */
+      v.pic||'', v.telp||'', v.email||'', v.website||'',
       v.kota||'', v.provinsi||'', v.alamat||'', v.npwp||'',
       terminMap[v.termin]||v.termin||'', v.catatan||'',
       v.aktif!==false ? 'Aktif' : 'Non-Aktif'
@@ -79,8 +86,9 @@ async function exportVendorExcel() {
       });
     }
 
+    /* [FIX 1 lanjutan] allBarang sudah dijamin ada di atas, map langsung */
     const barangMap = {};
-    (window.allBarang || []).forEach(b => { barangMap[b.id] = b; });
+    window.allBarang.forEach(b => { barangMap[b.id] = b; });
 
     data.forEach(v => {
       const vHarga = hargaPerVendor[v.id] || {};
@@ -120,7 +128,9 @@ async function exportVendorExcel() {
     XLSX.utils.book_append_sheet(wb, ws2, 'Harga Satuan per Vendor');
   }
 
-  XLSX.writeFile(wb, `vendor_${new Date().toISOString().slice(0,10)}.xlsx`);
+  /* [FIX 3] Nama file pakai tanggal lokal agar lebih natural */
+  const tglFile = new Date().toLocaleDateString('id-ID',{year:'numeric',month:'2-digit',day:'2-digit'}).split('/').reverse().join('-');
+  XLSX.writeFile(wb, `vendor_${tglFile}.xlsx`);
   showToast(`✓ Export ${data.length} vendor berhasil`, 'success');
 }
 
@@ -135,22 +145,29 @@ function exportVendorPDF() {
   const fStatus = document.getElementById('filterStatus');
   const fKota   = document.getElementById('filterKota');
   const fSearch = document.getElementById('searchInput');
-  if (fBrand.value)  filterInfo.push('Brand: '      + fBrand.options[fBrand.selectedIndex].text);
-  if (fStatus.value) filterInfo.push('Status: '     + fStatus.options[fStatus.selectedIndex].text);
-  if (fKota.value)   filterInfo.push('Kota: '       + fKota.value);
-  if (fSearch.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
+  if (fBrand?.value)  filterInfo.push('Brand: '      + fBrand.options[fBrand.selectedIndex].text);
+  if (fStatus?.value) filterInfo.push('Status: '     + fStatus.options[fStatus.selectedIndex].text);
+  if (fKota?.value)   filterInfo.push('Kota: '       + fKota.value);
+  if (fSearch?.value) filterInfo.push('Pencarian: "' + fSearch.value + '"');
+
+  /* [FIX 3] Sort info untuk ditampilkan di PDF */
+  const sortLabel = { nama:'Nama', kode:'Kode', kota:'Kota', aktif:'Status', brand_id:'Brand' };
+  const sf = window.PageState?.sortField || 'nama';
+  const sd = window.PageState?.sortDir   || 'asc';
+  const sortInfo = `Urutan: ${sortLabel[sf]||sf} (${sd==='asc'?'A→Z':'Z→A'})`;
 
   const rows = data.map((v, i) => {
     const brandNames = (Array.isArray(v.brand_ids) ? v.brand_ids : v.brand_id ? [v.brand_id] : [])
       .map(id => getBrandName(id)).join(', ');
     const aktif = v.aktif !== false;
+    /* [FIX 2] Hapus fallback v.telepon pada baris kontak PDF */
     return `<tr>
       <td style="text-align:center;color:#888">${i+1}</td>
       <td><strong>${v.nama||'—'}</strong>${v.kategori ? `<br><span style="color:#888;font-size:11px">${v.kategori}</span>` : ''}</td>
       <td style="font-family:monospace;font-size:12px;color:#2563eb">${v.kode||'—'}</td>
       <td>${brandNames||'—'}</td>
       <td>${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</td>
-      <td>${v.pic ? v.pic+'<br>' : ''}${v.telp||v.telepon ? `<span style="color:#555;font-size:12px">${v.telp||v.telepon}</span>` : ''}${v.email ? `<br><a href="mailto:${v.email}" style="color:#2563eb;font-size:12px">${v.email}</a>` : ''}</td>
+      <td>${v.pic ? v.pic+'<br>' : ''}${v.telp ? `<span style="color:#555;font-size:12px">${v.telp}</span>` : ''}${v.email ? `<br><a href="mailto:${v.email}" style="color:#2563eb;font-size:12px">${v.email}</a>` : ''}</td>
       <td><span style="background:${aktif?'#dcfce7':'#fee2e2'};color:${aktif?'#166534':'#991b1b'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${aktif?'Aktif':'Non-Aktif'}</span></td>
       <td style="font-size:12px">${terminMap[v.termin]||v.termin||'—'}</td>
     </tr>`;
@@ -172,7 +189,7 @@ function exportVendorPDF() {
     @media print { body { padding: 16px; } }
   </style></head><body>
   <h1>Daftar Vendor — PurchaseOS</h1>
-  <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} vendor</div>
+  <div class="meta">Dicetak: ${new Date().toLocaleString('id-ID')} &nbsp;·&nbsp; Total: ${data.length} vendor &nbsp;·&nbsp; ${sortInfo}</div>
   ${filterInfo.length ? `<div class="filters">Filter aktif: ${filterInfo.join(' | ')}</div>` : ''}
   <table>
     <thead><tr>

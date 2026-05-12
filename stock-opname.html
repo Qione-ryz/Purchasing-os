@@ -1596,55 +1596,144 @@
     const curr    = mk(curYear, curMonth);
     const prev    = prevYM(curYear, curMonth);
 
-    /* Hanya barang yang aktif di brand + soBarangConfig saat ini */
-    const barangList = getActiveBarang();
-    const brandNama  = (allBrands.find(function(b){ return b.id === filterBrandId; }) || {}).nama || '';
+    const brandNama = (allBrands.find(function(b){ return b.id === filterBrandId; }) || {}).nama || '';
 
     /* Label bulan untuk header kolom */
-    const lblCurr = MONTHS_ID[curMonth]      + ' ' + curYear;
-    const lblPrev = MONTHS_ID[prev.m] + ' ' + prev.y;
+    const lblCurr = MONTHS_ID[curMonth] + ' ' + curYear;
+    const lblPrev = MONTHS_ID[prev.m]   + ' ' + prev.y;
 
-    /* ── Sheet 1: Stock Opname ── */
-    const soRows = [['Nama Barang','SKU','Satuan','Stok ' + lblPrev,'Stok ' + lblCurr,'Selisih']];
-    barangList.forEach(function(b) {
-      const s0 = getStock(prev.y, prev.m, b.id);
-      const s1 = getStock(curYear, curMonth, b.id);
-      soRows.push([b.nama, b.sku||'', b.satuan||'', s0??'', s1??'', s0!=null&&s1!=null ? s1-s0 : '']);
+    /* Helper: format cell angka di worksheet agar bisa dipakai formula Excel */
+    function fmtNumCells(ws, colIdxArr, rowCount) {
+      for (var ri = 1; ri <= rowCount; ri++) {
+        colIdxArr.forEach(function(ci) {
+          var cell = ws[XLSX.utils.encode_cell({ r: ri, c: ci })];
+          if (cell && typeof cell.v === 'number') { cell.z = '#,##0'; cell.t = 'n'; }
+        });
+      }
+    }
+
+    /* Helper: stok bulan ini — gabungkan data tersimpan dengan draft yang belum disimpan */
+    function getStockWithDraft(y, m, bid) {
+      /* Draft opname hanya berlaku untuk bulan aktif (curYear/curMonth) */
+      if (y === curYear && m === curMonth && opnameDraft && opnameDraft[bid] !== undefined) {
+        return opnameDraft[bid];
+      }
+      return getStock(y, m, bid);
+    }
+
+    /* Helper: plan — gabungkan data tersimpan dengan planDraft */
+    function getPlanWithDraft(bid) {
+      if (planDraft && planDraft[bid] !== undefined) return planDraft[bid];
+      return (planData[_bkey()] || {})[curr]?.[bid] ?? null;
+    }
+
+    /* Bangun merged list (barang individual + grup) sama persis dengan tab render,
+       tanpa filter search agar semua data masuk ke export */
+    const mergedList = buildMergedList('');
+
+    /* ── Sheet 1: Stock Opname ──
+       Fix: ikut opnameDraft agar konsisten dengan apa yang ditampilkan di layar.
+       Fix: grup masuk sebagai baris tersendiri (stok dari primer_barang_id). */
+    const soRows = [['Nama Barang', 'SKU', 'Satuan', 'Stok ' + lblPrev, 'Stok ' + lblCurr, 'Selisih', 'Tipe']];
+    mergedList.forEach(function(item) {
+      var nama, sku, satuan, s0, s1;
+      if (item.type === 'grup') {
+        var grp  = item.grp;
+        var prim = allBarang.find(function(x){ return x.id === grp.primer_barang_id; }) || {};
+        nama    = '[GRUP] ' + grp.nama;
+        sku     = '—';
+        satuan  = prim.satuan || '—';
+        s0      = getStockWithDraft(prev.y, prev.m, grp.primer_barang_id);
+        s1      = getStockWithDraft(curYear, curMonth, grp.primer_barang_id);
+      } else {
+        var b   = item.barang;
+        nama    = b.nama;
+        sku     = b.sku     || '';
+        satuan  = b.satuan  || '';
+        s0      = getStockWithDraft(prev.y, prev.m, b.id);
+        s1      = getStockWithDraft(curYear, curMonth, b.id);
+      }
+      var selisih = (s0 != null && s1 != null) ? s1 - s0 : '';
+      soRows.push([nama, sku, satuan, s0 ?? '', s1 ?? '', selisih, item.type === 'grup' ? 'Grup' : 'Barang']);
     });
-    const ws1 = XLSX.utils.aoa_to_sheet(soRows);
-    ws1['!cols'] = [28,14,10,14,14,10].map(function(w){ return {wch:w}; });
+    var ws1 = XLSX.utils.aoa_to_sheet(soRows);
+    ws1['!cols'] = [30, 14, 10, 14, 14, 10, 8].map(function(w){ return { wch: w }; });
+    fmtNumCells(ws1, [3, 4, 5], soRows.length - 1);
     XLSX.utils.book_append_sheet(wb, ws1, 'Stock Opname');
 
-    /* ── Sheet 2: Pemakaian ── */
-    const pkRows = [['Nama Barang','SKU','Satuan','Stok Awal (' + lblPrev + ')','Pembelian (' + lblPrev + ')','Stok Akhir (' + lblCurr + ')','Pemakaian']];
-    barangList.forEach(function(b) {
-      const s0 = getStock(prev.y, prev.m, b.id);
-      const pu = getPurchase(curYear, curMonth, b.id);
-      const s1 = getStock(curYear, curMonth, b.id);
-      pkRows.push([b.nama, b.sku||'', b.satuan||'', s0??'', pu, s1??'', s0!=null&&s1!=null ? s0+pu-s1 : '']);
+    /* ── Sheet 2: Pemakaian ──
+       Fix: label kolom Pembelian menggunakan lblCurr (bukan lblPrev).
+       Fix: grup masuk — stok dari primer, pembelian dari sum semua member.
+       Fix: ikut opnameDraft untuk stok bulan ini. */
+    const pkRows = [['Nama Barang', 'SKU', 'Satuan', 'Stok Awal (' + lblPrev + ')', 'Pembelian (' + lblCurr + ')', 'Stok Akhir (' + lblCurr + ')', 'Pemakaian', 'Tipe']];
+    mergedList.forEach(function(item) {
+      var nama, sku, satuan, s0, pu, s1;
+      if (item.type === 'grup') {
+        var grp  = item.grp;
+        var prim = allBarang.find(function(x){ return x.id === grp.primer_barang_id; }) || {};
+        nama    = '[GRUP] ' + grp.nama;
+        sku     = '—';
+        satuan  = prim.satuan || '—';
+        s0      = getStockWithDraft(prev.y, prev.m, grp.primer_barang_id);
+        pu      = grp.members.reduce(function(sum, bid){ return sum + getPurchase(curYear, curMonth, bid); }, 0);
+        s1      = getStockWithDraft(curYear, curMonth, grp.primer_barang_id);
+      } else {
+        var b   = item.barang;
+        nama    = b.nama;
+        sku     = b.sku    || '';
+        satuan  = b.satuan || '';
+        s0      = getStockWithDraft(prev.y, prev.m, b.id);
+        pu      = getPurchase(curYear, curMonth, b.id);
+        s1      = getStockWithDraft(curYear, curMonth, b.id);
+      }
+      var pemakaian = (s0 != null && s1 != null) ? s0 + pu - s1 : '';
+      pkRows.push([nama, sku, satuan, s0 ?? '', pu, s1 ?? '', pemakaian, item.type === 'grup' ? 'Grup' : 'Barang']);
     });
-    const ws2 = XLSX.utils.aoa_to_sheet(pkRows);
-    ws2['!cols'] = [28,14,10,12,12,12,12].map(function(w){ return {wch:w}; });
+    var ws2 = XLSX.utils.aoa_to_sheet(pkRows);
+    ws2['!cols'] = [30, 14, 10, 14, 14, 14, 12, 8].map(function(w){ return { wch: w }; });
+    fmtNumCells(ws2, [3, 4, 5, 6], pkRows.length - 1);
     XLSX.utils.book_append_sheet(wb, ws2, 'Pemakaian');
 
-    /* ── Sheet 3: Plan & Realisasi ── */
-    const _expPlanData     = (planData[_bkey()]     || {})[curr] || {};
+    /* ── Sheet 3: Plan & Realisasi ──
+       Fix: planDraft diikutkan agar konsisten dengan tab Purchase Plan.
+       Fix: grup masuk — plan dari primer, aktual dari sum semua member. */
     const _expPurchaseData = (purchaseData[_bkey()] || {})[curr] || {};
-    const prRows = [['Nama Barang','SKU','Satuan','Purchase Plan (' + lblCurr + ')','Pembelian Aktual (' + lblCurr + ')','Selisih','Status']];
-    barangList.forEach(function(b) {
-      const plan   = _expPlanData[b.id]     ?? '';
-      const actual = _expPurchaseData[b.id] ?? '';
-      const diff   = plan!==''&&actual!=='' ? actual-plan : '';
-      const status = diff==='' ? '—' : diff>0 ? 'Lebih' : diff<0 ? 'Kurang' : 'Sesuai';
-      prRows.push([b.nama, b.sku||'', b.satuan||'', plan, actual, diff, status]);
+    const prRows = [['Nama Barang', 'SKU', 'Satuan', 'Purchase Plan (' + lblCurr + ')', 'Pembelian Aktual (' + lblCurr + ')', 'Selisih', 'Status', 'Tipe']];
+    mergedList.forEach(function(item) {
+      var nama, sku, satuan, plan, actual;
+      if (item.type === 'grup') {
+        var grp  = item.grp;
+        var prim = allBarang.find(function(x){ return x.id === grp.primer_barang_id; }) || {};
+        nama    = '[GRUP] ' + grp.nama;
+        sku     = '—';
+        satuan  = prim.satuan || '—';
+        plan    = getPlanWithDraft(grp.primer_barang_id);
+        actual  = grp.members.reduce(function(sum, bid){ return sum + (_expPurchaseData[bid] || 0); }, 0) || null;
+      } else {
+        var b   = item.barang;
+        nama    = b.nama;
+        sku     = b.sku    || '';
+        satuan  = b.satuan || '';
+        plan    = getPlanWithDraft(b.id);
+        actual  = _expPurchaseData[b.id] ?? null;
+      }
+      var planVal   = plan   !== null ? plan   : '';
+      var actualVal = actual !== null ? actual : '';
+      var diff      = planVal !== '' && actualVal !== '' ? actualVal - planVal : '';
+      var status    = diff === '' ? '—' : diff > 0 ? 'Lebih' : diff < 0 ? 'Kurang' : 'Sesuai';
+      prRows.push([nama, sku, satuan, planVal, actualVal, diff, status, item.type === 'grup' ? 'Grup' : 'Barang']);
     });
-    const ws3 = XLSX.utils.aoa_to_sheet(prRows);
-    ws3['!cols'] = [28,14,10,14,16,12,10].map(function(w){ return {wch:w}; });
+    var ws3 = XLSX.utils.aoa_to_sheet(prRows);
+    ws3['!cols'] = [30, 14, 10, 16, 18, 12, 10, 8].map(function(w){ return { wch: w }; });
+    fmtNumCells(ws3, [3, 4, 5], prRows.length - 1);
     XLSX.utils.book_append_sheet(wb, ws3, 'Plan & Realisasi');
 
     const brandSuffix = brandNama ? '_' + brandNama.replace(/\s+/g, '-') : '';
     XLSX.writeFile(wb, 'stock_opname_' + curr + brandSuffix + '.xlsx');
-    showToast('✓ Export berhasil — ' + barangList.length + ' barang', 'success');
+    var totalItem = mergedList.length;
+    var draftNote = (opnameDraft && Object.keys(opnameDraft).length) || (planDraft && Object.keys(planDraft).length)
+      ? ' (termasuk draft belum disimpan)' : '';
+    showToast('✓ Export berhasil — ' + totalItem + ' item' + draftNote, 'success');
   }
 
   function onBrandChange() {

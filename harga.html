@@ -1850,19 +1850,22 @@
   }
   window.setDiffMode = setDiffMode;
   function getTFiltered() {
-    const search    = document.getElementById('tSearch').value.toLowerCase().trim();
-    const dateFrom  = document.getElementById('hargaDateFrom')?.value || '';
-    const dateTo    = document.getElementById('hargaDateTo')?.value   || '';
-    const vendor    = document.getElementById('fVendor').value;
-    const selBrands = window._selectedBrands || [];
-    const fromDate  = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
-    const toDate    = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
+    const search     = document.getElementById('tSearch').value.toLowerCase().trim();
+    const dateFrom   = document.getElementById('hargaDateFrom')?.value || '';
+    const dateTo     = document.getElementById('hargaDateTo')?.value   || '';
+    const vendor     = document.getElementById('fVendor').value;
+    const selBrands  = window._selectedBrands  || [];
+    const selBarangs = window._selectedBarangs || [];
+    const fromDate   = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
+    const toDate     = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
 
     let base = (window.hargaRaw || []).filter(r => {
       const mv  = !vendor || r.vendor_id === vendor;
       const mp  = (!fromDate || r.tanggal_js >= fromDate) && (!toDate || r.tanggal_js <= toDate);
-      /* Filter barang: pakai PageState.tFilterBarangId (dari drill-down) jika ada */
-      const mb  = !PageState.tFilterBarangId || r.barang_id === PageState.tFilterBarangId;
+      /* Filter barang: drill-down (tFilterBarangId) lebih prioritas dari multi-select */
+      const mb  = PageState.tFilterBarangId
+        ? r.barang_id === PageState.tFilterBarangId
+        : selBarangs.length === 0 || selBarangs.includes(r.barang_id);
       /* Filter brand: cek dari _barangBrandsMap (label master) */
       let mbr = true;
       if (selBrands.length > 0) {
@@ -3075,61 +3078,6 @@
   });
 </script>
 <script>
-  function exportHarga() {
-    const data = getTFiltered();
-    if (!data.length) { showToast('Tidak ada data untuk diexport', 'error'); return; }
-
-    const wb = XLSX.utils.book_new();
-
-    /* Sheet 1: Semua riwayat harga (filtered) */
-    const rows = [
-      ['Tanggal', 'Nama Barang', 'SKU', 'Vendor', 'Brand', 'Qty', 'Harga (Exc PPN)', 'Harga (Inc PPN)', 'No. Faktur / Catatan', 'Sumber']
-    ];
-    data.forEach(r => {
-      const brandNama = window.brandMap?.[r.brand_id] || r.brand_id || '—';
-      const hargaExc  = r.harga     || 0;
-      const hargaInc  = r.harga_inc || toIncPPN(hargaExc);
-      rows.push([
-        r.tanggal       || '',
-        r.nama_barang   || '',
-        r.sku           || '',
-        r.vendor_nama   || '',
-        brandNama,
-        r.qty !== null ? r.qty : '',
-        hargaExc,
-        hargaInc,
-        r.nomor_faktur  || '',
-        r.sumber        || ''
-      ]);
-    });
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [12,22,14,20,16,8,18,18,20,12].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Harga');
-
-    /* Sheet 2: Perbandingan vendor (hanya jika satu barang dipilih) */
-    if (selectedBarangId) {
-      const barangData = filteredData.filter(r=>r.barang_id===selectedBarangId);
-      const byVendor = {};
-      barangData.forEach(r => {
-        if (!byVendor[r.vendor_nama]) byVendor[r.vendor_nama] = [];
-        byVendor[r.vendor_nama].push(r);
-      });
-      const bandingRows = [['Vendor', 'Harga Terakhir (Inc)', 'Harga Rata-rata (Inc)', 'Jumlah Catatan']];
-      Object.entries(byVendor).forEach(([nama, rows2]) => {
-        const hargaInc = r => r.harga_inc || toIncPPN(r.harga);
-        const latest = hargaInc(rows2[0]);
-        const avg    = Math.round(rows2.reduce((s,r)=>s+hargaInc(r),0)/rows2.length);
-        bandingRows.push([nama, latest, avg, rows2.length]);
-      });
-      const ws2 = XLSX.utils.aoa_to_sheet(bandingRows);
-      ws2['!cols'] = [22,20,22,16].map(w=>({wch:w}));
-      XLSX.utils.book_append_sheet(wb, ws2, 'Perbandingan Vendor');
-    }
-
-    const tgl = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, `analisis_harga_${tgl}.xlsx`);
-    showToast(`✓ Export ${data.length} catatan berhasil`, 'success');
-  }
   window.openBarangDetail  = openBarangDetail;
   window.closeBarangDetail = closeBarangDetail;
 </script>
