@@ -1502,7 +1502,17 @@ async function _runFifoSync(barangIds) {
     beliTotalPerBarang[bi.barang_id] = (beliTotalPerBarang[bi.barang_id] || 0) + bi.qty;
   });
 
-  // 4. FIFO distribution — hanya untuk item yang belum diinput manual
+  // 4. FIFO distribution — satu pembelian untuk satu order (antrian)
+  //
+  // Aturan baru:
+  // - Pembelian hanya bisa memenuhi order yang created_at-nya <= tanggal pembelian
+  // - Satu record pembelian dikunci ke SATU order (tidak dibagi ke banyak order)
+  // - Urutan: order terlama yang belum terpenuhi mendapat pembelian pertama,
+  //   order berikutnya mendapat pembelian berikutnya, dst.
+  // - Jika qty pembelian > kebutuhan order, sisa qty TIDAK mengalir ke order lain —
+  //   order lain harus menunggu pembelian berikutnya.
+  // - Jika qty pembelian < kebutuhan order, order tersebut hanya terpenuhi sebagian
+  //   dan sisanya menunggu pembelian berikutnya.
   const fifoResultMap = {};
 
   const barangBrandKeys = [...new Set(
@@ -1512,14 +1522,18 @@ async function _runFifoSync(barangIds) {
   for (const key of barangBrandKeys) {
     const [barangId, brandId] = key.split('::');
 
-    // Ambil semua record beli FIFO untuk key ini, lengkap dengan tanggal
-    // agar bisa dibandingkan per-order (Pendekatan 2)
-    const beliItems = (allBeliItems || []).filter(bi => {
-      if (!bi.barang_id || !bi.qty) return false;
-      const bBrandId = bi.riwayat_beli?.brand_id || '';
-      return bi.barang_id === barangId && bBrandId === brandId;
-    });
+    // Semua pembelian untuk barang+brand ini, urut dari terlama ke terbaru
+    const beliItems = (allBeliItems || [])
+      .filter(bi => {
+        if (!bi.barang_id || !bi.qty) return false;
+        return bi.barang_id === barangId && (bi.riwayat_beli?.brand_id || '') === brandId;
+      })
+      .sort((a, b) => {
+        const tA = a.riwayat_beli?.tanggal || '', tB = b.riwayat_beli?.tanggal || '';
+        return tA < tB ? -1 : tA > tB ? 1 : 0;
+      });
 
+    // Order yang bersaing, urut dari terlama ke terbaru
     const competitors = fifoCompetitors
       .filter(ci => ci.barang_id === barangId && (ci.orders?.brand_id || '') === brandId)
       .sort((a, b) => {
@@ -1529,78 +1543,76 @@ async function _runFifoSync(barangIds) {
 
     if (competitors.length === 0) continue;
 
-    // Distribusi FIFO — Pendekatan 2 final
-    //
-    // Aturan: order X hanya bisa mendapat stok dari pembelian yang
-    // tanggalnya >= created_at order X.
-    //
-    // Konsumsi order lebih tua hanya mengurangi pool order yang lebih muda
-    // JIKA pembelian yang dikonsumsi juga terlihat oleh order yang lebih muda
-    // (irisan pool). Dengan ini:
-    // - Order A (tgl 4) selesai manual dari beli tgl 4 → tidak mengurangi pool Order B (tgl 5+)
-    // - Order A (tgl 4) dapat 9.5 dari beli tgl 4 → Order B (tgl 5) pool-nya = beli tgl 5+
-    // - Beli tgl 6 (10kg) → Order B dapat 10kg penuh ✓
-
-    // Track berapa yang sudah diklaim per order (urut tua ke muda)
-    const klaimPerOrder = {}; // {ci.id: qty diklaim}
-
+    // Inisialisasi hasil: semua order mulai dari 0
+    // Item status selesai (manual) dikunci di qty_terpenuhi mereka
+    const hasil = {}; // { ci.id: qty_terpenuhi }
     for (const ci of competitors) {
-      const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
-      const orderTgl  = (ci.orders?.created_at || '').substring(0, 10);
-
       if ((ci.status_item || 'pending') === 'selesai') {
-        const sudahDapat = Math.min(ci.qty_terpenuhi || kebutuhan, kebutuhan);
-        fifoResultMap[ci.id] = sudahDapat;
-        klaimPerOrder[ci.id] = sudahDapat;
-        continue;
+        hasil[ci.id] = Math.min(ci.qty_terpenuhi || 0, (ci.qty_order || 0) * (ci.faktor_konversi || 1));
+      } else {
+        hasil[ci.id] = 0;
       }
-
-      // Pool untuk order ini = semua beli dengan tanggal >= orderTgl
-      const poolItems = beliItems.filter(bi => (bi.riwayat_beli?.tanggal || '') >= orderTgl);
-      const poolCi = poolItems.reduce((s, bi) => s + (bi.qty || 0), 0);
-
-      // Jika tidak ada pembelian sama sekali di tanggal >= order ini,
-      // jangan isi qty_terpenuhi — hindari "mengambil" stok dari pembelian lama
-      if (poolItems.length === 0) {
-        fifoResultMap[ci.id] = undefined;
-        klaimPerOrder[ci.id] = 0;
-        continue;
-      }
-
-      // Kurangi klaim order-order lebih tua, tapi hanya bagian yang
-      // berasal dari pembelian yang juga terlihat oleh order ini (irisan)
-      let sudahDiklaim = 0;
-      for (const prev of competitors) {
-        if (prev.id === ci.id) break;
-        const klaim = klaimPerOrder[prev.id] || 0;
-        if (klaim <= 0) continue;
-
-        const prevOrderTgl = (prev.orders?.created_at || '').substring(0, 10);
-
-        // Beli yang HANYA terlihat oleh prev (tgl antara prevOrderTgl dan orderTgl-1)
-        // = beli yang tidak masuk pool ci, jadi konsumsinya tidak mengurangi pool ci
-        const hanyaMilikPrev = beliItems
-          .filter(bi => {
-            const t = bi.riwayat_beli?.tanggal || '';
-            return t >= prevOrderTgl && t < orderTgl;
-          })
-          .reduce((s, bi) => s + (bi.qty || 0), 0);
-
-        // Bagian klaim prev yang berasal dari pool bersama (terlihat oleh ci juga)
-        const klaimShared = Math.max(0, klaim - hanyaMilikPrev);
-        sudahDiklaim += klaimShared;
-      }
-
-      const dapat = Math.min(Math.max(0, poolCi - sudahDiklaim), kebutuhan);
-      fifoResultMap[ci.id] = dapat;
-      klaimPerOrder[ci.id] = dapat;
     }
 
-    // Hanya set 0 untuk item yang belum ada di map sama sekali
-    // Item yang sengaja di-skip (undefined karena poolItems.length===0) TIDAK diubah
-    competitors.forEach(ci => {
-      if (!Object.prototype.hasOwnProperty.call(fifoResultMap, ci.id)) fifoResultMap[ci.id] = 0;
-    });
+    // Antrian order yang masih butuh stok (belum selesai, urut terlama ke terbaru)
+    // Gunakan pointer index agar bisa lanjut dari posisi terakhir
+    let orderQueueIdx = 0;
+    const orderQueue = competitors.filter(ci => (ci.status_item || 'pending') !== 'selesai');
+
+    // Distribusi: setiap pembelian → dialokasikan ke order terdepan dalam antrian
+    // yang tanggal order-nya <= tanggal pembelian
+    for (const bi of beliItems) {
+      const beliTgl = bi.riwayat_beli?.tanggal || '';
+      let sisaBeli = bi.qty || 0;
+
+      // Cari order terdepan di antrian yang eligible (created_at <= beliTgl)
+      // dan masih punya kebutuhan yang belum terpenuhi
+      while (orderQueueIdx < orderQueue.length && sisaBeli > 0) {
+        const ci = orderQueue[orderQueueIdx];
+        const orderTgl = (ci.orders?.created_at || '').substring(0, 10);
+
+        // Order ini belum eligible (dibuat setelah tanggal beli) — stop, jangan lompat
+        if (orderTgl > beliTgl) break;
+
+        const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
+        const sudahDapat = hasil[ci.id] || 0;
+        const sisaButuh = kebutuhan - sudahDapat;
+
+        if (sisaButuh <= 0) {
+          // Order ini sudah penuh → lanjut ke order berikutnya
+          orderQueueIdx++;
+          continue;
+        }
+
+        // Alokasikan: ambil sebanyak yang dibutuhkan dari pembelian ini
+        // Jika pembelian cukup → order terpenuhi penuh, sisa beli TIDAK diteruskan ke order lain
+        // Jika pembelian kurang → order terpenuhi sebagian, lanjut pembelian berikutnya
+        const dialokasikan = Math.min(sisaButuh, sisaBeli);
+        hasil[ci.id] = sudahDapat + dialokasikan;
+        sisaBeli -= dialokasikan;
+
+        // Jika order sudah penuh, maju ke order berikutnya untuk pembelian selanjutnya
+        if (hasil[ci.id] >= kebutuhan) {
+          orderQueueIdx++;
+        }
+        // Jika pembelian ini habis sebelum order penuh → order ini tetap di antrian,
+        // menunggu pembelian berikutnya (break loop beli, bukan order)
+        break;
+      }
+      // Sisa qty pembelian yang tidak terserap (tidak ada order eligible) → diabaikan
+    }
+
+    // Tulis hasil ke fifoResultMap
+    for (const ci of competitors) {
+      if ((ci.status_item || 'pending') === 'selesai') {
+        fifoResultMap[ci.id] = hasil[ci.id];
+      } else {
+        // Jika tidak ada pembelian sama sekali yang eligible → biarkan undefined
+        // (progress bar tidak dirender, berbeda dari 0 yang berarti "ada beli tapi tidak dapat")
+        const adaBeli = beliItems.some(bi => (bi.riwayat_beli?.tanggal || '') >= (ci.orders?.created_at || '').substring(0, 10));
+        fifoResultMap[ci.id] = adaBeli ? hasil[ci.id] : undefined;
+      }
+    }
   }
 
   // 5. Update DB di background untuk item FIFO yang qty-nya berubah
@@ -1634,7 +1646,7 @@ async function _refreshDetailBody(orderId) {
   const body = document.getElementById('detailBody');
   const scrollTop = body ? body.scrollTop : 0;
 
-  if (body) body.style.opacity = '0.4';
+  // Tidak perlu opacity loading — render langsung pakai cache vendor yang sudah ada
 
   try {
     const items = await supaGet('order_items', `order_id=eq.${orderId}&select=*&order=created_at`);
@@ -1646,11 +1658,15 @@ async function _refreshDetailBody(orderId) {
     if (!o) return;
 
     const barangIds = itemsArr.map(it => it.barang_id).filter(Boolean);
-    let vendorPerBarang = {}, bestVendorPerBarang = {};
+    // ── Gunakan cache vendor dari render sebelumnya agar grouping vendor tidak hilang saat refresh ──
+    // Hanya pakai cache jika masih untuk order yang sama
+    const sameOrder = window._lastDetailOrderId === orderId;
+    let vendorPerBarang = (sameOrder && window._lastVendorPerBarang) ? window._lastVendorPerBarang : {};
+    let bestVendorPerBarang = (sameOrder && window._lastBestVendorPerBarang) ? window._lastBestVendorPerBarang : {};
 
-    // ── Render segera dengan data items terkini (tanpa menunggu harga & FIFO) ──
+    // ── Render segera dengan data items terkini + vendor cache (tanpa menunggu harga & FIFO) ──
     window._lastDetailItems    = itemsArr;
-    window._lastVendorPerBarang = vendorPerBarang;
+    window._lastDetailOrderId  = orderId;
     buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
     _updateTableRowProgress(orderId, o, itemsArr);
     if (body) { body.style.opacity = ''; body.scrollTop = scrollTop; }
@@ -1729,8 +1745,9 @@ async function _refreshDetailBody(orderId) {
         const bodyNow = document.getElementById('detailBody');
         const st = bodyNow ? bodyNow.scrollTop : 0;
 
-        window._lastDetailItems    = itemsArr;
-        window._lastVendorPerBarang = vendorPerBarang;
+        window._lastDetailItems         = itemsArr;
+        window._lastVendorPerBarang     = vendorPerBarang;
+        window._lastBestVendorPerBarang = bestVendorPerBarang;
         buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
         _updateTableRowProgress(orderId, o, itemsArr);
 
@@ -1739,7 +1756,6 @@ async function _refreshDetailBody(orderId) {
     })();
 
   } catch(e) {
-    if (body) { body.style.opacity = ''; }
     console.warn('_refreshDetailBody error:', e);
   }
 }
@@ -1757,6 +1773,11 @@ async function openDetail(orderId) {
   _waOrderId = orderId;
   _waBrandId = o.brand_id;
   buildDetailModal._groupByVendor = true;
+
+  // Reset vendor cache — akan diisi ulang saat riwayat_harga selesai di-fetch untuk order ini
+  window._lastVendorPerBarang     = {};
+  window._lastBestVendorPerBarang = {};
+  window._lastDetailOrderId       = orderId;
 
   document.getElementById('detailTitle').innerHTML = brandNama + ' · ' + tgl + ' <span style="font-size:13px;font-weight:400;color:var(--muted);font-family:var(--mono)">🕐 ' + jam + '</span>';
   document.getElementById('detailMeta').textContent = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}`;
@@ -1808,8 +1829,9 @@ async function openDetail(orderId) {
 
     // ── Render modal — grouping vendor sudah tersedia sejak render pertama ──
     _updateTableRowProgress(orderId, o, itemsArr);
-    window._lastDetailItems    = itemsArr;
-    window._lastVendorPerBarang = vendorPerBarang;
+    window._lastDetailItems         = itemsArr;
+    window._lastVendorPerBarang     = vendorPerBarang;
+    window._lastBestVendorPerBarang = bestVendorPerBarang;
     buildDetailModal(o, itemsArr, vendorPerBarang, bestVendorPerBarang);
 
     // ── FIFO di background — hanya update progress, tidak perlu re-render vendor ──
