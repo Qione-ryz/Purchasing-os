@@ -1859,7 +1859,7 @@
         ? ` · <span style="color:var(--accent2)">${formatRp(excPrice)}</span><span style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:2px">exc</span>`
         + ` · <span style="color:var(--accent3)">${formatRp(incPrice)}</span><span style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:2px">inc</span>`
         : '';
-      return `<div class="item-option" onclick="addItem('${b.id}')"
+      return `<div class="item-option" onmousedown="event.preventDefault();addItem('${b.id}')"
         style="${fromVendor ? 'border-left:3px solid var(--accent2)' : ''}">
         <div class="item-option-name">${b.nama}${fromVendor ? ' <span style="font-size:10px;font-family:var(--mono);color:var(--accent2);background:rgba(56,217,169,0.1);padding:1px 5px;border-radius:3px">vendor ini</span>' : ''}</div>
         <div class="item-option-sub">${b.sku || ''} · ${b.satuan || ''}${priceStr}${brandNames ? ' · <span style="color:var(--accent)">' + brandNames + '</span>' : ''}</div>
@@ -2180,7 +2180,7 @@
       <div class="item-row">
         <div>
           <div class="item-label">${item.nama} <span class="harga-src ${srcCls}" title="Sumber harga">${srcLabel}</span></div>
-          <div class="item-sub">${item.sku} · ${item.satuan} · ${(window.allBrands||[]).find(b=>b.id===item.brand_id)?.nama||item.brand_id||'—'}</div>
+          <div class="item-sub">${item.sku || ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
           <input class="item-input" type="text" inputmode="decimal"
@@ -3050,9 +3050,15 @@
   }
   function formatRpShort(n) {
     if (!n) return 'Rp 0';
-    if (n >= 1_000_000) return 'Rp ' + (n / 1_000_000).toFixed(2) + 'jt';
-    if (n >= 1_000)     return 'Rp ' + (n / 1_000).toFixed(0) + 'rb';
-    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+    if (n >= 1_000_000) {
+      const jt = n / 1_000_000;
+      return 'Rp ' + (Number.isInteger(jt) ? jt : jt.toFixed(3).replace(/\.?0+$/, '')) + 'jt';
+    }
+    if (n >= 1_000) {
+      const rb = n / 1_000;
+      return 'Rp ' + (Number.isInteger(rb) ? rb : rb.toFixed(3).replace(/\.?0+$/, '')) + 'rb';
+    }
+    return 'Rp ' + n.toLocaleString('id-ID');
   }
 
   let toastTimer;
@@ -3073,7 +3079,7 @@
   function closeSidebar()   { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
   /* Close dropdown saat klik luar */
-  document.addEventListener('click', e => {
+  document.addEventListener('mousedown', e => {
     const dd = document.getElementById('itemDropdown');
     if (!e.target.closest('#itemSearch') && !e.target.closest('#itemDropdown')) closeItemDropdown();
     if (!e.target.closest('.add-item-area') && !e.target.closest('#btnMultiSel')) {
