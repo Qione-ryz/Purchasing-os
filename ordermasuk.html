@@ -1556,9 +1556,16 @@ async function _runFifoSync(barangIds) {
       }
 
       // Pool untuk order ini = semua beli dengan tanggal >= orderTgl
-      const poolCi = beliItems
-        .filter(bi => (bi.riwayat_beli?.tanggal || '') >= orderTgl)
-        .reduce((s, bi) => s + (bi.qty || 0), 0);
+      const poolItems = beliItems.filter(bi => (bi.riwayat_beli?.tanggal || '') >= orderTgl);
+      const poolCi = poolItems.reduce((s, bi) => s + (bi.qty || 0), 0);
+
+      // Jika tidak ada pembelian sama sekali di tanggal >= order ini,
+      // jangan isi qty_terpenuhi — hindari "mengambil" stok dari pembelian lama
+      if (poolItems.length === 0) {
+        fifoResultMap[ci.id] = undefined;
+        klaimPerOrder[ci.id] = 0;
+        continue;
+      }
 
       // Kurangi klaim order-order lebih tua, tapi hanya bagian yang
       // berasal dari pembelian yang juga terlihat oleh order ini (irisan)
@@ -1589,8 +1596,10 @@ async function _runFifoSync(barangIds) {
       klaimPerOrder[ci.id] = dapat;
     }
 
+    // Hanya set 0 untuk item yang belum ada di map sama sekali
+    // Item yang sengaja di-skip (undefined karena poolItems.length===0) TIDAK diubah
     competitors.forEach(ci => {
-      if (fifoResultMap[ci.id] === undefined) fifoResultMap[ci.id] = 0;
+      if (!Object.prototype.hasOwnProperty.call(fifoResultMap, ci.id)) fifoResultMap[ci.id] = 0;
     });
   }
 
