@@ -125,6 +125,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .toast.success{border-color:rgba(56,217,169,0.4)}
 .toast.error{border-color:rgba(248,113,113,0.4)}
 
+/* DRAFT BANNER */
+.draft-banner{display:none;align-items:center;gap:10px;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:13px;animation:fadeIn .3s ease}
+.draft-banner.show{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.draft-banner-icon{font-size:18px;flex-shrink:0}
+.draft-banner-text{flex:1;line-height:1.5}
+.draft-banner-text strong{color:var(--accent)}
+.draft-banner-text span{color:var(--muted);font-size:12px;font-family:var(--mono);display:block;margin-top:2px}
+.draft-banner-actions{display:flex;gap:8px;flex-shrink:0}
+.draft-btn-keep{padding:5px 12px;border:1px solid rgba(79,142,247,0.4);border-radius:7px;background:rgba(79,142,247,0.12);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .2s}
+.draft-btn-keep:hover{opacity:.8}
+.draft-btn-discard{padding:5px 12px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .2s}
+.draft-btn-discard:hover{color:var(--danger);border-color:rgba(248,113,113,0.3)}
+
 /* WELCOME SCREEN */
 .welcome-wrap{max-width:420px;margin:60px auto;padding:0 16px}
 .welcome-logo{text-align:center;margin-bottom:32px}
@@ -467,6 +481,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <button id="btnRefreshHarga" class="btn-kelola" onclick="refreshHarga(true)" title="Refresh harga terbaru dari database" style="font-size:13px;flex-shrink:0"><span class="refresh-label">⟳ Refresh Harga</span><span class="refresh-icon" style="display:none">⟳</span></button>
       </div>
       <div class="order-col-scroll" style="padding:0">
+        <!-- DRAFT BANNER -->
+        <div class="draft-banner" id="draftBanner">
+          <div class="draft-banner-icon">💾</div>
+          <div class="draft-banner-text">
+            <strong>Draft tersimpan ditemukan</strong>
+            <span id="draftBannerMeta">Memuat...</span>
+          </div>
+          <div class="draft-banner-actions">
+            <button class="draft-btn-keep" onclick="applyDraft()">Pulihkan</button>
+            <button class="draft-btn-discard" onclick="discardDraft()">Hapus</button>
+          </div>
+        </div>
+
         <!-- Item Table -->
         <div id="itemListWrap" style="display:none">
           <table class="items-table" style="margin:0">
@@ -502,7 +529,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
             oninput="simpanNama()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
         </div>
         <textarea id="catatanOrder" placeholder="Catatan untuk tim purchasing... (opsional)"
-          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px;outline:none;resize:none;height:52px;transition:border-color .2s;margin-bottom:8px"></textarea>
+          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px;outline:none;resize:none;height:52px;transition:border-color .2s;margin-bottom:8px"
+          oninput="scheduleDraftSave()"></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn btn-ghost btn-sm" id="btnBatalEdit" onclick="batalEdit()" style="display:none;color:var(--danger);border-color:rgba(248,113,113,0.3)">✕ Batal Edit</button>
           <button class="btn btn-ghost btn-sm" onclick="resetOrder()">Reset</button>
@@ -1071,6 +1099,8 @@ async function preloadBarang() {
   }
 
   renderBarangGrid();
+  // Cek dan tampilkan draft tersimpan setelah barang selesai dimuat
+  await checkAndShowDraft();
 }
 
 async function refreshHarga(showFeedback) {
@@ -1207,6 +1237,7 @@ function toggleBarang(barangId) {
   }
   renderItems();
   renderBarangGrid();
+  scheduleDraftSave();
   _updateMobKeranjangBadge();
   _renderMobSelectedPreview();
 }
@@ -1439,6 +1470,7 @@ function addItem(item) {
   }
   renderItems();
   renderBarangGrid();
+  scheduleDraftSave();
   showToast('success', '✓ ' + item.nama + ' ditambahkan');
 }
 
@@ -1565,6 +1597,7 @@ function updateQtyByUid(uid, val) {
   if (!it) return;  // item sudah dihapus saat debounce berjalan — abaikan
   it.qty = parseFloat(val) || 1;
   renderSummary();
+  scheduleDraftSave();
 }
 function updateSatuan(i, val) {
   const trimVal = val.trim();
@@ -1597,6 +1630,7 @@ function updateSatuanByUid(uid, val) {
     it.faktor_konversi = 1;
   }
   renderItems();
+  scheduleDraftSave();
 }
 function updateFaktor(i, val) {
   const f = parseFloat(val);
@@ -1626,6 +1660,7 @@ function removeItemByUid(uid) {
   orderItems.splice(idx, 1);
   renderItems();
   renderBarangGrid();
+  scheduleDraftSave();
 }
 function resetOrder() {
   orderItems = [];
@@ -1637,6 +1672,130 @@ function resetOrder() {
   renderBarangGrid();
   _updateMobKeranjangBadge();
   _renderMobSelectedPreview();
+  // Hapus draft saat user sengaja reset
+  clearDraft();
+}
+
+// ═══════════════════════════════════════════════
+// DRAFT PERSISTENCE — simpan keranjang ke IndexedDB
+// agar tidak hilang saat refresh / tab ditutup
+// ═══════════════════════════════════════════════
+let _draftSaveTimer = null;
+let _pendingDraft = null; // draft yang belum diputuskan user
+
+function _draftKey() {
+  return 'purchaseos_draft_' + (currentPemesan?.id || 'anon');
+}
+
+function scheduleDraftSave() {
+  if (_editingOrderId) return;
+  if (_draftSaveTimer) clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(saveDraft, 600);
+}
+
+async function saveDraft() {
+  if (_editingOrderId) return;
+  if (!currentPemesan) return;
+  try {
+    const draft = {
+      items: orderItems.map(it => ({ ...it })),
+      catatan: document.getElementById('catatanOrder')?.value || '',
+      savedAt: Date.now(),
+      uidCounter: _itemUidCounter,
+    };
+    await idbSet(_draftKey(), JSON.stringify(draft));
+  } catch(e) {
+    console.warn('[draft] Gagal menyimpan draft:', e);
+  }
+}
+
+async function clearDraft() {
+  _pendingDraft = null;
+  hideDraftBanner();
+  try { await idbDel(_draftKey()); } catch(e) {}
+}
+
+function hideDraftBanner() {
+  const banner = document.getElementById('draftBanner');
+  if (banner) banner.classList.remove('show');
+}
+
+async function checkAndShowDraft() {
+  if (!currentPemesan) return;
+  if (orderItems.length > 0) return;
+  try {
+    const raw = await idbGet(_draftKey());
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (!draft?.items?.length) { await clearDraft(); return; }
+    const ageHours = (Date.now() - (draft.savedAt || 0)) / 3600000;
+    if (ageHours > 24) { await clearDraft(); return; }
+
+    _pendingDraft = draft;
+
+    const meta = document.getElementById('draftBannerMeta');
+    if (meta) {
+      const jam = new Date(draft.savedAt);
+      const jamStr = jam.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      const tglStr = jam.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      const ageMin = Math.round((Date.now() - draft.savedAt) / 60000);
+      const agoStr = ageMin < 2 ? 'baru saja' : ageMin < 60 ? `${ageMin} menit lalu` : `${Math.round(ageMin/60)} jam lalu`;
+      meta.textContent = `${draft.items.length} barang \u00b7 disimpan ${tglStr} ${jamStr} (${agoStr})`;
+    }
+    const banner = document.getElementById('draftBanner');
+    if (banner) banner.classList.add('show');
+  } catch(e) {
+    console.warn('[draft] Gagal membaca draft:', e);
+  }
+}
+
+function applyDraft() {
+  if (!_pendingDraft) return;
+  hideDraftBanner();
+
+  const restored = [];
+  const savedDraft = _pendingDraft;
+  for (const it of savedDraft.items) {
+    if (it.is_custom) {
+      restored.push({ ...it });
+    } else {
+      const found = allBarang.find(b => b.id === it.barang_id);
+      if (found) {
+        const item = { ...it };
+        if (found.harga) item.harga_estimasi = found.harga;
+        restored.push(item);
+      }
+    }
+  }
+
+  if (restored.length === 0) {
+    showToast('error', '\u2715 Draft tidak bisa dipulihkan \u2014 barang sudah tidak tersedia');
+    clearDraft();
+    return;
+  }
+
+  orderItems = restored;
+  _itemUidCounter = savedDraft.uidCounter || restored.reduce((m, it) => Math.max(m, it._uid || 0), 0);
+  _pendingDraft = null;
+
+  const catatanEl = document.getElementById('catatanOrder');
+  if (catatanEl && savedDraft.catatan) catatanEl.value = savedDraft.catatan;
+
+  renderItems();
+  renderBarangGrid();
+  _updateMobKeranjangBadge();
+
+  const skipped = savedDraft.items.length - restored.length;
+  const msg = skipped > 0
+    ? `\u2713 ${restored.length} barang dipulihkan (${skipped} tidak tersedia)`
+    : `\u2713 ${restored.length} barang berhasil dipulihkan`;
+  showToast('success', msg);
+}
+
+async function discardDraft() {
+  _pendingDraft = null;
+  await clearDraft();
+  showToast('success', '\u2713 Draft dihapus');
 }
 
 function renderSummary() {
