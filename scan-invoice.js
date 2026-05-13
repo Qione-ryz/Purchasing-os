@@ -526,6 +526,31 @@ function findVendorByName(namaVendor) {
 }
 
 // ────────────────────────────────────────────────────────────────
+// 3b. HELPER — ambil harga terakhir dari hargaCache
+// ────────────────────────────────────────────────────────────────
+function getLastKnownPrice(barangId, vendorId) {
+  const cache = window.hargaCache;
+  if (!cache) return null;
+
+  // Prioritaskan harga dari vendor yang dipilih
+  if (vendorId && cache[barangId]?.[vendorId]) {
+    const entry = cache[barangId][vendorId];
+    if (typeof entry === "object") return entry.exc || entry.inc || null;
+    return entry || null;
+  }
+
+  // Fallback: cari harga dari vendor manapun
+  const byBarang = cache[barangId];
+  if (!byBarang) return null;
+  for (const vId of Object.keys(byBarang)) {
+    const entry = byBarang[vId];
+    const price = typeof entry === "object" ? (entry.exc || entry.inc) : entry;
+    if (price) return price;
+  }
+  return null;
+}
+
+// ────────────────────────────────────────────────────────────────
 // 4. LOGIKA SCAN
 // ────────────────────────────────────────────────────────────────
 function triggerScanInvoice() {
@@ -741,7 +766,31 @@ function fillFormFromScan(data) {
     const el = document.getElementById("fNomorFaktur");
     if (el) { el.value = data.nomor_faktur; if (typeof checkDuplikatFaktur === "function") checkDuplikatFaktur(data.nomor_faktur); }
   }
-  if (data.tanggal)  { const el = document.getElementById("fTanggal");  if (el) el.value = data.tanggal; }
+  if (data.tanggal) {
+    const el = document.getElementById("fTanggal");
+    if (el) {
+      let tanggal = data.tanggal;
+      // Koreksi tahun OCR yang terlalu jauh di belakang (sering salah baca)
+      const parsed = new Date(tanggal);
+      const now    = new Date();
+      const diffTahun = now.getFullYear() - parsed.getFullYear();
+      if (!isNaN(parsed) && diffTahun > 1) {
+        const corrected = new Date(parsed);
+        corrected.setFullYear(now.getFullYear());
+        // Jika setelah koreksi masih di masa depan, pakai tahun lalu
+        if (corrected > now) corrected.setFullYear(now.getFullYear() - 1);
+        const yyyy = corrected.getFullYear();
+        const mm   = String(corrected.getMonth() + 1).padStart(2, "0");
+        const dd   = String(corrected.getDate()).padStart(2, "0");
+        const tanggalAsli = tanggal;
+        tanggal = `${yyyy}-${mm}-${dd}`;
+        data._tanggalAsli    = tanggalAsli;
+        data._tanggalKoreksi = tanggal;
+      }
+      el.value = tanggal;
+      data.tanggal = tanggal; // update agar modal review tampil tanggal yg sudah dikoreksi
+    }
+  }
   // Catatan tidak diisi otomatis dari scan
   if (data.diskon > 0) {
     const el = document.getElementById("fDiskon");
@@ -832,10 +881,14 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
         </div>` : ""}
       ${tanggalDariScan ? `
         <div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Tanggal</div>
-          <div style="font-size:13px;font-family:var(--mono);color:var(--text)">${tanggalDariScan}</div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Tanggal${window._scanData?._tanggalKoreksi ? " <span style='color:var(--accent3)'>⚠ dikoreksi</span>" : ""}</div>
+          <div style="font-size:13px;font-family:var(--mono);color:var(--text)">${tanggalDariScan}${window._scanData?._tanggalAsli ? `<span style="font-size:10px;color:var(--muted);margin-left:6px">OCR: ${window._scanData._tanggalAsli}</span>` : ""}</div>
         </div>` : ""}
-    </div>` : "";
+    </div>
+    ${window._scanData?._tanggalKoreksi ? `
+    <div style="margin-bottom:10px;padding:7px 12px;background:rgba(247,146,79,0.08);border:1px solid rgba(247,146,79,0.25);border-radius:6px;font-size:11px;font-family:var(--mono);color:var(--accent3)">
+      ⚠ Tahun dari OCR terdeteksi tidak wajar (<span style="font-weight:600">${window._scanData._tanggalAsli}</span>). Sudah dikoreksi otomatis menjadi <span style="font-weight:600">${window._scanData._tanggalKoreksi}</span> — periksa kembali jika perlu.
+    </div>` : ""}` : "";
 
   const vendorSection = `
     <div style="margin-bottom:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
@@ -885,6 +938,18 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
     const badgeCls= mode === "exact" ? "exact" : mode === "fuzzy" ? "fuzzy" : "manual";
     const badgeTxt= mode === "exact" ? "cocok" : mode === "fuzzy" ? "mirip" : "manual";
 
+    // Ambil harga: dari OCR, atau fallback ke harga terakhir jika 0
+    const vendorIdSekarang = document.getElementById("scanVendorId")?.value
+      || window._scanVendor?.id
+      || document.getElementById("fVendor")?.value
+      || "";
+    let hargaAwal = item.harga_satuan || 0;
+    let hargaDariCache = false;
+    if (!hargaAwal && barang) {
+      const lastPrice = getLastKnownPrice(barang.id, vendorIdSekarang);
+      if (lastPrice) { hargaAwal = lastPrice; hargaDariCache = true; }
+    }
+
     // Bangun opsi satuan: satuan dasar + satuan_order dari master
     const satuanDasar  = barang?.satuan || "";
     const satuanOrders = barang?.satuan_order || [];
@@ -931,7 +996,8 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
           </div>
           <div style="width:130px;flex-shrink:0">
             <input type="number" class="scan-num-input" id="scanHarga_${i}"
-              value="${item.harga_satuan || 0}" min="0" step="any"/>
+              value="${hargaAwal}" min="0" step="any"
+              style="${hargaDariCache ? "border-color:rgba(247,146,79,0.5)" : ""}"/>
           </div>
           <div style="width:24px;flex-shrink:0;text-align:center">
             <input type="checkbox" id="scanChk_${i}" checked
@@ -952,7 +1018,9 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
           <div style="width:100px;flex-shrink:0"></div>
           <div style="width:130px;flex-shrink:0;text-align:right">
             <div id="scanHargaNote_${i}" class="scan-harga-note">
-              ${_scanPPNMode === "inc" ? "inc PPN" : "exc PPN"}
+              ${hargaDariCache
+                ? `<span style="color:var(--accent3)">dari riwayat</span>`
+                : (_scanPPNMode === "inc" ? "inc PPN" : "exc PPN")}
             </div>
           </div>
           <div style="width:24px;flex-shrink:0"></div>
@@ -1396,8 +1464,15 @@ function applyScanItems(count) {
     const mapping  = _scanMappings[i];
     const barang   = mapping?.barang;
     const qtyVal   = parseFloat(document.getElementById(`scanQty_${i}`)?.value)   || item.qty          || 1;
-    const hargaVal = parseFloat(document.getElementById(`scanHarga_${i}`)?.value) || item.harga_satuan || 0;
+    let   hargaVal = parseFloat(document.getElementById(`scanHarga_${i}`)?.value) || item.harga_satuan || 0;
     const satuanSelectVal = document.getElementById(`scanSatuan_${i}`)?.value || ""; // format "satuan|faktor"
+
+    // Jika harga masih 0, coba ambil dari hargaCache
+    if (!hargaVal && barang) {
+      const vendorId = document.getElementById("fVendor")?.value || window._scanVendor?.id || "";
+      const lastPrice = getLastKnownPrice(barang.id, vendorId);
+      if (lastPrice) hargaVal = lastPrice;
+    }
 
     if (barang && typeof addItem === "function") {
       const idxBefore = document.querySelectorAll("#itemList .item-row").length;

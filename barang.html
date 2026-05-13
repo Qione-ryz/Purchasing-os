@@ -1231,13 +1231,15 @@
         const contentEl    = document.getElementById('_priceContent');
         if (btnRingkasan) {
           btnRingkasan.style.background = isRingkasan ? 'var(--accent)' : 'transparent';
-          btnRingkasan.style.color      = isRingkasan ? '#fff' : 'var(--muted)';
+          btnRingkasan.style.color      = isRingkasan ? '#001f2e' : 'var(--muted)';
           btnRingkasan.style.borderColor= isRingkasan ? 'var(--accent)' : 'var(--border)';
+          btnRingkasan.style.fontWeight = isRingkasan ? '600' : '500';
         }
         if (btnBulanan) {
-          btnBulanan.style.background = !isRingkasan ? 'var(--accent3)' : 'transparent';
-          btnBulanan.style.color      = !isRingkasan ? '#fff' : 'var(--muted)';
-          btnBulanan.style.borderColor= !isRingkasan ? 'var(--accent3)' : 'var(--border)';
+          btnBulanan.style.background = !isRingkasan ? 'var(--accent)' : 'transparent';
+          btnBulanan.style.color      = !isRingkasan ? '#001f2e' : 'var(--muted)';
+          btnBulanan.style.borderColor= !isRingkasan ? 'var(--accent)' : 'var(--border)';
+          btnBulanan.style.fontWeight = !isRingkasan ? '600' : '500';
         }
         if (contentEl) {
           contentEl.innerHTML = isRingkasan

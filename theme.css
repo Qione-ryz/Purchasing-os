@@ -1,44 +1,44 @@
 /* ═══════════════════════════════════════════════════════════
-   theme.css — Light / Dark mode override
+   theme.css — WindPulse-inspired Dark / Light mode
    Include SETELAH style.css di semua halaman
 
-   Dark  → Hybrid: Qase navy-slate base + Linear surface depth
-   Light → Reviewed: warmer white, better contrast, softer blue
+   Dark  → WindPulse: ultra-dark navy-black + neon green accent
+   Light → Clean professional with emerald accents
    ═══════════════════════════════════════════════════════════ */
 
 
 /* ─────────────────────────────────────────────────────────
    DARK MODE (default)
-   Base   : Qase  — navy-slate bg, cool professional tone
-   Surface: Linear — layered depth, tidak terlalu flat
-   Accent : Qase  — biru cerah #2563eb, familiar & action-oriented
+   WindPulse: near-black bg, deep teal surfaces, neon #00FF7B
    ───────────────────────────────────────────────────────── */
 :root {
-  /* Layout — Qase navy-slate base */
-  --bg:       #111827;   /* Qase main bg — navy dark, tidak hitam pekat  */
-  --surface:  #1a2235;   /* Qase card/panel — sedikit lebih terang        */
-  --surface2: #212d42;   /* Linear-inspired elevated surface               */
-  --border:   #2d3a52;   /* Qase border — cool slate, subtle               */
+  /* Layout — WindPulse near-black */
+  --bg:       #030709;   /* WindPulse deepest black                       */
+  --surface:  #0a1a1f;   /* Deep teal-black card                          */
+  --surface2: #0f2429;   /* Elevated teal surface                         */
+  --border:   #152c33;   /* Subtle teal border                            */
 
-  /* Accent — Qase signature blue */
-  --accent:   #2563eb;   /* Qase primary blue — solid, action-oriented     */
-  --accent2:  #10b981;   /* Emerald green — status positif                 */
-  --accent3:  #f59e0b;   /* Amber — warning / highlight                    */
-  --danger:   #ef4444;   /* Red — error / hapus                            */
+  /* Accent — Cyan palette */
+  --accent:   #00d4ff;   /* Cyan — primary CTA                            */
+  --accent2:  #00b8e0;   /* Slightly muted cyan — hover/active            */
+  --accent3:  #00c2b3;   /* Teal-cyan — secondary accent                  */
+  --danger:   #ff4d6a;   /* Coral red — error / hapus                     */
 
   /* Typography */
-  --text:     #e2e8f0;   /* Slate-200 — putih hangat, tidak terlalu terang */
-  --muted:    #64748b;   /* Slate-500 — secondary text                     */
+  --text:     #f0f6f4;   /* Soft white                                    */
+  --muted:    #4a6e78;   /* Muted teal-gray — secondary text              */
 
   /* Font & shape */
   --mono:     'DM Mono', monospace;
-  --sans:     'DM Sans', sans-serif;
-  --radius:   12px;
+  --sans:     'Poppins', sans-serif;
+  --radius:   14px;
 
-  /* Shadows — lebih dalam dari sebelumnya, sesuai navy bg */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.45);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.55);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,0.65);
+  /* Cyan glow system */
+  --glow-accent:  0 0 20px rgba(0,212,255,0.2);
+  --glow-strong:  0 0 40px rgba(0,212,255,0.3);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.6);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.7);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.8);
 
   color-scheme: dark;
 }
@@ -46,35 +46,30 @@
 
 /* ─────────────────────────────────────────────────────────
    LIGHT MODE
-   Review notes:
-   - bg lebih warm (#f8f9fc) — tidak terlalu cold/sterile
-   - surface2 lebih kontras dari surface (#f1f3f8)
-   - border lebih visible (#d0d7e3) — tabel & card lebih defined
-   - accent seragam dengan dark mode (#2563eb)
-   - muted lebih gelap (#5a6880) — readable di semua konteks
-   - semua hardcoded color diganti ke var() token
+   Clean professional with emerald/teal accents
+   inspired by WindPulse but inverted
    ───────────────────────────────────────────────────────── */
 body.light-mode {
   /* Layout */
-  --bg:       #f8f9fc;   /* Warm off-white — tidak cold seperti #f4f6fb    */
+  --bg:       #f0f7f5;   /* Soft green-tinted white                       */
   --surface:  #ffffff;
-  --surface2: #f1f3f8;   /* Lebih kontras — jelas bedanya dengan surface   */
-  --border:   #d0d7e3;   /* Lebih visible — tabel & card lebih terdefinisi */
+  --surface2: #e8f4f1;   /* Teal-tinted surface                           */
+  --border:   #c5ddd8;   /* Teal-green border                             */
 
-  /* Accent — seragam dengan dark mode */
-  --accent:   #2563eb;   /* Konsisten antar mode                           */
-  --accent2:  #059669;   /* Emerald-600 — lebih deep di light bg           */
-  --accent3:  #d97706;   /* Amber-600                                      */
-  --danger:   #dc2626;   /* Red-600                                        */
+  /* Accent — cyan darker for readability on light bg */
+  --accent:   #0099bb;   /* Dark cyan — readable on light                 */
+  --accent2:  #007a99;
+  --accent3:  #0097a7;   /* Teal                                          */
+  --danger:   #e5173e;
 
   /* Typography */
-  --text:     #0f172a;   /* Slate-900 — bukan pure black, lebih soft       */
-  --muted:    #5a6880;   /* Lebih gelap dari sebelumnya — readable         */
+  --text:     #0a1a1f;   /* Very dark teal — instead of pure black        */
+  --muted:    #4a7a72;
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(15,23,42,0.08);
-  --shadow-md:  0 4px 16px rgba(15,23,42,0.10);
-  --shadow-lg:  0 8px 32px rgba(15,23,42,0.14);
+  --shadow-sm:  0 1px 3px rgba(0,50,30,0.08);
+  --shadow-md:  0 4px 16px rgba(0,50,30,0.10);
+  --shadow-lg:  0 8px 32px rgba(0,50,30,0.14);
 
   color-scheme: light;
 }
@@ -136,7 +131,7 @@ body.light-mode .nav-item      {
 }
 body.light-mode .nav-item:hover  { background: var(--surface2); color: var(--text); }
 body.light-mode .nav-item.active {
-  background: rgba(37,99,235,0.08);
+  background: rgba(0,212,255,0.08;
   color: var(--accent);
   font-weight: 600;
 }
@@ -198,7 +193,7 @@ body.light-mode td             {
   vertical-align: middle;
 }
 body.light-mode tbody tr       { transition: background 0.12s ease; }
-body.light-mode tbody tr:hover td { background: rgba(37,99,235,0.04); }
+body.light-mode tbody tr:hover td { background: rgba(0,212,255,0.04; }
 
 /* ── INPUTS ── */
 body.light-mode input,
@@ -220,7 +215,7 @@ body.light-mode .input:focus,
 body.light-mode .search-input:focus,
 body.light-mode .filter-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.12;
   outline: none;
 }
 body.light-mode input::placeholder,
@@ -235,7 +230,7 @@ body.light-mode .search-wrap    {
 }
 body.light-mode .search-wrap:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.10;
 }
 body.light-mode .search-icon    { color: #a8b3c4; }
 
@@ -251,8 +246,8 @@ body.light-mode .btn-ghost {
 body.light-mode .btn-ghost:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(37,99,235,0.04);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+  background: rgba(0,212,255,0.04;
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.08;
 }
 
 /* ── BADGES ── */
@@ -260,7 +255,7 @@ body.light-mode .badge-gray   { background: #e2e8f0; color: #334155; border: 1px
 body.light-mode .badge-green  { background: rgba(5,150,105,0.10);  color: #065f46; border: 1px solid rgba(5,150,105,0.22); }
 body.light-mode .badge-orange { background: rgba(217,119,6,0.10);  color: #92400e; border: 1px solid rgba(217,119,6,0.22); }
 body.light-mode .badge-red    { background: rgba(220,38,38,0.08);  color: #991b1b; border: 1px solid rgba(220,38,38,0.18); }
-body.light-mode .badge-blue   { background: rgba(37,99,235,0.08);  color: var(--accent); border: 1px solid rgba(37,99,235,0.18); }
+body.light-mode .badge-blue   { background: rgba(0,212,255,0.08;  color: var(--accent); border: 1px solid rgba(0,212,255,0.18; }
 
 /* ── MODAL ── */
 body.light-mode .modal-overlay {
@@ -303,12 +298,12 @@ body.light-mode .page-btn.active {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(37,99,235,0.28);
+  box-shadow: 0 2px 8px rgba(0,212,255,0.25;
 }
 body.light-mode .page-btn:hover:not(.active) {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(37,99,235,0.05);
+  background: rgba(0,212,255,0.05;
 }
 
 /* ── TABS ── */
@@ -340,7 +335,7 @@ body.light-mode #datePicker {
   box-shadow: var(--shadow-lg);
 }
 body.light-mode .item-option:hover,
-body.light-mode .survey-option:hover { background: rgba(37,99,235,0.04); }
+body.light-mode .survey-option:hover { background: rgba(0,212,255,0.04; }
 body.light-mode .item-option         { border-bottom: 1px solid var(--border); }
 
 /* ── ITEM ROWS (pembelian) ── */
@@ -365,7 +360,7 @@ body.light-mode .settings-nav-item {
 }
 body.light-mode .settings-nav-item:hover  { background: var(--surface2); }
 body.light-mode .settings-nav-item.active {
-  background: rgba(37,99,235,0.07);
+  background: rgba(0,212,255,0.07;
   color: var(--accent);
   font-weight: 600;
 }
@@ -413,7 +408,7 @@ body.light-mode .multisel-panel  {
   box-shadow: var(--shadow-lg);
 }
 body.light-mode .multisel-item         { border-bottom: 1px solid var(--border); transition: background 0.12s; }
-body.light-mode .multisel-item:hover   { background: rgba(37,99,235,0.04); }
+body.light-mode .multisel-item:hover   { background: rgba(0,212,255,0.04; }
 body.light-mode .multisel-footer       { background: #f8f9fc; border-top: 1px solid var(--border); }
 body.light-mode .date-quick-btn        {
   background: var(--surface2);
@@ -422,7 +417,7 @@ body.light-mode .date-quick-btn        {
   border-radius: 8px;
   transition: all 0.15s;
 }
-body.light-mode .date-quick-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.05); }
+body.light-mode .date-quick-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05; }
 body.light-mode .date-quick-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 body.light-mode .qa-btn   {
   background: #f8f9fc;
@@ -431,12 +426,12 @@ body.light-mode .qa-btn   {
   border-radius: var(--radius);
   transition: all 0.15s;
 }
-body.light-mode .qa-btn:hover      { border-color: var(--accent); background: rgba(37,99,235,0.05); color: var(--accent); }
+body.light-mode .qa-btn:hover      { border-color: var(--accent); background: rgba(0,212,255,0.05; color: var(--accent); }
 body.light-mode .qa-icon           { background: #eef2fb; border-radius: 8px; }
 body.light-mode .activity-item     { border-bottom: 1px solid var(--border); }
 body.light-mode .bar-label         { color: var(--muted); }
-body.light-mode .barang-item:hover   { background: rgba(37,99,235,0.04); }
-body.light-mode .barang-item.selected { background: rgba(37,99,235,0.08); color: var(--accent); }
+body.light-mode .barang-item:hover   { background: rgba(0,212,255,0.04; }
+body.light-mode .barang-item.selected { background: rgba(0,212,255,0.08; color: var(--accent); }
 
 /* ── CHART.JS ── */
 body.light-mode .chartjs-render-monitor { background: transparent !important; }
@@ -449,7 +444,7 @@ body.light-mode *:focus-visible {
 
 /* ── SELECTION ── */
 body.light-mode ::selection {
-  background: rgba(37,99,235,0.15);
+  background: rgba(0,212,255,0.15;
   color: var(--text);
 }
 
@@ -466,12 +461,12 @@ body.light-mode ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 /* ── LINK ── */
 body.light-mode a:not([class]) {
   color: var(--accent);
-  text-decoration-color: rgba(37,99,235,0.3);
+  text-decoration-color: rgba(0,212,255,0.3);
   transition: color 0.15s;
 }
 body.light-mode a:not([class]):hover {
-  color: #1d4ed8;
-  text-decoration-color: #1d4ed8;
+  color: var(--accent2);
+  text-decoration-color: var(--accent2);
 }
 
 /* ── EMPTY STATE ── */

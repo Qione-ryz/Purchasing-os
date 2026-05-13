@@ -1092,9 +1092,22 @@ function clearSearch() {
 // FILTER & RENDER TABLE
 // ═══════════════════════════════════════════════
 function applyFilters() {
-  // Jika tab arsip aktif, gunakan archivedOrders bukan allOrders
+  // Jika tab arsip aktif, filter archivedOrders dengan search/brand/status
   if (_showArsip) {
-    filtered = archivedOrders;
+    const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+    const status = document.getElementById('filterStatus').value;
+    filtered = archivedOrders.filter(o => {
+      if (_selectedBrands.length > 0 && !_selectedBrands.includes(o.brand_id)) return false;
+      if (status && o.status !== status) return false;
+      if (q) {
+        const brandNama = (brands[o.brand_id]||'').toLowerCase();
+        const kode      = (o.pemesan?.kode||'').toLowerCase();
+        const id        = o.id.toLowerCase();
+        const catatan   = (o.catatan||'').toLowerCase();
+        if (!brandNama.includes(q) && !kode.includes(q) && !id.includes(q) && !catatan.includes(q)) return false;
+      }
+      return true;
+    });
     currentPage = 1;
     renderTable();
     return;
@@ -1363,15 +1376,48 @@ async function loadArsip() {
     const pemesanMap = {};
     (pemesanRows || []).forEach(p => { pemesanMap[p.id] = p; });
 
+    // Fetch order_items semua order arsip sekaligus untuk hitung progress tanpa FIFO
+    const arsipIds = (arsipRaw || []).map(o => o.id);
+    let progressByOrder = {};
+    if (arsipIds.length > 0) {
+      try {
+        const itemsAll = await _inBatch(
+          'order_items',
+          'order_id,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
+          'order_id', arsipIds
+        );
+        // Hitung progress per order dari qty_terpenuhi di DB (arsip sudah selesai, tidak perlu FIFO)
+        (itemsAll || []).forEach(it => {
+          if (it.is_custom || (it.status_item || 'pending') === 'cancelled') return;
+          const f    = it.faktor_konversi || 1;
+          const need = (it.qty_order || 0) * f;
+          const got  = it.qty_terpenuhi || 0;
+          if (!progressByOrder[it.order_id]) progressByOrder[it.order_id] = { totalOrder:0, totalTerpenuhi:0, totalItems:0, doneItems:0 };
+          const p = progressByOrder[it.order_id];
+          p.totalOrder     += need;
+          p.totalTerpenuhi += Math.min(got, need);
+          p.totalItems     += 1;
+          if (got >= need) p.doneItems += 1;
+        });
+      } catch(e) { console.warn('loadArsip progress fetch failed:', e); }
+    }
+
     archivedOrders = (arsipRaw || []).map(o => ({
       ...o,
-      pemesan: pemesanMap[o.pemesan_id] || { kode: '—', nama: '—' },
-      progress: null,
+      pemesan:  pemesanMap[o.pemesan_id] || { kode: '—', nama: '—' },
+      progress: progressByOrder[o.id] || null,
+      // Derive status dari progress agar badge tampil; fallback ke 'selesai' (arsip = sudah selesai)
+      status: (() => {
+        const p = progressByOrder[o.id];
+        if (!p || p.totalItems === 0) return 'selesai';
+        const pct = p.totalOrder > 0 ? p.totalTerpenuhi / p.totalOrder : 0;
+        return pct >= 1 ? 'selesai' : pct > 0 ? 'partial' : 'pending';
+      })(),
     }));
 
     filtered = archivedOrders;
     currentPage = 1;
-    renderTable();
+    applyFilters(); // pakai applyFilters agar filter aktif langsung teraplikasi
   } catch(e) {
     console.error('loadArsip:', e);
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Gagal memuat arsip: ${e.message}</div></div></td></tr>`;
@@ -1483,8 +1529,9 @@ async function _runFifoSync(barangIds) {
   const uniqueOrderIds = [...new Set((_competingFiltered || []).map(ci => ci.order_id).filter(Boolean))];
   let _ordersMap = {};
   if (uniqueOrderIds.length > 0) {
-    const _ordersRaw = await _inBatch('orders', 'id, created_at, brand_id', 'id', uniqueOrderIds);
-    _ordersRaw.forEach(o => { _ordersMap[o.id] = o; });
+    const _ordersRaw = await _inBatch('orders', 'id, created_at, brand_id, status', 'id', uniqueOrderIds);
+    // Exclude archived — order arsip qty_terpenuhi-nya tidak di-load, jangan ikut kompetisi FIFO
+    _ordersRaw.filter(o => o.status !== 'archived').forEach(o => { _ordersMap[o.id] = o; });
   }
 
   // Gabungkan: simulasi orders!inner
@@ -1579,12 +1626,17 @@ async function _runFifoSync(barangIds) {
 
     if (competitors.length === 0) continue;
 
-    // Inisialisasi hasil: semua order mulai dari 0
-    // Item status selesai (manual) dikunci di qty_terpenuhi mereka
+    // Inisialisasi hasil: selesai → kunci di qty_terpenuhi; ordered → pakai qty_terpenuhi
+    // yang sudah ada (dari pembelian sebelumnya) agar tidak dialokasikan ulang oleh FIFO;
+    // pending/lainnya → mulai dari 0.
     const hasil = {}; // { ci.id: qty_terpenuhi }
     for (const ci of competitors) {
+      const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
       if ((ci.status_item || 'pending') === 'selesai') {
-        hasil[ci.id] = Math.min(ci.qty_terpenuhi || 0, (ci.qty_order || 0) * (ci.faktor_konversi || 1));
+        hasil[ci.id] = Math.min(ci.qty_terpenuhi || 0, kebutuhan);
+      } else if ((ci.status_item || 'pending') === 'ordered') {
+        // ordered: qty_terpenuhi sudah terisi dari pembelian sebelumnya — jangan reset ke 0
+        hasil[ci.id] = Math.min(ci.qty_terpenuhi || 0, kebutuhan);
       } else {
         hasil[ci.id] = 0;
       }

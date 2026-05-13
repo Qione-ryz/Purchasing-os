@@ -207,8 +207,9 @@
         <span class="so-formula-hint">Rekomendasi = Rata-rata Pakai − Stok Akhir Bln Lalu</span>
         <span class="so-formula-hint">+</span>
         <div style="display:flex;align-items:center;gap:5px">
-          <input type="number" id="planBufferPct" value="0" min="0" max="500"
+          <input type="text" inputmode="decimal" id="planBufferPct" value="0"
             class="so-buffer-input"
+            onkeydown="handleNumKeydown(event)"
             oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
           <span class="so-formula-hint">% buffer dari rata-rata pakai</span>
         </div>
@@ -409,6 +410,51 @@
 
 <script>
   window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+  /* ── NUMBER INPUT HELPERS ──
+     - fmtInput(num)      : angka → string tampil di input (pakai titik sebagai separator desimal)
+     - formatNumInput(str): saat user mengetik, konversi koma → titik (separator desimal)
+     - parseInputVal(str) : string input → Number (langsung parseFloat, titik = desimal)
+     - handleNumKeydown   : blokir karakter non-numerik kecuali nav keys
+  ──────────────────────────────── */
+  function fmtInput(num) {
+    if (num === null || num === undefined || num === '') return '';
+    const n = Number(num);
+    if (isNaN(n)) return '';
+    /* Tampilkan apa adanya — titik sebagai desimal, tanpa format ribuan di input */
+    return Number.isInteger(n) ? String(n) : String(n);
+  }
+
+  function formatNumInput(str) {
+    if (!str) return str;
+    /* Konversi koma → titik (separator desimal) */
+    let result = str.replace(',', '.');
+    /* Pastikan maksimal 1 titik desimal */
+    const parts = result.split('.');
+    if (parts.length > 2) result = parts[0] + '.' + parts.slice(1).join('');
+    /* Hapus karakter selain angka dan titik */
+    result = result.replace(/[^0-9.]/g, '');
+    return result;
+  }
+
+  function parseInputVal(str) {
+    if (str === '' || str === null || str === undefined) return null;
+    /* Ganti koma → titik lalu parse langsung */
+    const cleaned = String(str).replace(',', '.');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? null : n;
+  }
+
+  function handleNumKeydown(e) {
+    /* Izinkan: angka, titik, koma (akan dikonversi ke titik), backspace, delete, tab, enter,
+       arrow keys, home, end, ctrl+A/C/V/X/Z */
+    const allowed = ['Backspace','Delete','Tab','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+    if (allowed.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    if (/^[0-9.,]$/.test(e.key)) return;
+    e.preventDefault();
+  }
+  window.handleNumKeydown = handleNumKeydown;
 
   renderSidebar('stock-opname.html', 'Brand aktif', 'onBrandChange()')
   
@@ -968,11 +1014,12 @@
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
           + '<td class="td-num">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + (window._userRole === 'admin'
-              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
                 +   ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
                 +   ' data-bid="' + b.id + '"'
-                +   ' value="' + (currQty != null ? currQty : '') + '" placeholder="—"'
-                +   ' oninput="onOpnameInput(this,\'' + b.id + '\',this.value)"/></td>'
+                +   ' value="' + (currQty != null ? fmtInput(currQty) : '') + '" placeholder="—"'
+                +   ' oninput="onOpnameInput(this,\'' + b.id + '\',this.value)"'
+                +   ' onkeydown="handleNumKeydown(event)"/></td>'
               : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + '<td class="td-num" data-diff="' + b.id + '">' + diffHtml + '</td>'
@@ -1011,11 +1058,12 @@
           + '<td><span class="item-meta">' + satuan + '</span></td>'
           + '<td class="td-num">' + (primerPrev != null ? fmt(primerPrev) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + (window._userRole === 'admin'
-              ? '<td class="cell-input-wrap" style="text-align:right"><input type="number" min="0"'
+              ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
                 + ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
                 + ' data-grpid="' + grp.id + '"'
-                + ' value="' + (currQty != null ? currQty : '') + '" placeholder="—"'
-                + ' oninput="onOpnameInput(this,\'grp_' + grp.id + '\',this.value,\'' + grp.primer_barang_id + '\')"/></td>'
+                + ' value="' + (currQty != null ? fmtInput(currQty) : '') + '" placeholder="—"'
+                + ' oninput="onOpnameInput(this,\'grp_' + grp.id + '\',this.value,\'' + grp.primer_barang_id + '\')"'
+                + ' onkeydown="handleNumKeydown(event)"/></td>'
               : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + '<td class="td-num" data-diff="grp_' + grp.id + '">' + diffHtml + '</td>'
@@ -1143,7 +1191,17 @@
   window.hideEmptyToConfig = hideEmptyToConfig;
 
   function onOpnameInput(el, barangId, val, primerBarangId) {
-    opnameDraft[barangId] = (val === '' || val === null || val === undefined) ? null : Number(val);
+    /* Format: konversi titik → koma, set cursor tetap */
+    if (el) {
+      const formatted = formatNumInput(val);
+      if (formatted !== val) {
+        const pos = el.selectionStart + (formatted.length - val.length);
+        el.value = formatted;
+        try { el.setSelectionRange(pos, pos); } catch(_) {}
+      }
+    }
+    const parsed = parseInputVal(val);
+    opnameDraft[barangId] = parsed;
     opnameChanged = true;
     document.getElementById('opnameSaveBar').style.display = 'flex';
     document.getElementById('opnameSaveStatus').textContent = '';
@@ -1376,11 +1434,12 @@
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
           + (window._userRole === 'admin'
               ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
-                '<input type="number" min="0"'
+                '<input type="text" inputmode="decimal" autocomplete="off"'
                 + ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
                 + ' data-bid="' + grp.primer_barang_id + '"'
-                + ' value="' + editVal + '" placeholder="0"'
-                + ' oninput="onPlanInput(this,\'' + grp.primer_barang_id + '\',this.value)"/>') + '</td>'
+                + ' value="' + (editVal !== '' ? fmtInput(editVal) : '') + '" placeholder="0"'
+                + ' oninput="onPlanInput(this,\'' + grp.primer_barang_id + '\',this.value)"'
+                + ' onkeydown="handleNumKeydown(event)"/>') + '</td>'
               : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + excludeBtnHtml
@@ -1415,11 +1474,12 @@
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
           + (window._userRole === 'admin'
               ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
-                '<input type="number" min="0"'
+                '<input type="text" inputmode="decimal" autocomplete="off"'
                 +   ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
                 +   ' data-bid="' + b.id + '"'
-                +   ' value="' + editVal + '" placeholder="0"'
-                +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"/>') + '</td>'
+                +   ' value="' + (editVal !== '' ? fmtInput(editVal) : '') + '" placeholder="0"'
+                +   ' oninput="onPlanInput(this,\'' + b.id + '\',this.value)"'
+                +   ' onkeydown="handleNumKeydown(event)"/>') + '</td>'
               : '<td class="td-num">' + (editVal !== '' ? fmt(editVal) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
           + excludeBtnHtml
@@ -1472,8 +1532,16 @@
   }
 
   function onPlanInput(el, barangId, val) {
+    if (el) {
+      const formatted = formatNumInput(val);
+      if (formatted !== val) {
+        const pos = el.selectionStart + (formatted.length - val.length);
+        el.value = formatted;
+        try { el.setSelectionRange(pos, pos); } catch(_) {}
+      }
+    }
     if (!planDraft) planDraft = {};
-    planDraft[barangId] = val === '' ? 0 : Number(val);
+    planDraft[barangId] = parseInputVal(val) ?? 0;
     if (el) el.classList.add('changed');
     document.getElementById('planSaveBar').style.display = 'flex';
   }

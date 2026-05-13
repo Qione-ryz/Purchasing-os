@@ -33,9 +33,10 @@
     .bar-chart  { padding:var(--sp-lg) var(--sp-xl); }
     .bar-group  { display:flex; align-items:flex-end; gap:var(--sp-sm); height:100px; margin-bottom:var(--sp-sm); position:relative; }
     .bar-col    { flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; }
-    .bar        { width:100%; border-radius:4px 4px 0 0; transition:height .6s cubic-bezier(.4,0,.2,1),opacity .2s; min-height:4px; background:var(--accent); opacity:.7; }
-    .bar:hover  { opacity:1; }
-    .bar.current{ background:var(--accent2); opacity:1; }
+    .bar        { width:100%; border-radius:4px 4px 0 0; transition:height .6s cubic-bezier(.4,0,.2,1),opacity .2s,box-shadow .2s; min-height:4px; background:rgba(0,194,179,0.5); opacity:1; }
+    .bar:hover  { background:rgba(0,194,179,0.75); opacity:1; }
+    .bar.current{ background:var(--accent); opacity:1; box-shadow:0 0 12px rgba(0,255,123,0.4); }
+    .bar.current:hover { background:var(--accent2); box-shadow:0 0 20px rgba(0,255,123,0.55); }
     .bar-labels { display:flex; gap:var(--sp-sm); }
 
     .quick-actions { display:grid; grid-template-columns:1fr 1fr; gap:calc(var(--sp-sm) + 2px); padding:var(--sp-lg); }

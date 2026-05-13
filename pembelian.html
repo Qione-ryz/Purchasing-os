@@ -229,11 +229,11 @@
                 <div class="diskon-toggle-btn active" id="dBtnRp" onclick="setDiskonMode('rp')">Rp</div>
                 <div class="diskon-toggle-btn" id="dBtnPct" onclick="setDiskonMode('pct')">%</div>
               </div>
-              <input type="number" id="fDiskon" placeholder="0" min="0" oninput="updateSummary()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fDiskon" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
             </div>
             <div class="field" style="margin-bottom:14px">
               <label>Ongkos Kirim (Rp)</label>
-              <input type="number" id="fOngkir" placeholder="0" min="0" oninput="updateSummary()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fOngkir" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
             </div>
 
             <div class="summary-divider"></div>
@@ -666,11 +666,11 @@
       <div class="field-row">
         <div class="field">
           <label>Diskon (Rp)</label>
-          <input type="number" id="eDiskon" value="0" min="0" oninput="updateEditSummary()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
+          <input type="text" inputmode="decimal" id="eDiskon" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
         </div>
         <div class="field">
           <label>Ongkos Kirim (Rp)</label>
-          <input type="number" id="eOngkir" value="0" min="0" oninput="updateEditSummary()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
+          <input type="text" inputmode="decimal" id="eOngkir" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
         </div>
       </div>
       <div style="text-align:right;margin-top:8px;font-family:var(--mono);font-size:14px">
@@ -1883,8 +1883,6 @@
           excPrice = cacheEntry; incPrice = Math.round(cacheEntry * (1 + ppnRate));
         }
       }
-      const brandIds    = Array.isArray(b.brand_ids) ? b.brand_ids : b.brand_id ? [b.brand_id] : [];
-      const brandNames  = brandIds.map(id => (window.allBrands||[]).find(x=>x.id===id)?.nama || id).join(', ');
       const priceStr = excPrice
         ? ` · <span style="color:var(--accent2)">${formatRp(excPrice)}</span><span style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:2px">exc</span>`
         + ` · <span style="color:var(--accent3)">${formatRp(incPrice)}</span><span style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:2px">inc</span>`
@@ -1892,7 +1890,7 @@
       return `<div class="item-option" onmousedown="event.preventDefault();addItem('${b.id}')"
         style="${fromVendor ? 'border-left:3px solid var(--accent2)' : ''}">
         <div class="item-option-name">${b.nama}${fromVendor ? ' <span style="font-size:10px;font-family:var(--mono);color:var(--accent2);background:rgba(56,217,169,0.1);padding:1px 5px;border-radius:3px">vendor ini</span>' : ''}</div>
-        <div class="item-option-sub">${b.sku || ''} · ${b.satuan || ''}${priceStr}${brandNames ? ' · <span style="color:var(--accent)">' + brandNames + '</span>' : ''}</div>
+        <div class="item-option-sub">${b.sku || ''} · ${b.satuan || ''}${priceStr}</div>
       </div>`;
     }).join('');
     positionItemDropdown(); dd.style.display = 'block';
@@ -2224,11 +2222,20 @@
                 style="background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:3px 4px;outline:none;cursor:pointer;max-width:90px">${satuanOpts}</select>`
             : `<span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan || ''}</span>`}
         </div>
-        <input class="item-input" type="text" inputmode="decimal" min="0" step="any"
-          value="${item.harga_satuan}"
-          oninput="this.value=this.value.replace(',','.');updateItemHarga(${i}, this.value)"
-          onblur="this.value=parseFloat(this.value)||''"
-          title="Harga satuan (Rp, per ${item.satuan})"/>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input class="item-input" type="text" inputmode="decimal" min="0" step="any"
+            value="${item.harga_satuan}"
+            oninput="this.value=this.value.replace(',','.');updateItemHarga(${i}, this.value)"
+            onblur="this.value=parseFloat(this.value)||''"
+            title="Harga satuan (Rp, per ${item.satuan})"/>
+          <button type="button" title="Konversi harga (bagi dengan jumlah)"
+            onclick="openKonversiHarga(${i})"
+            style="flex-shrink:0;width:26px;height:28px;border-radius:5px;border:1px solid var(--border);
+                   background:var(--bg);color:var(--muted);cursor:pointer;font-size:14px;
+                   display:flex;align-items:center;justify-content:center;transition:all .15s"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">÷</button>
+        </div>
         <div class="item-subtotal">${formatRpShort(item.qty * item.faktor * item.harga_satuan)}</div>
         <button class="item-del" onclick="removeItem(${i})" title="Hapus">✕</button>
       </div>`;
@@ -2260,6 +2267,83 @@
     }
     updateSummary();
   }
+
+  // ── Konversi harga: bagi harga per dus/kardus → per satuan terkecil ──
+  function openKonversiHarga(idx) {
+    const item = items[idx];
+    if (!item) return;
+
+    document.getElementById('konversiHargaPopup')?.remove();
+
+    const rows = document.querySelectorAll('#itemList .item-row');
+    const hargaInput = rows[idx]?.querySelector('input.item-input[inputmode="decimal"]');
+    if (!hargaInput) return;
+
+    const rect = hargaInput.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.id = 'konversiHargaPopup';
+    popup.style.cssText = `position:fixed;z-index:99999;background:var(--surface2);
+      border:1px solid var(--border);border-radius:8px;padding:12px 14px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:230px;
+      top:${rect.bottom + 4}px;left:${rect.left}px`;
+    const harga = item.harga_satuan;
+    popup.innerHTML = `
+      <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px">
+        Rp <strong style="color:var(--text)">${Math.round(harga).toLocaleString('id-ID')}</strong> dibagi berapa?
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--muted)">÷</span>
+        <input id="konversiDivisor" type="number" min="1" step="1" value=""
+          placeholder="mis. 12"
+          style="flex:1;background:var(--bg);border:1px solid var(--accent);border-radius:5px;
+                 color:var(--text);font-family:var(--mono);font-size:13px;padding:5px 8px;
+                 outline:none;width:60px"
+          oninput="
+            const d = parseFloat(this.value)||1;
+            const res = Math.round(${harga} / d);
+            document.getElementById('konversiPreview').textContent = 'Rp ' + res.toLocaleString('id-ID');
+          "/>
+        <span style="font-size:11px;color:var(--muted)">=</span>
+        <span id="konversiPreview" style="font-size:13px;font-family:var(--mono);
+          color:var(--accent2);font-weight:600;white-space:nowrap">—</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onmousedown="applyKonversiHarga(${idx})" class="btn btn-primary btn-sm" style="flex:1">Terapkan</button>
+        <button onmousedown="document.getElementById('konversiHargaPopup')?.remove()" class="btn btn-ghost btn-sm">Batal</button>
+      </div>
+    `;
+    document.body.appendChild(popup);
+    setTimeout(() => {
+      const inp = popup.querySelector('#konversiDivisor');
+      inp?.focus(); inp?.select();
+    }, 30);
+
+    const outsideHandler = (e) => {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('mousedown', outsideHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', outsideHandler), 0);
+  }
+  window.openKonversiHarga = openKonversiHarga;
+
+  function applyKonversiHarga(idx) {
+    const divisor  = parseFloat(document.getElementById('konversiDivisor')?.value) || 1;
+    const newHarga = Math.round(items[idx].harga_satuan / divisor);
+    document.getElementById('konversiHargaPopup')?.remove();
+    items[idx].harga_satuan = newHarga;
+    items[idx].harga_src    = 'manual';
+    const rows = document.querySelectorAll('#itemList .item-row');
+    if (rows[idx]) {
+      const inp = rows[idx].querySelector('input.item-input[inputmode="decimal"]');
+      if (inp) inp.value = newHarga;
+      const sub = rows[idx].querySelector('.item-subtotal');
+      if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));
+    }
+    updateSummary();
+  }
+  window.applyKonversiHarga = applyKonversiHarga;
 
   function updateItemSatuan(idx, val) {
     /* val = "nama_satuan|faktor" */
@@ -3082,13 +3166,10 @@
     if (!n) return 'Rp 0';
     if (n >= 1_000_000) {
       const jt = n / 1_000_000;
-      return 'Rp ' + (Number.isInteger(jt) ? jt : jt.toFixed(3).replace(/\.?0+$/, '')) + 'jt';
+      const s = Number.isInteger(jt) ? jt : parseFloat(jt.toFixed(2));
+      return 'Rp ' + s.toLocaleString('id-ID') + ' jt';
     }
-    if (n >= 1_000) {
-      const rb = n / 1_000;
-      return 'Rp ' + (Number.isInteger(rb) ? rb : rb.toFixed(3).replace(/\.?0+$/, '')) + 'rb';
-    }
-    return 'Rp ' + n.toLocaleString('id-ID');
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
   }
 
   let toastTimer;
