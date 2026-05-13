@@ -264,11 +264,11 @@
 <!-- ── MODAL DETAIL ── -->
 <div class="modal-overlay" id="detailOverlay">
   <div class="modal vendor-detail-modal">
-    <div class="modal-header">
+    <div class="modal-header" style="flex-shrink:0">
       <span class="modal-title" id="detailTitle">Detail Vendor</span>
       <button class="modal-close" onclick="closeDetail()">✕</button>
     </div>
-    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0" id="detailBody"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeDetail()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -873,8 +873,13 @@
     const termin={cash:'Tunai',net7:'Net 7 hari',net14:'Net 14 hari',net30:'Net 30 hari',net60:'Net 60 hari'}[v.termin]||v.termin||'—';
     const brandIds = Array.isArray(v.brand_ids) ? v.brand_ids : v.brand_id ? [v.brand_id] : [];
 
-    /* Buka modal dulu dengan loading state */
+    /* Buka modal dengan loading state sementara fetch berlangsung */
     document.getElementById('detailTitle').textContent = v.nama;
+    document.getElementById('detailBody').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;padding:48px 0;gap:10px;color:var(--muted);font-family:var(--mono);font-size:13px">
+        <span class="spinner" style="width:16px;height:16px;border-width:2px"></span>
+        Memuat detail vendor...
+      </div>`;
     document.getElementById('detailOverlay').classList.add('show');
 
     /* Fetch harga terbaru dari riwayat_harga untuk vendor ini */
@@ -892,25 +897,43 @@
       });
     } catch(e) { console.warn('Gagal fetch harga vendor:', e); }
 
-    /* Filter barang yang pernah dibeli dari vendor ini */
-    const barangVendor = (window.allBarang||[]).filter(b => hargaMap[b.id] !== undefined);
+    /* Pastikan allBarang sudah terisi; reload jika kosong */
+    if (!window.allBarang || window.allBarang.length === 0) {
+      try {
+        const { data: barRows } = await window._sb.from('barang').select('*, barang_brands(brand_id)').order('nama');
+        window.allBarang = (barRows || []).map(b => ({
+          ...b,
+          brand_ids: (b.barang_brands || []).map(x => x.brand_id),
+          brand_id:  (b.barang_brands || [])[0]?.brand_id || ''
+        }));
+      } catch(e) { console.warn('Gagal reload allBarang:', e); }
+    }
+
+    /* Filter barang dari vendor ini:
+       - Barang yang punya riwayat harga dari vendor ini (hargaMap), ATAU
+       - Barang yang memiliki vendor_id yang cocok di field barang */
+    const barangVendor = (window.allBarang||[]).filter(b =>
+      hargaMap[b.id] !== undefined ||
+      b.vendor_id === id ||
+      (Array.isArray(b.vendor_ids) && b.vendor_ids.includes(id))
+    );
 
     document.getElementById('detailBody').innerHTML = `
-      <div class="detail-section">
-        <div class="detail-row"><span class="detail-key">Kode</span><span class="detail-val" style="font-family:var(--mono)">${v.kode||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Brand</span><span class="detail-val">${renderBrandTags(Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])}</span></div>
-        <div class="detail-row"><span class="detail-key">Kategori Produk</span><span class="detail-val">${v.kategori||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${aktif?'badge-green':'badge-red'}">${aktif?'Aktif':'Non-Aktif'}</span></span></div>
-        <div class="detail-row"><span class="detail-key">PIC / Kontak</span><span class="detail-val">${v.pic||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Telepon</span><span class="detail-val">${(v.telp||v.telepon)?`<a href="${toWaLink(v.telp||v.telepon)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:14px">💬</span>${v.telp||v.telepon}</a>`:'—'}</span></div>
-        ${(Array.isArray(v.kontak)&&v.kontak.length)?`<div class="detail-row"><span class="detail-key">Kontak Lain</span><span class="detail-val">${v.kontak.filter(k=>k.telp).map(k=>`<div style="margin-bottom:4px">${k.nama?`<span style="font-weight:500">${k.nama}</span>${k.jabatan?` <em style="color:var(--muted);font-size:11px">(${k.jabatan})</em>`:''} — `:''}<a href="${toWaLink(k.telp)}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--accent2);display:inline-flex;align-items:center;gap:4px"><span>💬</span>${k.telp}</a></div>`).join('')}</span></div>`:''}
-        <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">${v.email?`<a href="mailto:${v.email}">${v.email}</a>`:'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Website</span><span class="detail-val">${v.website?`<a href="${v.website}" target="_blank">${v.website}</a>`:'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Kota</span><span class="detail-val">${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Alamat</span><span class="detail-val">${v.alamat||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">NPWP</span><span class="detail-val" style="font-family:var(--mono)">${v.npwp||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Termin Bayar</span><span class="detail-val">${termin}</span></div>
-        <div class="detail-row"><span class="detail-key">Catatan</span><span class="detail-val">${v.catatan||'—'}</span></div>
+      <div class="vd-section">
+        <div class="vd-row"><span class="vd-key">Kode</span><span class="vd-val" style="font-family:var(--mono)">${v.kode||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Brand</span><span class="vd-val">${renderBrandTags(Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])}</span></div>
+        <div class="vd-row"><span class="vd-key">Kategori Produk</span><span class="vd-val">${v.kategori||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Status</span><span class="vd-val"><span class="badge ${aktif?'badge-green':'badge-red'}">${aktif?'Aktif':'Non-Aktif'}</span></span></div>
+        <div class="vd-row"><span class="vd-key">PIC / Kontak</span><span class="vd-val">${v.pic||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Telepon</span><span class="vd-val">${(v.telp||v.telepon)?`<a href="${toWaLink(v.telp||v.telepon)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:14px">💬</span>${v.telp||v.telepon}</a>`:'—'}</span></div>
+        ${(Array.isArray(v.kontak)&&v.kontak.length)?`<div class="vd-row"><span class="vd-key">Kontak Lain</span><span class="vd-val">${v.kontak.filter(k=>k.telp).map(k=>`<div style="margin-bottom:4px">${k.nama?`<span style="font-weight:500">${k.nama}</span>${k.jabatan?` <em style="color:var(--muted);font-size:11px">(${k.jabatan})</em>`:''} — `:''}<a href="${toWaLink(k.telp)}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--accent2);display:inline-flex;align-items:center;gap:4px"><span>💬</span>${k.telp}</a></div>`).join('')}</span></div>`:''}
+        <div class="vd-row"><span class="vd-key">Email</span><span class="vd-val">${v.email?`<a href="mailto:${v.email}">${v.email}</a>`:'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Website</span><span class="vd-val">${v.website?`<a href="${v.website}" target="_blank">${v.website}</a>`:'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Kota</span><span class="vd-val">${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Alamat</span><span class="vd-val">${v.alamat||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">NPWP</span><span class="vd-val" style="font-family:var(--mono)">${v.npwp||'—'}</span></div>
+        <div class="vd-row"><span class="vd-key">Termin Bayar</span><span class="vd-val">${termin}</span></div>
+        <div class="vd-row"><span class="vd-key">Catatan</span><span class="vd-val">${v.catatan||'—'}</span></div>
       </div>
 
       <!-- BARANG YANG PERNAH DIBELI DARI VENDOR INI -->
@@ -956,7 +979,7 @@
       </div>`;
 
     document.getElementById('btnDetailEdit').onclick = () => { closeDetail(); openModal(id); };
-    document.getElementById('detailOverlay').classList.add('show');
+    document.getElementById('detailBody').scrollTop = 0;
     if (window._userRole) applyRoleUI(window._userRole);
   }
 

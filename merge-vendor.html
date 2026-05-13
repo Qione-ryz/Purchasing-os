@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Merge Vendor — PurchaseOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2333;
+    --border: #2a2f42;
+    --text: #e2e6f0;
+    --muted: #6b728e;
+    --accent: #5b8af5;
+    --accent-dim: rgba(91,138,245,0.12);
+    --danger: #e05c6a;
+    --danger-dim: rgba(224,92,106,0.12);
+    --success: #3ecf8e;
+    --success-dim: rgba(62,207,142,0.1);
+    --warn: #f0a429;
+    --warn-dim: rgba(240,164,41,0.1);
+    --radius: 10px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px 80px;
+  }
+
+  .container { width: 100%; max-width: 760px; }
+
+  /* Header */
+  .header { margin-bottom: 32px; }
+  .header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; color: var(--warn);
+    background: var(--warn-dim); border: 1px solid rgba(240,164,41,0.25);
+    padding: 4px 10px; border-radius: 20px; margin-bottom: 14px;
+  }
+  .header-badge::before { content: '⚠'; }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .header-sub { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  /* Step */
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .step.active { border-color: var(--accent); }
+  .step.done { border-color: var(--success); opacity: .75; }
+  .step.disabled { opacity: .4; pointer-events: none; }
+
+  .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step.active .step-num { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .step.done .step-num { background: var(--success-dim); border-color: var(--success); color: var(--success); }
+  .step-title { font-size: 15px; font-weight: 600; }
+  .step-desc { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+  /* Form */
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); letter-spacing: .5px; }
+  input[type="text"], input[type="password"] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 10px 14px; outline: none; transition: border-color .2s;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .field { margin-bottom: 14px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    font-family: var(--sans); cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6e9bf7; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #e8717d; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Vendor cards */
+  .vendor-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .vendor-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: border-color .15s;
+    position: relative;
+  }
+  .vendor-card:hover { border-color: var(--muted); }
+  .vendor-card.selected-keep { border-color: var(--success); background: var(--success-dim); }
+  .vendor-card.selected-remove { border-color: var(--danger); background: var(--danger-dim); opacity: .7; }
+
+  .vendor-avatar {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 15px; flex-shrink: 0;
+  }
+  .vendor-info { flex: 1; min-width: 0; }
+  .vendor-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vendor-meta { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .vendor-tag {
+    font-size: 11px; padding: 3px 8px; border-radius: 20px;
+    font-family: var(--mono); flex-shrink: 0;
+  }
+  .tag-keep { background: var(--success-dim); color: var(--success); border: 1px solid rgba(62,207,142,.3); }
+  .tag-remove { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(224,92,106,.3); }
+
+  /* Preview table */
+  .preview-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .preview-row {
+    display: grid; grid-template-columns: 1fr 80px 80px 80px;
+    gap: 0; font-size: 12px; font-family: var(--mono);
+  }
+  .preview-row.header { background: var(--surface); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .preview-row:not(.header) { border-top: 1px solid var(--border); }
+  .preview-cell { padding: 10px 14px; }
+  .num { text-align: right; }
+  .highlight { color: var(--accent); }
+
+  /* Progress / log */
+  .log-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px;
+    max-height: 220px; overflow-y: auto; line-height: 1.8;
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-line .ts { color: var(--muted); flex-shrink: 0; }
+  .log-line.ok .msg { color: var(--success); }
+  .log-line.err .msg { color: var(--danger); }
+  .log-line.info .msg { color: var(--text); }
+  .log-line.warn .msg { color: var(--warn); }
+
+  /* Alert */
+  .alert {
+    display: flex; gap: 10px; padding: 12px 14px;
+    border-radius: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 14px;
+  }
+  .alert-warn { background: var(--warn-dim); border: 1px solid rgba(240,164,41,.25); color: var(--warn); }
+  .alert-danger { background: var(--danger-dim); border: 1px solid rgba(224,92,106,.25); color: var(--danger); }
+  .alert-success { background: var(--success-dim); border: 1px solid rgba(62,207,142,.25); color: var(--success); }
+
+  /* Done state */
+  .done-banner {
+    text-align: center; padding: 40px 24px;
+    background: var(--surface); border: 1px solid var(--success);
+    border-radius: var(--radius);
+  }
+  .done-icon { font-size: 48px; margin-bottom: 12px; }
+  .done-title { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .done-sub { color: var(--muted); font-size: 14px; }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .text-muted { color: var(--muted); }
+  .text-sm { font-size: 13px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+
+  /* Konfirmasi modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 99; backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; max-width: 420px; width: 90%;
+    transform: scale(.95); transition: transform .2s;
+  }
+  .overlay.show .modal { transform: scale(1); }
+  .modal h3 { font-size: 17px; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-badge">ONE-TIME TOOL</div>
+    <h1>Merge Vendor</h1>
+    <p class="header-sub">Gabungkan beberapa vendor duplikat menjadi satu. Semua riwayat beli, harga, dan relasi brand akan dipindahkan ke vendor master.</p>
+  </div>
+
+  <!-- STEP 1: Koneksi Supabase (otomatis via config.js) -->
+  <div class="step active" id="step1">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Koneksi Supabase</div>
+        <div class="step-desc">Menghubungkan ke database via config.js</div>
+      </div>
+    </div>
+    <div id="connStatus" class="mt-3"></div>
+  </div>
+
+  <!-- STEP 2: Cari vendor -->
+  <div class="step disabled" id="step2">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Cari & Pilih Vendor</div>
+        <div class="step-desc">Cari vendor yang ingin digabung, lalu tentukan mana yang jadi master</div>
+      </div>
+    </div>
+    <div class="field" style="display:flex;gap:8px">
+      <input type="text" id="searchInput" placeholder="Ketik nama vendor, misal: Globalindo" style="flex:1"/>
+      <button class="btn btn-ghost" onclick="searchVendors()">Cari</button>
+    </div>
+    <div id="vendorResults" class="mt-3"></div>
+    <div id="selectionSummary" class="mt-3" style="display:none">
+      <div class="divider"></div>
+      <div class="text-sm text-muted" style="margin-bottom:10px">Klik vendor untuk tentukan peran:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--success)">
+          <span style="width:10px;height:10px;background:var(--success);border-radius:50%;display:inline-block"></span> = Master (dipertahankan)
+        </span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--danger)">
+          <span style="width:10px;height:10px;background:var(--danger);border-radius:50%;display:inline-block"></span> = Dihapus setelah merge
+        </span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="goToPreview()" id="btnPreview" disabled>Lanjut ke Preview →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Preview -->
+  <div class="step disabled" id="step3">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Preview Data yang Akan Dipindah</div>
+        <div class="step-desc">Periksa sebelum eksekusi</div>
+      </div>
+    </div>
+    <div id="previewContent"></div>
+  </div>
+
+  <!-- STEP 4: Eksekusi -->
+  <div class="step disabled" id="step4">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Eksekusi Merge</div>
+        <div class="step-desc">Proses tidak bisa dibatalkan setelah dijalankan</div>
+      </div>
+    </div>
+    <div id="execContent">
+      <div class="alert alert-danger">
+        ⚠️ Pastikan kamu sudah backup database Supabase sebelum melanjutkan. Proses ini <strong>tidak bisa di-undo</strong>.
+      </div>
+      <div class="actions">
+        <button class="btn btn-danger" onclick="showConfirm()">🔀 Jalankan Merge</button>
+      </div>
+    </div>
+    <div id="logContent" style="display:none">
+      <div class="log-box" id="logBox"></div>
+      <div id="execResult" class="mt-3"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confirm Modal -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <h3>Konfirmasi Merge</h3>
+    <p id="confirmText">Kamu akan menggabungkan vendor-vendor ini. Semua riwayat beli dan harga akan dipindahkan ke vendor master. Vendor duplikat akan dihapus permanen.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideConfirm()">Batal</button>
+      <button class="btn btn-danger" onclick="executeMerge()">Ya, Jalankan</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  let sb = null;
+  let vendors = [];       // hasil search
+  let keepVendor = null;  // vendor master
+  let removeVendors = []; // vendor yang dihapus
+  let previewData = {};
+
+  // Warna avatar
+  const COLORS = ['#5b8af5','#3ecf8e','#f0a429','#e05c6a','#a78bfa','#38bdf8','#fb923c'];
+  function avatarColor(name) {
+    let h = 0; for (let c of name) h = (h * 31 + c.charCodeAt(0)) % COLORS.length;
+    return COLORS[h];
+  }
+
+  function setStepState(id, state) {
+    const el = document.getElementById(id);
+    el.className = 'step ' + state;
+  }
+
+  function ts() {
+    return new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+  function addLog(msg, type='info') {
+    const box = document.getElementById('logBox');
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.innerHTML = `<span class="ts">${ts()}</span><span class="msg">${msg}</span>`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // STEP 1 — Auto-connect via APP_CONFIG dari config.js
+  async function connectSupabase() {
+    showStatus('connStatus', '⏳ Menghubungkan...', 'info');
+    try {
+      if (typeof APP_CONFIG === 'undefined') throw new Error('config.js tidak ditemukan. Pastikan file config.js ada di folder yang sama.');
+      sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+      const { data, error } = await sb.from('vendor').select('id').limit(1);
+      if (error) throw error;
+      showStatus('connStatus', '✓ Terhubung ke Supabase (' + APP_CONFIG.supabaseUrl.replace('https://','').split('.')[0] + ').', 'success');
+      setStepState('step1', 'done');
+      setStepState('step2', 'active');
+    } catch(e) {
+      showStatus('connStatus', '✗ Gagal: ' + e.message, 'err');
+    }
+  }
+
+  function showStatus(elId, msg, type) {
+    const el = document.getElementById(elId);
+    const colors = { success: 'var(--success)', err: 'var(--danger)', warn: 'var(--warn)', info: 'var(--muted)' };
+    el.innerHTML = `<span style="color:${colors[type]};font-size:13px;font-family:var(--mono)">${msg}</span>`;
+  }
+
+  // STEP 2
+  async function searchVendors() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    const { data, error } = await sb.from('vendor').select('id, nama, kota, aktif').ilike('nama', `%${q}%`).order('nama');
+    if (error) { alert('Error: ' + error.message); return; }
+    vendors = data || [];
+    keepVendor = null;
+    removeVendors = [];
+    renderVendorList();
+  }
+
+  function renderVendorList() {
+    const el = document.getElementById('vendorResults');
+    if (!vendors.length) { el.innerHTML = '<p class="text-sm text-muted">Tidak ada vendor ditemukan.</p>'; return; }
+
+    document.getElementById('selectionSummary').style.display = 'block';
+
+    el.innerHTML = `<div class="vendor-grid">${vendors.map(v => {
+      const isKeep = keepVendor && keepVendor.id === v.id;
+      const isRemove = removeVendors.find(r => r.id === v.id);
+      const cls = isKeep ? 'vendor-card selected-keep' : isRemove ? 'vendor-card selected-remove' : 'vendor-card';
+      const tag = isKeep ? '<span class="vendor-tag tag-keep">✓ Master</span>' : isRemove ? '<span class="vendor-tag tag-remove">✕ Hapus</span>' : '';
+      const color = avatarColor(v.nama);
+      return `<div class="${cls}" onclick="toggleVendor('${v.id}')">
+        <div class="vendor-avatar" style="background:${color}22;color:${color}">${v.nama[0].toUpperCase()}</div>
+        <div class="vendor-info">
+          <div class="vendor-name">${v.nama}</div>
+          <div class="vendor-meta">${v.kota || '—'} · ${v.aktif ? 'Aktif' : 'Non-aktif'}</div>
+        </div>
+        ${tag}
+      </div>`;
+    }).join('')}</div>`;
+
+    updatePreviewBtn();
+  }
+
+  function toggleVendor(id) {
+    const v = vendors.find(x => x.id === id);
+    if (keepVendor && keepVendor.id === id) {
+      // klik master → unselect
+      keepVendor = null;
+    } else if (removeVendors.find(x => x.id === id)) {
+      // klik remove → unselect
+      removeVendors = removeVendors.filter(x => x.id !== id);
+    } else if (!keepVendor) {
+      // belum ada master → jadikan master
+      keepVendor = v;
+    } else {
+      // sudah ada master → jadikan remove
+      removeVendors.push(v);
+    }
+    renderVendorList();
+  }
+
+  function updatePreviewBtn() {
+    const btn = document.getElementById('btnPreview');
+    btn.disabled = !(keepVendor && removeVendors.length > 0);
+  }
+
+  // STEP 3: Preview
+  async function goToPreview() {
+    setStepState('step2', 'done');
+    setStepState('step3', 'active');
+
+    const removeIds = removeVendors.map(v => v.id);
+    const el = document.getElementById('previewContent');
+    el.innerHTML = '<p class="text-sm text-muted">Mengambil data...</p>';
+
+    // Hitung data yang akan dipindah
+    const [beliRes, hargaRes, brandRes] = await Promise.all([
+      sb.from('riwayat_beli').select('id', { count: 'exact', head: true }).in('vendor_id', removeIds),
+      sb.from('riwayat_harga').select('id', { count: 'exact', head: true }).in('vendor_id', removeIds),
+      sb.from('vendor_brands').select('brand_id').in('vendor_id', removeIds),
+    ]);
+
+    previewData = {
+      beliCount: beliRes.count || 0,
+      hargaCount: hargaRes.count || 0,
+      brandCount: brandRes.data ? brandRes.data.length : 0,
+    };
+
+    el.innerHTML = `
+      <div class="alert alert-warn" style="margin-bottom:16px">
+        Data dari <strong>${removeVendors.length} vendor</strong> berikut akan dipindah ke <strong>${keepVendor.nama}</strong>:
+      </div>
+      <div class="preview-box">
+        <div class="preview-row header">
+          <div class="preview-cell">Tabel</div>
+          <div class="preview-cell num">Dipindah</div>
+          <div class="preview-cell num">Dihapus</div>
+          <div class="preview-cell num">Status</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-cell">riwayat_beli</div>
+          <div class="preview-cell num highlight">${previewData.beliCount}</div>
+          <div class="preview-cell num">—</div>
+          <div class="preview-cell num" style="color:var(--success)">UPDATE</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-cell">riwayat_beli_items</div>
+          <div class="preview-cell num highlight">~</div>
+          <div class="preview-cell num">—</div>
+          <div class="preview-cell num" style="color:var(--success)">UPDATE</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-cell">riwayat_harga</div>
+          <div class="preview-cell num highlight">${previewData.hargaCount}</div>
+          <div class="preview-cell num">—</div>
+          <div class="preview-cell num" style="color:var(--success)">UPDATE</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-cell">vendor_brands</div>
+          <div class="preview-cell num highlight">${previewData.brandCount}</div>
+          <div class="preview-cell num">${previewData.brandCount}</div>
+          <div class="preview-cell num" style="color:var(--warn)">UPSERT</div>
+        </div>
+        <div class="preview-row">
+          <div class="preview-cell">vendor (master)</div>
+          <div class="preview-cell num">—</div>
+          <div class="preview-cell num highlight">${removeVendors.length}</div>
+          <div class="preview-cell num" style="color:var(--danger)">DELETE</div>
+        </div>
+      </div>
+      <div class="mt-3 text-sm text-muted">Vendor yang dihapus: ${removeVendors.map(v=>'<strong style="color:var(--text)">'+v.nama+'</strong>').join(', ')}</div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="goToExec()">Lanjut ke Eksekusi →</button>
+        <button class="btn btn-ghost" onclick="backToStep2()">← Ubah Pilihan</button>
+      </div>
+    `;
+  }
+
+  function backToStep2() {
+    setStepState('step3', 'disabled');
+    setStepState('step2', 'active');
+  }
+
+  function goToExec() {
+    setStepState('step3', 'done');
+    setStepState('step4', 'active');
+  }
+
+  // Confirm Modal
+  function showConfirm() {
+    document.getElementById('confirmText').innerHTML =
+      `Kamu akan menghapus <strong>${removeVendors.length} vendor</strong> dan memindahkan semua riwayatnya ke <strong>${keepVendor.nama}</strong>. Tindakan ini <strong>tidak bisa dibatalkan</strong>.`;
+    document.getElementById('confirmOverlay').classList.add('show');
+  }
+  function hideConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('show');
+  }
+
+  // STEP 4: Execute
+  async function executeMerge() {
+    hideConfirm();
+    document.getElementById('execContent').style.display = 'none';
+    document.getElementById('logContent').style.display = 'block';
+
+    const removeIds = removeVendors.map(v => v.id);
+    const keepId = keepVendor.id;
+    let hasError = false;
+
+    addLog(`Mulai merge ${removeVendors.length} vendor → "${keepVendor.nama}"`, 'info');
+    addLog(`Keep ID: ${keepId}`, 'info');
+    addLog(`Remove IDs: ${removeIds.join(', ')}`, 'info');
+
+    // 1. Update riwayat_beli
+    try {
+      addLog('Memperbarui riwayat_beli...', 'info');
+      const { error, count } = await sb.from('riwayat_beli')
+        .update({ vendor_id: keepId })
+        .in('vendor_id', removeIds)
+        .select('id', { count: 'exact', head: true });
+      if (error) throw error;
+      addLog(`✓ riwayat_beli diperbarui (${previewData.beliCount} baris)`, 'ok');
+    } catch(e) { addLog('✗ riwayat_beli: ' + e.message, 'err'); hasError = true; }
+
+    // 2. riwayat_beli_items — tidak ada kolom vendor_id, sudah ikut via beli_id
+    addLog('✓ riwayat_beli_items: tidak perlu diupdate (relasi via beli_id)', 'ok');
+
+    // 3. Update riwayat_harga
+    try {
+      addLog('Memperbarui riwayat_harga...', 'info');
+      const { error } = await sb.from('riwayat_harga')
+        .update({ vendor_id: keepId })
+        .in('vendor_id', removeIds);
+      if (error) throw error;
+      addLog(`✓ riwayat_harga diperbarui (${previewData.hargaCount} baris)`, 'ok');
+    } catch(e) { addLog('✗ riwayat_harga: ' + e.message, 'err'); hasError = true; }
+
+    // 4. Upsert vendor_brands
+    try {
+      addLog('Memindahkan relasi vendor_brands...', 'info');
+      const { data: brandRows, error: fetchErr } = await sb.from('vendor_brands')
+        .select('brand_id').in('vendor_id', removeIds);
+      if (fetchErr) throw fetchErr;
+
+      if (brandRows && brandRows.length > 0) {
+        // Deduplicate brand_id — multiple removed vendors may share the same brand,
+        // which would cause ON CONFLICT DO UPDATE to target the same row twice in one batch.
+        const uniqueBrandIds = [...new Set(brandRows.map(r => r.brand_id))];
+        const upsertRows = uniqueBrandIds.map(brand_id => ({ vendor_id: keepId, brand_id }));
+        const { error: upsertErr } = await sb.from('vendor_brands').upsert(upsertRows, { onConflict: 'vendor_id,brand_id' });
+        if (upsertErr) throw upsertErr;
+        addLog(`✓ vendor_brands dipindahkan (${uniqueBrandIds.length} unik dari ${brandRows.length} relasi)`, 'ok');
+      } else {
+        addLog('✓ vendor_brands: tidak ada relasi baru', 'ok');
+      }
+
+      // Hapus relasi lama
+      const { error: delBrandErr } = await sb.from('vendor_brands').delete().in('vendor_id', removeIds);
+      if (delBrandErr) throw delBrandErr;
+      addLog('✓ Relasi lama vendor_brands dihapus', 'ok');
+    } catch(e) { addLog('✗ vendor_brands: ' + e.message, 'err'); hasError = true; }
+
+    // 5. Hapus vendor lama
+    if (!hasError) {
+      try {
+        addLog('Menghapus vendor duplikat...', 'info');
+        for (const v of removeVendors) {
+          const { error } = await sb.from('vendor').delete().eq('id', v.id);
+          if (error) throw error;
+          addLog(`✓ Vendor "${v.nama}" dihapus`, 'ok');
+        }
+      } catch(e) { addLog('✗ Hapus vendor: ' + e.message, 'err'); hasError = true; }
+    } else {
+      addLog('⚠ Vendor tidak dihapus karena ada error sebelumnya', 'warn');
+    }
+
+    // Result
+    const resultEl = document.getElementById('execResult');
+    if (!hasError) {
+      addLog('═══ SELESAI ════════════════════════', 'ok');
+      setStepState('step4', 'done');
+      resultEl.innerHTML = `
+        <div class="done-banner">
+          <div class="done-icon">✅</div>
+          <div class="done-title">Merge Berhasil!</div>
+          <div class="done-sub">Semua riwayat sudah dipindahkan ke <strong>${keepVendor.nama}</strong>.<br/>Silakan refresh halaman vendor.html di PurchaseOS.</div>
+          <div style="margin-top:16px;font-size:12px;color:var(--muted);font-family:var(--mono)">
+            Hapus file merge-vendor.html ini setelah selesai.
+          </div>
+        </div>
+      `;
+    } else {
+      addLog('═══ SELESAI DENGAN ERROR ══════════', 'err');
+      resultEl.innerHTML = `
+        <div class="alert alert-danger">
+          ✗ Merge selesai dengan beberapa error. Periksa log di atas dan cek kondisi database di Supabase.
+        </div>
+      `;
+    }
+  }
+
+  // Auto-connect saat halaman dimuat
+  window.addEventListener('DOMContentLoaded', connectSupabase);
+</script>
+</body>
+</html>

@@ -843,18 +843,25 @@ function updateBrandFilterUI() {
 
 async function loadVendors() {
   try {
-    const data = await supaGet('vendor', 'select=id,nama,telp,kontak&order=nama');
+    const { data, error } = await _sb
+      .from('vendor')
+      .select('id, nama, pic, telp, kontak')
+      .order('nama');
+    if (error) throw error;
     vendors = Array.isArray(data) ? data : [];
     // Bangun kontak_list: telp utama + entri dari JSONB kontak[]
     vendors.forEach(v => {
       const extras = Array.isArray(v.kontak) ? v.kontak : [];
       const list = [];
-      if (v.telp) list.push({ nama: v.nama, telp: v.telp, jabatan: '' });
+      if (v.telp) list.push({ nama: v.pic || '', telp: v.telp, jabatan: '' });
       extras.forEach(k => { if (k.telp) list.push({ nama: k.nama || '', telp: k.telp, jabatan: k.jabatan || '' }); });
       v.kontak_list = list;
     });
+    // Populate dropdown beliVendor — build string dulu baru assign sekali
     const sel = document.getElementById('beliVendor');
-    vendors.forEach(v => { sel.innerHTML += `<option value="${v.id}">${v.nama}</option>`; });
+    let html = '<option value="">— Pilih vendor —</option>';
+    vendors.forEach(v => { html += `<option value="${v.id}">${v.nama}</option>`; });
+    sel.innerHTML = html;
   } catch(e) { console.error('loadVendors:', e); }
 }
 
@@ -925,12 +932,27 @@ async function loadAll() {
     });
 
     // Bangun allOrders cache awal
-    allOrders = (ordersRaw || []).map(o => ({
-      ...o,
-      pemesan:             pemesanMap[o.pemesan_id] || { kode: '—', nama: '—' },
-      progress:            progressMap[o.id] || null,
-      has_cancelled_items: !!(cancelledItemsMap[o.id] && o.status !== 'cancelled'),
-    }));
+    allOrders = (ordersRaw || []).map(o => {
+      const prog = progressMap[o.id] || null;
+      // Jika semua items cancelled (prog null atau totalItems=0) tapi DB belum update,
+      // paksa status ke cancelled agar UI konsisten
+      let effectiveStatus = o.status;
+      const hasAnyItems = allItemRows.some(it => it.order_id === o.id);
+      if (hasAnyItems && (!prog || prog.totalItems === 0) && cancelledItemsMap[o.id] && o.status !== 'cancelled') {
+        effectiveStatus = 'cancelled';
+        // Update DB di background agar konsisten
+        _sb.from('orders').update({ status: 'cancelled' }).eq('id', o.id)
+          .then(() => console.log('[loadAll] Auto-fix status cancelled for', o.id.substring(0,8)))
+          .catch(e => console.warn('[loadAll] Auto-fix failed:', e));
+      }
+      return {
+        ...o,
+        status:              effectiveStatus,
+        pemesan:             pemesanMap[o.pemesan_id] || { kode: '—', nama: '—' },
+        progress:            prog,
+        has_cancelled_items: !!(cancelledItemsMap[o.id] && effectiveStatus !== 'cancelled'),
+      };
+    });
 
     // Auto-archive tetap blocking agar order arsip tidak sempat tampil
     await _autoArchiveSelesai();
@@ -974,9 +996,12 @@ async function loadAll() {
           // Terapkan ke allOrders + update status
           const statusUpdates = [];
           allOrders.forEach(o => {
+            // Skip order cancelled — semua itemnya cancelled, jangan override dengan FIFO
             if (o.status === 'cancelled') return;
             const prog = fifoProgressMap[o.id];
             if (!prog) return;
+            // Jika order tidak punya active items (semua cancelled), jangan ubah statusnya
+            if (prog.totalItems === 0) return;
             o.progress = prog;
             const pct = prog.totalOrder > 0 ? prog.totalTerpenuhi / prog.totalOrder : 0;
             const newStatus = pct >= 1 ? 'selesai' : pct > 0 ? 'partial' : 'pending';
@@ -2480,26 +2505,27 @@ async function _populateWAVendorData() {
   const otherVend = vendors.filter(v => !vendorCount[v.id]);
 
   const sel = document.getElementById('waVendorSelect');
-  sel.innerHTML = '<option value="">— Pilih Vendor —</option>';
   sel._vendorPerBarang     = vendorPerBarang;
   sel._vendorItemsMap      = vendorItemsMap;
   sel._bestVendorPerBarang = bestVendorPerBarang;
 
+  let html = '<option value="">— Pilih Vendor —</option>';
   if (withHist.length) {
-    sel.innerHTML += `<optgroup label="── Vendor barang ini (${withHist.length} vendor)">`;
+    html += `<optgroup label="── Vendor barang ini (${withHist.length} vendor)">`;
     withHist.forEach(v => {
       const n = vendorCount[v.id];
-      sel.innerHTML += `<option value="${v.id}">${v.nama} — ${n} item${v.telp ? ' 📱' : ''}</option>`;
+      html += `<option value="${v.id}">${v.nama} — ${n} item${v.telp ? ' 📱' : ''}</option>`;
     });
-    sel.innerHTML += '</optgroup>';
+    html += '</optgroup>';
   }
   if (otherVend.length) {
-    sel.innerHTML += `<optgroup label="── Vendor lainnya">`;
+    html += `<optgroup label="── Vendor lainnya">`;
     otherVend.forEach(v => {
-      sel.innerHTML += `<option value="${v.id}">${v.nama}${v.telp ? ' 📱' : ''}</option>`;
+      html += `<option value="${v.id}">${v.nama}${v.telp ? ' 📱' : ''}</option>`;
     });
-    sel.innerHTML += '</optgroup>';
+    html += '</optgroup>';
   }
+  sel.innerHTML = html;
 
   document.getElementById('waHint').textContent =
     `${_waOrderItems.length} item belum terpenuhi · Pilih vendor untuk generate pesan`;
@@ -2531,7 +2557,8 @@ function _renderWAKontakUI(wrapId, valId, selectId, btnOpenId, kontakList) {
   wrapEl.style.display = 'block';
   if (kontakList.length === 1) {
     const k = kontakList[0];
-    valEl.textContent   = k.jabatan ? `${k.telp}  (${k.jabatan})` : k.telp;
+    const label = [k.nama, k.jabatan ? `(${k.jabatan})` : '', k.telp].filter(Boolean).join(' ');
+    valEl.textContent   = label;
     valEl.style.display = 'block';
     selEl.style.display = 'none';
   } else {
@@ -2548,7 +2575,9 @@ function _renderWAKontakUI(wrapId, valId, selectId, btnOpenId, kontakList) {
 function _getSelectedKontak(selectId, vendor) {
   const selEl = document.getElementById(selectId);
   if (selEl && selEl.style.display !== 'none' && selEl.value) return selEl.value;
-  return vendor?.telp || '';
+  // Kasus 1 kontak: ambil dari kontak_list[0] dulu, fallback ke telp utama
+  const kontakList = vendor?.kontak_list || [];
+  return kontakList.length > 0 ? kontakList[0].telp : (vendor?.telp || '');
 }
 
 function onWAKontakChange(selectId, valId, btnOpenId) {
@@ -2573,6 +2602,7 @@ function onWAVendorChange() {
 
   const vendor = vendors.find(v => v.id === vendorId);
   const kontakList = vendor?.kontak_list || [];
+  const noHp   = kontakList.length > 0 ? kontakList[0].telp : (vendor?.telp || '');
   const o      = allOrders.find(x => x.id === _waOrderId);
 
   _renderWAKontakUI('waNoHp', 'waNoHpVal', 'waKontakSelect', 'btnOpenWA', kontakList);
@@ -2696,21 +2726,22 @@ async function _openWAManualModal() {
   const otherVend = vendors.filter(v => !vendorCount[v.id]);
 
   const sel = document.getElementById('waManualVendorSelect');
-  sel.innerHTML = '<option value="">— Pilih Vendor —</option>';
+  let htmlM = '<option value="">— Pilih Vendor —</option>';
   if (withHist.length) {
-    sel.innerHTML += `<optgroup label="── Ada histori (${withHist.length})">`;
+    htmlM += `<optgroup label="── Ada histori (${withHist.length})">`;
     withHist.forEach(v => {
-      sel.innerHTML += `<option value="${v.id}">${v.nama} — ${vendorCount[v.id]} item${v.telp?' 📱':''}</option>`;
+      htmlM += `<option value="${v.id}">${v.nama} — ${vendorCount[v.id]} item${v.telp?' 📱':''}</option>`;
     });
-    sel.innerHTML += '</optgroup>';
+    htmlM += '</optgroup>';
   }
   if (otherVend.length) {
-    sel.innerHTML += `<optgroup label="── Vendor lainnya">`;
+    htmlM += `<optgroup label="── Vendor lainnya">`;
     otherVend.forEach(v => {
-      sel.innerHTML += `<option value="${v.id}">${v.nama}${v.telp?' 📱':''}</option>`;
+      htmlM += `<option value="${v.id}">${v.nama}${v.telp?' 📱':''}</option>`;
     });
-    sel.innerHTML += '</optgroup>';
+    htmlM += '</optgroup>';
   }
+  sel.innerHTML = htmlM;
 
   document.getElementById('waManualFooterHint').textContent =
     `${_waOrderItems.length} item belum terpenuhi · Pilih vendor untuk melanjutkan`;
@@ -2729,6 +2760,7 @@ function onWAManualVendorChange() {
 
   const vendor = vendors.find(v => v.id === vendorId);
   const kontakList = vendor?.kontak_list || [];
+  const noHp   = kontakList.length > 0 ? kontakList[0].telp : (vendor?.telp || '');
 
   _renderWAKontakUI('waManualNoHp', 'waManualNoHpVal', 'waManualKontakSelect', 'btnOpenWAManual', kontakList);
 
@@ -3182,8 +3214,19 @@ async function submitCancelItem() {
 
     showToast('success', `✓ Item dibatalkan`);
     closeModal('modalCancelItem');
-    await loadAll();
-    await _refreshDetailBody(_cancelItemState.orderId);
+
+    // JANGAN panggil loadAll() — loadAll membaca ulang DB yang belum tentu committed,
+    // sehingga bisa override status 'cancelled' kembali ke 'pending' (race condition).
+    // _recalcOrderStatus sudah update cache allOrders + DOM secara langsung.
+    const _cancelledOrderId = _cancelItemState.orderId;
+    const _cachedOrder = allOrders.find(x => x.id === _cancelledOrderId);
+    if (_cachedOrder && _cachedOrder.status !== 'cancelled') {
+      // Order masih aktif (ada item lain yang belum cancelled) — refresh detail modal
+      await _refreshDetailBody(_cancelledOrderId);
+    } else {
+      // Semua item cancelled — tutup modal detail, order sudah pindah ke tab Cancelled
+      closeModal('modalDetail');
+    }
   } catch(e) {
     showToast('error', '✕ ' + e.message);
     console.error('[cancelItem] FINAL ERROR:', e);
@@ -3252,7 +3295,16 @@ async function _recalcOrderStatus(orderId, overrides) {
 
     const updatePayload = { status: newStatus };
     if (newStatus === 'selesai') updatePayload.selesai_at = new Date().toISOString();
-    await _sb.from('orders').update(updatePayload).eq('id', orderId);
+
+    // Update DB — coba hingga 2x jika gagal pertama kali
+    let updErr;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { error } = await _sb.from('orders').update(updatePayload).eq('id', orderId);
+      updErr = error;
+      if (!error) break;
+      if (attempt === 0) await new Promise(r => setTimeout(r, 300)); // tunggu 300ms lalu retry
+    }
+    if (updErr) console.warn('[_recalcOrderStatus] DB update failed after retry:', updErr);
 
     // Update cache allOrders — status + progress + has_cancelled_items flag
     const cached = allOrders.find(x => x.id === orderId);
