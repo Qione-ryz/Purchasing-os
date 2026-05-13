@@ -888,18 +888,31 @@
     if (typeof _afterLoadMasterData === 'function') await _afterLoadMasterData();
     const urlParams = new URLSearchParams(location.search);
     const paramBrand    = urlParams.get('brand');
+    const paramBrands   = urlParams.get('brands');  // multi-brand: "id1,id2,..."
     const paramDateFrom = urlParams.get('dateFrom');
     const paramDateTo   = urlParams.get('dateTo');
-    if (paramBrand) {
-      const brandSel     = document.getElementById('brandSelect');
-      const rFilterBrand = document.getElementById('rFilterBrand');
-      const fBrand       = document.getElementById('fBrand');
-      if (brandSel)     brandSel.value     = paramBrand;
-      if (rFilterBrand) rFilterBrand.value = paramBrand;
-      if (fBrand)       fBrand.value       = paramBrand;
+
+    // Terapkan brand dari URL ke filter riwayat (rSelectedBrands) jika datang dari redirect
+    // (misal dari dashboard). Ini terpisah dari activeBrand yang hanya untuk form catat.
+    if (paramBrands) {
+      // Multi-brand dari dashboard: ?brands=id1,id2,...
+      const ids = paramBrands.split(',').map(s => s.trim()).filter(Boolean);
+      PageState.rSelectedBrands = ids;
+      if (typeof updateRBrandUI === 'function')   updateRBrandUI();
+      if (typeof _syncRFilterBrand === 'function') _syncRFilterBrand();
+    } else if (paramBrand) {
+      // Single brand: terapkan ke filter riwayat DAN ke form catat
+      PageState.rSelectedBrands = [paramBrand];
+      if (typeof updateRBrandUI === 'function')   updateRBrandUI();
+      if (typeof _syncRFilterBrand === 'function') _syncRFilterBrand();
+      const brandSel = document.getElementById('brandSelect');
+      const fBrand   = document.getElementById('fBrand');
+      if (brandSel) brandSel.value = paramBrand;
+      if (fBrand)   fBrand.value   = paramBrand;
       localStorage.setItem('activeBrand', paramBrand);
       if (typeof updateBrandLabel === 'function') updateBrandLabel();
     }
+
     if (paramDateFrom || paramDateTo) {
       const from  = paramDateFrom || '';
       const to    = paramDateTo   || '';
@@ -943,9 +956,10 @@
     });
     const saved = localStorage.getItem('activeBrand');
     if (saved) {
-      brandSel.value     = saved;
-      fBrand.value       = saved;
-      rFilterBrand.value = saved === 'all' ? '' : saved;
+      brandSel.value = saved;
+      fBrand.value   = saved;
+      // rFilterBrand TIDAK diisi dari activeBrand — filter riwayat punya state sendiri
+      // dan selalu mulai dari "Semua Brand" saat halaman dibuka
     }
     updateBrandLabel();
 
@@ -1774,8 +1788,15 @@
     const val = document.getElementById('brandSelect').value;
     localStorage.setItem('activeBrand', val);
     document.getElementById('fBrand').value = val;
-    /* Sync filter riwayat — '' untuk semua brand */
-    document.getElementById('rFilterBrand').value = val === 'all' ? '' : val;
+    // Sync filter riwayat via rSelectedBrands (bukan langsung ke hidden select)
+    // agar konsisten dengan multi-brand filter yang pakai PageState.rSelectedBrands
+    if (!val || val === 'all') {
+      PageState.rSelectedBrands = [];
+    } else {
+      PageState.rSelectedBrands = [val];
+    }
+    if (typeof updateRBrandUI === 'function')  updateRBrandUI();
+    if (typeof _syncRFilterBrand === 'function') _syncRFilterBrand();
     window.populateVendorSelect(val);
     updateBrandLabel();
     renderRiwayat();

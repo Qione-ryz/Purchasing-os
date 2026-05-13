@@ -498,10 +498,15 @@
   function getCurrentBrand()   { return DashState.selectedBrands || []; }
   function matchesBrand(bid)   { const s = DashState.selectedBrands || []; return !s.length || s.includes(bid); }
 
+  function _applyBrandsToParams(p, brands) {
+    if (brands.length === 1)    p.set('brand',  brands[0]);
+    else if (brands.length > 1) p.set('brands', brands.join(','));
+  }
+
   function buildPembelianUrl(extra = {}) {
     const brands = getCurrentBrand(), { from: df, to: dt } = dashDf.getRange();
     const p = new URLSearchParams({ tab:'riwayat' });
-    if (brands.length === 1) p.set('brand', brands[0]);
+    _applyBrandsToParams(p, brands);
     if (df) p.set('dateFrom', df); if (dt) p.set('dateTo', dt);
     Object.entries(extra).forEach(([k,v]) => { if (v) p.set(k, v); });
     return 'pembelian.html?' + p;
@@ -511,7 +516,7 @@
     const n = DashState.barRange || 6, brands = getCurrentBrand(), now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - (n-1), 1);
     const p = new URLSearchParams({ tab:'riwayat', dateFrom: from.toISOString().split('T')[0], dateTo: new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0] });
-    if (brands.length === 1) p.set('brand', brands[0]);
+    _applyBrandsToParams(p, brands);
     return 'pembelian.html?' + p;
   }
 
