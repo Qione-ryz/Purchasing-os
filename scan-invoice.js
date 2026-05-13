@@ -528,23 +528,28 @@ function findVendorByName(namaVendor) {
 // ────────────────────────────────────────────────────────────────
 // 3b. HELPER — ambil harga terakhir dari hargaCache
 // ────────────────────────────────────────────────────────────────
-function getLastKnownPrice(barangId, vendorId) {
+function getLastKnownPrice(barangId, vendorId, mode) {
+  // mode: 'exc' | 'inc' — ambil harga sesuai mode PPN; default exc
   const cache = window.hargaCache;
   if (!cache) return null;
 
+  function _pick(entry) {
+    if (!entry) return null;
+    if (typeof entry !== "object") return entry || null; // format lama (angka = exc)
+    if (mode === "inc") return entry.inc || entry.exc || null;
+    return entry.exc || entry.inc || null; // default: exc
+  }
+
   // Prioritaskan harga dari vendor yang dipilih
   if (vendorId && cache[barangId]?.[vendorId]) {
-    const entry = cache[barangId][vendorId];
-    if (typeof entry === "object") return entry.exc || entry.inc || null;
-    return entry || null;
+    return _pick(cache[barangId][vendorId]);
   }
 
   // Fallback: cari harga dari vendor manapun
   const byBarang = cache[barangId];
   if (!byBarang) return null;
   for (const vId of Object.keys(byBarang)) {
-    const entry = byBarang[vId];
-    const price = typeof entry === "object" ? (entry.exc || entry.inc) : entry;
+    const price = _pick(byBarang[vId]);
     if (price) return price;
   }
   return null;
@@ -946,7 +951,7 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
     let hargaAwal = item.harga_satuan || 0;
     let hargaDariCache = false;
     if (!hargaAwal && barang) {
-      const lastPrice = getLastKnownPrice(barang.id, vendorIdSekarang);
+      const lastPrice = getLastKnownPrice(barang.id, vendorIdSekarang, _scanPPNMode);
       if (lastPrice) { hargaAwal = lastPrice; hargaDariCache = true; }
     }
 
@@ -1180,10 +1185,34 @@ function setScanPPN(mode) {
   document.getElementById("scanPpnExc")?.classList.toggle("active", mode === "exc");
   document.getElementById("scanPpnInc")?.classList.toggle("active", mode === "inc");
 
-  // Update semua note harga
   const items = window._scanItems || [];
-  items.forEach((_, i) => {
+  const vendorId = document.getElementById("scanVendorId")?.value
+    || window._scanVendor?.id
+    || document.getElementById("fVendor")?.value
+    || "";
+
+  items.forEach((item, i) => {
+    // Update note harga
     const note = document.getElementById(`scanHargaNote_${i}`);
+
+    // Jika harga input berasal dari riwayat cache, update nilainya sesuai mode baru
+    const hargaInput = document.getElementById(`scanHarga_${i}`);
+    if (hargaInput) {
+      const ocrHarga = item.harga_satuan || 0;
+      if (!ocrHarga) {
+        // Harga dari OCR = 0, artinya diisi dari cache — update sesuai mode
+        const barang = _scanMappings[i]?.barang;
+        if (barang) {
+          const newPrice = getLastKnownPrice(barang.id, vendorId, mode);
+          if (newPrice) {
+            hargaInput.value = newPrice;
+            if (note) note.innerHTML = `<span style="color:var(--accent3)">dari riwayat</span>`;
+            return;
+          }
+        }
+      }
+    }
+
     if (note) note.textContent = mode === "inc" ? "inc PPN — exc dihitung otomatis" : "exc PPN";
   });
 }
@@ -1467,10 +1496,10 @@ function applyScanItems(count) {
     let   hargaVal = parseFloat(document.getElementById(`scanHarga_${i}`)?.value) || item.harga_satuan || 0;
     const satuanSelectVal = document.getElementById(`scanSatuan_${i}`)?.value || ""; // format "satuan|faktor"
 
-    // Jika harga masih 0, coba ambil dari hargaCache
+    // Jika harga masih 0, coba ambil dari hargaCache sesuai mode PPN
     if (!hargaVal && barang) {
       const vendorId = document.getElementById("fVendor")?.value || window._scanVendor?.id || "";
-      const lastPrice = getLastKnownPrice(barang.id, vendorId);
+      const lastPrice = getLastKnownPrice(barang.id, vendorId, _scanPPNMode);
       if (lastPrice) hargaVal = lastPrice;
     }
 
