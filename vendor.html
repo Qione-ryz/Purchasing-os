@@ -166,13 +166,20 @@
       <div class="section-label" style="margin-top:4px">Kontak &amp; Lokasi</div>
       <div class="field-row">
         <div class="field">
-          <label>Nama PIC / Kontak</label>
+          <label>Nama PIC / Kontak <span style="font-size:10px;color:var(--muted)">(utama)</span></label>
           <input type="text" id="fPic" placeholder="Nama penanggung jawab"/>
         </div>
         <div class="field">
-          <label>No. Telepon</label>
+          <label>No. Telepon <span style="font-size:10px;color:var(--muted)">(utama)</span></label>
           <input type="tel" id="fTelp" placeholder="cth: 0812-3456-7890"/>
         </div>
+      </div>
+      <div class="field" style="margin-top:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="margin:0">Kontak Tambahan <span style="font-size:10px;color:var(--muted)">(opsional)</span></label>
+          <button type="button" onclick="addKontakRow()" style="font-size:11px;font-family:var(--mono);padding:3px 10px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--accent);cursor:pointer">+ Tambah Kontak</button>
+        </div>
+        <div id="kontakTambahanList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
       <div class="field-row">
@@ -407,7 +414,7 @@
     try {
       const { data: vRows } = await window._sb
         .from('vendor')
-        .select('*, vendor_brands(brand_id)')
+        .select('*, vendor_brands(brand_id), kontak')
         .order('nama');
 
       window.allData = (vRows || []).map(v => ({
@@ -779,12 +786,14 @@
       document.getElementById('fTermin').value   = v.termin||'';
       document.getElementById('fCatatan').value  = v.catatan||'';
       document.getElementById('fAktif').checked  = v.aktif!==false;
+      _loadKontakFromVendor(v);
     } else {
       document.getElementById('modalTitle').textContent='Tambah Vendor';
       ['fId','fNama','fKode','fKategori','fPic','fTelp','fEmail','fWebsite','fKota','fProvinsi','fAlamat','fNpwp','fCatatan'].forEach(id=>document.getElementById(id).value='');
       buildBrandCheckboxes([]);
       document.getElementById('fTermin').value = '';
       document.getElementById('fAktif').checked= true;
+      _loadKontakFromVendor(null);
     }
     document.getElementById('modalOverlay').classList.add('show');
     setTimeout(()=>document.getElementById('fNama').focus(),100);
@@ -818,6 +827,7 @@
       npwp:      document.getElementById('fNpwp').value.trim(),
       termin:    document.getElementById('fTermin').value,
       catatan:   document.getElementById('fCatatan').value.trim(),
+      kontak:    _getKontakPayload(),
       aktif:     document.getElementById('fAktif').checked,
       updated_at: new Date().toISOString()
     };
@@ -893,6 +903,7 @@
         <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${aktif?'badge-green':'badge-red'}">${aktif?'Aktif':'Non-Aktif'}</span></span></div>
         <div class="detail-row"><span class="detail-key">PIC / Kontak</span><span class="detail-val">${v.pic||'—'}</span></div>
         <div class="detail-row"><span class="detail-key">Telepon</span><span class="detail-val">${(v.telp||v.telepon)?`<a href="${toWaLink(v.telp||v.telepon)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:14px">💬</span>${v.telp||v.telepon}</a>`:'—'}</span></div>
+        ${(Array.isArray(v.kontak)&&v.kontak.length)?`<div class="detail-row"><span class="detail-key">Kontak Lain</span><span class="detail-val">${v.kontak.filter(k=>k.telp).map(k=>`<div style="margin-bottom:4px">${k.nama?`<span style="font-weight:500">${k.nama}</span>${k.jabatan?` <em style="color:var(--muted);font-size:11px">(${k.jabatan})</em>`:''} — `:''}<a href="${toWaLink(k.telp)}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--accent2);display:inline-flex;align-items:center;gap:4px"><span>💬</span>${k.telp}</a></div>`).join('')}</span></div>`:''}
         <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">${v.email?`<a href="mailto:${v.email}">${v.email}</a>`:'—'}</span></div>
         <div class="detail-row"><span class="detail-key">Website</span><span class="detail-val">${v.website?`<a href="${v.website}" target="_blank">${v.website}</a>`:'—'}</span></div>
         <div class="detail-row"><span class="detail-key">Kota</span><span class="detail-val">${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</span></div>
@@ -1145,6 +1156,56 @@
   window.openDetail=openDetail; window.closeDetail=closeDetail;
   window.openConfirm=openConfirm; window.closeConfirm=closeConfirm; window.confirmDelete=confirmDelete;
   window.doLogout=doLogout; window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
+  /* ── KONTAK TAMBAHAN (JSONB) ── */
+  let _kontakRows = [];
+
+  function addKontakRow(data) {
+    _kontakRows.push({ nama: data?.nama||'', telp: data?.telp||'', jabatan: data?.jabatan||'' });
+    _renderKontakList();
+  }
+  function removeKontakRow(i) {
+    _kontakRows.splice(i, 1);
+    _renderKontakList();
+  }
+  function _renderKontakList() {
+    const list = document.getElementById('kontakTambahanList');
+    if (!list) return;
+    list.innerHTML = _kontakRows.length === 0
+      ? `<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:6px 2px">Belum ada kontak tambahan</div>`
+      : _kontakRows.map((r, i) => `
+        <div style="display:flex;gap:8px;align-items:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+            <div style="display:flex;gap:8px">
+              <input type="text" placeholder="Nama kontak" value="${(r.nama||'').replace(/"/g,'&quot;')}"
+                oninput="_kontakRows[${i}].nama=this.value"
+                style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 10px;outline:none"/>
+              <input type="text" placeholder="Jabatan (opsional)" value="${(r.jabatan||'').replace(/"/g,'&quot;')}"
+                oninput="_kontakRows[${i}].jabatan=this.value"
+                style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 10px;outline:none"/>
+            </div>
+            <input type="tel" placeholder="No. Telepon / WA" value="${(r.telp||'').replace(/"/g,'&quot;')}"
+              oninput="_kontakRows[${i}].telp=this.value"
+              style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 10px;outline:none;width:100%;box-sizing:border-box"/>
+          </div>
+          <button type="button" onclick="removeKontakRow(${i})" title="Hapus"
+            style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;line-height:1;margin-top:2px"
+            onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>`).join('');
+  }
+  function _loadKontakFromVendor(v) {
+    _kontakRows = Array.isArray(v?.kontak) ? v.kontak.map(k=>({nama:k.nama||'',telp:k.telp||'',jabatan:k.jabatan||''})) : [];
+    _renderKontakList();
+  }
+  function _getKontakPayload() {
+    return _kontakRows.filter(r => r.telp && r.telp.trim()).map(r=>({
+      nama:    r.nama?.trim()    || '',
+      telp:    r.telp?.trim()    || '',
+      jabatan: r.jabatan?.trim() || ''
+    }));
+  }
+  window.addKontakRow    = addKontakRow;
+  window.removeKontakRow = removeKontakRow;
+
   window.buildBrandCheckboxes=buildBrandCheckboxes; window.toggleBrandCheck=toggleBrandCheck; window.getCheckedBrands=getCheckedBrands;
 </script>
 <script src="vendor-export.js"></script>

@@ -777,7 +777,7 @@
     localStorage.removeItem('_hargaCache');
   };
   window._invalidateAllCache = () => {
-    ['brands','vendors','barang','harga'].forEach(k => localStorage.removeItem('_c_' + k));
+    ['brands','vendors','barang','harga','satuan'].forEach(k => localStorage.removeItem('_c_' + k));
     localStorage.removeItem('_hargaCache');
   };
   window.refreshMasterData = async function() {
@@ -982,6 +982,15 @@
       _saveCache('barang', barang);
     }
     window.allBarang = barang;
+
+    /* Satuan */
+    let satuanList = _loadCache('satuan');
+    if (!satuanList) {
+      const { data: sRows } = await window._sb.from('satuan').select('*').order('nama');
+      satuanList = sRows || [];
+      _saveCache('satuan', satuanList);
+    }
+    window.allSatuan = satuanList;
 
     /* Harga & Diskon cache — paling banyak reads, TTL 15 menit */
     window.hargaCache  = {};
@@ -3256,16 +3265,25 @@
   ══════════════════════════════════════════ */
   function openQuickAddBarang(prefillNama = '') {
     if (!requireAdmin(showToast)) return;
-    /* Tutup dropdown barang sebelum buka modal */
     closeItemDropdown();
-    document.getElementById('qaBarangNama').value   = prefillNama;
-    document.getElementById('qaBarangSatuan').value = '';
+    document.getElementById('qaBarangNama').value = prefillNama;
     const errEl = document.getElementById('qaBarangError');
     errEl.textContent = ''; errEl.style.display = 'none';
     document.getElementById('qaBarangSaveBtn').disabled = false;
     document.getElementById('qaBarangSaveBtn').textContent = 'Simpan';
+
+    /* Populate dropdown satuan dari allSatuan */
+    const sel = document.getElementById('qaBarangSatuan');
+    sel.innerHTML = '<option value="">— Pilih Satuan —</option>'
+      + (window.allSatuan || []).map(s => `<option value="${s.nama}">${s.nama}</option>`).join('')
+      + '<option value="__lainnya__">+ Lainnya (ketik manual)...</option>';
+    sel.value = '';
+
+    /* Sembunyikan input manual saat buka */
+    const manualWrap = document.getElementById('qaBarangSatuanManualWrap');
+    if (manualWrap) { manualWrap.style.display = 'none'; document.getElementById('qaBarangSatuanManual').value = ''; }
+
     document.getElementById('qaBarangOverlay').classList.add('show');
-    /* Fokus ke satuan jika nama sudah terisi, ke nama jika kosong */
     setTimeout(() => {
       const target = prefillNama
         ? document.getElementById('qaBarangSatuan')
@@ -3274,15 +3292,31 @@
     }, 80);
   }
 
+  function onQaBarangSatuanChange() {
+    const sel = document.getElementById('qaBarangSatuan');
+    const manualWrap = document.getElementById('qaBarangSatuanManualWrap');
+    const manualInput = document.getElementById('qaBarangSatuanManual');
+    if (sel.value === '__lainnya__') {
+      manualWrap.style.display = '';
+      setTimeout(() => manualInput.focus(), 50);
+    } else {
+      manualWrap.style.display = 'none';
+      manualInput.value = '';
+    }
+  }
+
   function closeQuickAddBarang() {
     document.getElementById('qaBarangOverlay').classList.remove('show');
   }
 
   async function saveQuickAddBarang() {
-    const nama   = document.getElementById('qaBarangNama').value.trim();
-    const satuan = document.getElementById('qaBarangSatuan').value.trim();
-    const errEl  = document.getElementById('qaBarangError');
-    const btn    = document.getElementById('qaBarangSaveBtn');
+    const nama      = document.getElementById('qaBarangNama').value.trim();
+    const selVal    = document.getElementById('qaBarangSatuan').value;
+    const satuan    = selVal === '__lainnya__'
+      ? (document.getElementById('qaBarangSatuanManual').value.trim())
+      : selVal.trim();
+    const errEl     = document.getElementById('qaBarangError');
+    const btn       = document.getElementById('qaBarangSaveBtn');
     errEl.textContent = ''; errEl.style.display = 'none';
 
     if (!nama) {
@@ -3290,7 +3324,9 @@
       errEl.style.display = 'block'; return;
     }
     if (!satuan) {
-      errEl.textContent = 'Satuan wajib diisi.';
+      errEl.textContent = selVal === '__lainnya__'
+        ? 'Ketik satuan terlebih dahulu.'
+        : 'Pilih satuan terlebih dahulu.';
       errEl.style.display = 'block'; return;
     }
 
@@ -3348,9 +3384,10 @@
   window.openQuickAddVendor  = openQuickAddVendor;
   window.closeQuickAddVendor = closeQuickAddVendor;
   window.saveQuickAddVendor  = saveQuickAddVendor;
-  window.openQuickAddBarang  = openQuickAddBarang;
-  window.closeQuickAddBarang = closeQuickAddBarang;
-  window.saveQuickAddBarang  = saveQuickAddBarang;
+  window.openQuickAddBarang       = openQuickAddBarang;
+  window.closeQuickAddBarang      = closeQuickAddBarang;
+  window.saveQuickAddBarang       = saveQuickAddBarang;
+  window.onQaBarangSatuanChange   = onQaBarangSatuanChange;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="pembelian-riwayat.js"></script>
@@ -3403,11 +3440,18 @@
       </div>
       <div class="field">
         <label>Satuan <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="qaBarangSatuan" placeholder="cth: rim, pcs, box, kg"
-          autocomplete="off"
-          onkeydown="if(event.key==='Enter')saveQuickAddBarang()"
-        />
-        <div class="field-hint">Gunakan satuan terkecil, misal: pcs, rim, kg, box</div>
+        <select id="qaBarangSatuan" onchange="onQaBarangSatuanChange()"
+          style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;cursor:pointer">
+          <option value="">— Pilih Satuan —</option>
+        </select>
+        <div id="qaBarangSatuanManualWrap" style="display:none;margin-top:8px">
+          <input type="text" id="qaBarangSatuanManual" placeholder="Ketik satuan baru..."
+            autocomplete="off" maxlength="30"
+            onkeydown="if(event.key==='Enter')saveQuickAddBarang()"
+            style="width:100%;box-sizing:border-box"
+          />
+          <div class="field-hint">Satuan baru akan tersedia, tapi tidak otomatis disimpan ke daftar satuan.</div>
+        </div>
       </div>
       <div id="qaBarangError" style="display:none;font-size:12px;color:var(--danger);margin-top:-8px;margin-bottom:8px;padding:8px 12px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:6px"></div>
     </div>

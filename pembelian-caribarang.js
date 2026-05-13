@@ -26,6 +26,7 @@ function cbInit() {
 
   // Isi dropdown brand
   const sel = document.getElementById('cbFilterBrand');
+  sel.value = ''; // reset agar tidak terbawa nilai lama dari tab lain / sesi sebelumnya
   (window.allBrands || []).forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.id; opt.textContent = b.nama;
@@ -105,9 +106,9 @@ async function cbFetch() {
   document.getElementById('cbPagin').style.display = 'none';
 
   try {
-    // Gunakan multi-brand dari PageState, fallback ke select tersembunyi
+    // Gunakan multi-brand dari PageState sebagai satu-satunya source of truth
+    // (cbFilterBrand hidden select tidak dibaca lagi — bisa membawa nilai stale)
     const selectedBrands = (PageState.cbSelectedBrands || []);
-    const singleBrand    = document.getElementById('cbFilterBrand').value;
     const dateFrom = document.getElementById('cbDateFrom').value;
     const dateTo   = document.getElementById('cbDateTo').value;
 
@@ -119,9 +120,8 @@ async function cbFetch() {
       q = q.eq('brand_id', selectedBrands[0]);
     } else if (selectedBrands.length > 1) {
       q = q.in('brand_id', selectedBrands);
-    } else if (singleBrand) {
-      q = q.eq('brand_id', singleBrand);
     }
+    // Jika cbSelectedBrands kosong = semua brand, tidak perlu filter brand
     if (dateFrom) q = q.gte('riwayat_beli.tanggal', dateFrom);
     if (dateTo)   q = q.lte('riwayat_beli.tanggal', dateTo);
 

@@ -231,6 +231,7 @@
       <div id="waNoHp" style="display:none;margin-bottom:12px">
         <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">Nomor WA</div>
         <div id="waNoHpVal" style="font-family:var(--mono);font-size:13px;color:var(--accent2)"></div>
+        <select id="waKontakSelect" style="display:none;width:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none" onchange="onWAKontakChange('waKontakSelect','waNoHpVal','btnOpenWA')"></select>
       </div>
       <div class="field">
         <label>Preview Pesan</label>
@@ -267,6 +268,7 @@
       <div id="waManualNoHp" style="display:none;margin-bottom:12px">
         <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">Nomor WA</div>
         <div id="waManualNoHpVal" style="font-family:var(--mono);font-size:13px;color:var(--accent2)"></div>
+        <select id="waManualKontakSelect" style="display:none;width:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none" onchange="onWAKontakChange('waManualKontakSelect','waManualNoHpVal','btnOpenWAManual')"></select>
       </div>
 
       <!-- Step 2: Pilih Item -->
@@ -841,8 +843,16 @@ function updateBrandFilterUI() {
 
 async function loadVendors() {
   try {
-    const data = await supaGet('vendor', 'select=id,nama,telp&order=nama');
+    const data = await supaGet('vendor', 'select=id,nama,telp,kontak&order=nama');
     vendors = Array.isArray(data) ? data : [];
+    // Bangun kontak_list: telp utama + entri dari JSONB kontak[]
+    vendors.forEach(v => {
+      const extras = Array.isArray(v.kontak) ? v.kontak : [];
+      const list = [];
+      if (v.telp) list.push({ nama: v.nama, telp: v.telp, jabatan: '' });
+      extras.forEach(k => { if (k.telp) list.push({ nama: k.nama || '', telp: k.telp, jabatan: k.jabatan || '' }); });
+      v.kontak_list = list;
+    });
     const sel = document.getElementById('beliVendor');
     vendors.forEach(v => { sel.innerHTML += `<option value="${v.id}">${v.nama}</option>`; });
   } catch(e) { console.error('loadVendors:', e); }
@@ -2507,6 +2517,45 @@ async function openWAForVendor(vendorId, orderId) {
 }
 window.openWAForVendor = openWAForVendor;
 
+// ── HELPER: render kontak WA (1 = teks langsung, >1 = dropdown) ──
+function _renderWAKontakUI(wrapId, valId, selectId, btnOpenId, kontakList) {
+  const wrapEl  = document.getElementById(wrapId);
+  const valEl   = document.getElementById(valId);
+  const selEl   = document.getElementById(selectId);
+  const btnOpen = document.getElementById(btnOpenId);
+  if (!kontakList || kontakList.length === 0) {
+    wrapEl.style.display = 'none';
+    if (btnOpen) btnOpen.style.display = 'none';
+    return;
+  }
+  wrapEl.style.display = 'block';
+  if (kontakList.length === 1) {
+    const k = kontakList[0];
+    valEl.textContent   = k.jabatan ? `${k.telp}  (${k.jabatan})` : k.telp;
+    valEl.style.display = 'block';
+    selEl.style.display = 'none';
+  } else {
+    valEl.style.display = 'none';
+    selEl.style.display = 'block';
+    selEl.innerHTML = kontakList.map((k, i) => {
+      const label = k.jabatan ? `${k.nama} (${k.jabatan}) — ${k.telp}` : `${k.nama} — ${k.telp}`;
+      return `<option value="${k.telp}"${i===0?' selected':''}>${label}</option>`;
+    }).join('');
+  }
+  if (btnOpen) btnOpen.style.display = '';
+}
+
+function _getSelectedKontak(selectId, vendor) {
+  const selEl = document.getElementById(selectId);
+  if (selEl && selEl.style.display !== 'none' && selEl.value) return selEl.value;
+  return vendor?.telp || '';
+}
+
+function onWAKontakChange(selectId, valId, btnOpenId) {
+  // Kalau mode manual, refresh preview agar btnOpenWAManual visibility ikut update
+  if (selectId === 'waManualKontakSelect') _renderWAManualPreview();
+}
+
 function onWAVendorChange() {
   const vendorId = document.getElementById('waVendorSelect').value;
   const sel = document.getElementById('waVendorSelect');
@@ -2523,17 +2572,10 @@ function onWAVendorChange() {
   }
 
   const vendor = vendors.find(v => v.id === vendorId);
-  const noHp   = vendor?.telp || '';
+  const kontakList = vendor?.kontak_list || [];
   const o      = allOrders.find(x => x.id === _waOrderId);
 
-  if (noHp) {
-    document.getElementById('waNoHp').style.display = 'block';
-    document.getElementById('waNoHpVal').textContent = noHp;
-    document.getElementById('btnOpenWA').style.display = '';
-  } else {
-    document.getElementById('waNoHp').style.display = 'none';
-    document.getElementById('btnOpenWA').style.display = 'none';
-  }
+  _renderWAKontakUI('waNoHp', 'waNoHpVal', 'waKontakSelect', 'btnOpenWA', kontakList);
 
   const assignedItems = vendorItemsMap[vendorId];
   let itemsUntukVendor;
@@ -2587,7 +2629,7 @@ function copyWAMsg() {
 function openWA() {
   const vendorId = document.getElementById('waVendorSelect').value;
   const vendor   = vendors.find(v => v.id === vendorId);
-  const noHp     = vendor?.telp || '';
+  const noHp     = _getSelectedKontak('waKontakSelect', vendor);
   if (!noHp) { showToast('error', '✕ Nomor telepon vendor tidak ada'); return; }
   const msg = document.getElementById('waMsgPreview').value;
   if (!msg) { showToast('error', '✕ Pilih vendor dan generate pesan dulu'); return; }
@@ -2686,15 +2728,9 @@ function onWAManualVendorChange() {
   }
 
   const vendor = vendors.find(v => v.id === vendorId);
-  const noHp   = vendor?.telp || '';
+  const kontakList = vendor?.kontak_list || [];
 
-  // Tampilkan nomor
-  if (noHp) {
-    document.getElementById('waManualNoHp').style.display = 'block';
-    document.getElementById('waManualNoHpVal').textContent = noHp;
-  } else {
-    document.getElementById('waManualNoHp').style.display = 'none';
-  }
+  _renderWAKontakUI('waManualNoHp', 'waManualNoHpVal', 'waManualKontakSelect', 'btnOpenWAManual', kontakList);
 
   // Set checklist items dari histori vendor ini
   const autoChecked = new Set(
@@ -2757,7 +2793,7 @@ function _renderWAManualPreview() {
 
   const vendorId = document.getElementById('waManualVendorSelect').value;
   const vendor = vendors.find(v => v.id === vendorId);
-  const noHp   = vendor?.telp || '';
+  const noHp   = _getSelectedKontak('waManualKontakSelect', vendor);
   const o      = allOrders.find(x => x.id === _waOrderId);
   const brand  = brands[o?.brand_id] || '—';
   const salam  = _salamWaktu();
@@ -2804,7 +2840,7 @@ function copyWAManualMsg() {
 function openWAManual() {
   const vendorId = document.getElementById('waManualVendorSelect').value;
   const vendor   = vendors.find(v => v.id === vendorId);
-  const noHp     = vendor?.telp || '';
+  const noHp     = _getSelectedKontak('waManualKontakSelect', vendor);
   if (!noHp) { showToast('error', '✕ Nomor telepon vendor tidak ada'); return; }
   const msg = document.getElementById('waManualPreview').value;
   if (!msg) { showToast('error', '✕ Pilih item terlebih dahulu'); return; }
@@ -3420,6 +3456,7 @@ async function purgeCancelled() {
 window.openWAModeSelector  = openWAModeSelector;
 window.openWAModal         = openWAModal;
 window.onWAVendorChange    = onWAVendorChange;
+window.onWAKontakChange    = onWAKontakChange;
 window.onWAManualVendorChange = onWAManualVendorChange;
 window.onWAManualItemToggle   = onWAManualItemToggle;
 window.waManualCheckAll       = waManualCheckAll;

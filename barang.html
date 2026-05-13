@@ -1106,19 +1106,26 @@
       /* Urutkan terlama -> terbaru untuk proses dedup */
       allRows.sort((a,b) => a.tanggal_js - b.tanggal_js);
 
-      /* Filter: per vendor, sembunyikan duplikat harga yang sama — hanya tampilkan yang PERTAMA (terlama) */
+      /* Filter: per vendor, sembunyikan duplikat harga yang sama — hanya tampilkan yang PERTAMA (terlama).
+         Juga skip harga 0. */
       const seenHargaPerVendor = {};
       const filteredRows = allRows.filter(entry => {
+        if (!entry.hargaInc || entry.hargaInc === 0) return false; // skip harga 0
         const key = `${entry.vendorKey}__${entry.hargaInc}`;
         if (seenHargaPerVendor[key]) return false;
         seenHargaPerVendor[key] = true;
         return true;
       });
 
+      /* allRows untuk mode bulanan: semua data, skip harga 0 */
+      const allRowsNonZero = allRows.filter(entry => entry.hargaInc && entry.hargaInc > 0);
+
       /* Balik ke terbaru -> terlama untuk ditampilkan */
       filteredRows.sort((a,b) => b.tanggal_js - a.tanggal_js);
+      allRowsNonZero.sort((a,b) => b.tanggal_js - a.tanggal_js);
 
-      const rows = filteredRows.map(entry => {
+      /* Helper: render satu entry menjadi <tr> */
+      function renderEntryRow(entry, bId) {
         const tgl = entry.tanggal_js.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
         if (entry.sumber === 'pembelian' && entry.item) {
           const {tx, item} = entry;
@@ -1154,26 +1161,111 @@
             <td style="white-space:nowrap">${catatan}
               ${window._userRole==='admin' ? `
               <button onclick="openSurveyModal(null,'${h.id}')" class="ph-btn">Edit</button>
-              <button onclick="deleteSurveyHarga('${h.id}','${b.id}')" class="ph-btn ph-btn-danger">Hapus</button>
+              <button onclick="deleteSurveyHarga('${h.id}','${bId}')" class="ph-btn ph-btn-danger">Hapus</button>
               ` : ''}
             </td>
           </tr>`;
         }
-      });
+      }
 
-      if (!filteredRows.length) {
+      /* Helper: render mode bulanan — group per bulan-tahun */
+      function renderBulananHTML(rows, bId) {
+        if (!rows.length) return '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Belum ada riwayat harga.</div>';
+        // Group by "YYYY-MM"
+        const groups = {};
+        const groupOrder = [];
+        rows.forEach(entry => {
+          const d = entry.tanggal_js;
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
+          groups[key].push(entry);
+        });
+        const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        let html = '';
+        groupOrder.forEach(key => {
+          const [yr, mo] = key.split('-');
+          const label = `${BULAN_ID[parseInt(mo,10)-1]} ${yr}`;
+          const entries = groups[key];
+          const totalHarga = entries.reduce((s, e) => s + (e.hargaInc || 0), 0);
+          const rataRata = Math.round(totalHarga / entries.length);
+          const vendorUnik = new Set(entries.map(e => e.vendorKey).filter(v => v && v !== '__novendor__')).size;
+          const jumlahCatatan = entries.length;
+          const vendorInfo = vendorUnik > 0 ? `${vendorUnik} vendor` : 'tanpa vendor';
+          const summaryHtml = `<span style="font-weight:400;color:var(--accent2);margin-left:10px;font-size:11px">rata-rata Rp ${rataRata.toLocaleString('id-ID')}</span><span style="color:var(--muted);margin-left:6px;font-size:10px;font-weight:400">— dari ${jumlahCatatan} catatan, ${vendorInfo}</span>`;
+          const rowsHtml = entries.map(e => renderEntryRow(e, bId)).join('');
+          html += `
+            <div style="margin-bottom:16px">
+              <div style="font-family:var(--mono);font-size:11px;color:var(--accent3);font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:6px 10px;background:rgba(247,146,79,0.08);border-left:3px solid var(--accent3);border-radius:0 6px 6px 0;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">${label}${summaryHtml}</div>
+              <table class="price-history-table" style="margin:0">
+                <thead><tr><th>Tanggal</th><th>Harga (Inc PPN)</th><th>Vendor</th><th>Brand</th><th>Qty</th><th>Keterangan</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>`;
+        });
+        return html;
+      }
+
+      /* Helper: render mode ringkasan */
+      function renderRingkasanHTML(rows, bId) {
+        if (!rows.length) return '';
+        const rowsHtml = rows.map(e => renderEntryRow(e, bId)).join('');
+        return `<table class="price-history-table">
+          <thead><tr><th>Tanggal</th><th>Harga (Inc PPN)</th><th>Vendor</th><th>Brand</th><th>Qty</th><th>Keterangan</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>`;
+      }
+
+      if (!filteredRows.length && !allRowsNonZero.length) {
         document.getElementById('detailPriceSection').innerHTML =
           '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Belum ada riwayat harga. Klik "+ Catat Harga" untuk menambahkan.</div>';
         return;
       }
 
+      /* State toggle mode: 'ringkasan' | 'bulanan' */
+      let _priceViewMode = 'ringkasan';
+
+      function _renderPriceView() {
+        const isRingkasan = _priceViewMode === 'ringkasan';
+        const btnRingkasan = document.getElementById('_btnModeRingkasan');
+        const btnBulanan   = document.getElementById('_btnModeBulanan');
+        const contentEl    = document.getElementById('_priceContent');
+        if (btnRingkasan) {
+          btnRingkasan.style.background = isRingkasan ? 'var(--accent)' : 'transparent';
+          btnRingkasan.style.color      = isRingkasan ? '#fff' : 'var(--muted)';
+          btnRingkasan.style.borderColor= isRingkasan ? 'var(--accent)' : 'var(--border)';
+        }
+        if (btnBulanan) {
+          btnBulanan.style.background = !isRingkasan ? 'var(--accent3)' : 'transparent';
+          btnBulanan.style.color      = !isRingkasan ? '#fff' : 'var(--muted)';
+          btnBulanan.style.borderColor= !isRingkasan ? 'var(--accent3)' : 'var(--border)';
+        }
+        if (contentEl) {
+          contentEl.innerHTML = isRingkasan
+            ? renderRingkasanHTML(filteredRows, b.id)
+            : renderBulananHTML(allRowsNonZero, b.id);
+        }
+      }
+
       document.getElementById('detailPriceSection').innerHTML = `
-        <table class="price-history-table">
-          <thead><tr>
-            <th>Tanggal</th><th>Harga (Inc PPN)</th><th>Vendor</th><th>Brand</th><th>Qty</th><th>Keterangan</th>
-          </tr></thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>`;
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-shrink:0">
+          <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">Tampilan:</span>
+          <button id="_btnModeRingkasan" onclick="window._setPriceViewMode('ringkasan')"
+            style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s;background:var(--accent);color:#fff;border-color:var(--accent)">
+            Ringkasan
+          </button>
+          <button id="_btnModeBulanan" onclick="window._setPriceViewMode('bulanan')"
+            style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s;background:transparent;color:var(--muted)">
+            Per Bulan
+          </button>
+        </div>
+        <div id="_priceContent"></div>`;
+
+      window._setPriceViewMode = function(mode) {
+        _priceViewMode = mode;
+        _renderPriceView();
+      };
+
+      _renderPriceView();
 
     } catch(e) {
       document.getElementById('detailPriceSection').innerHTML =
