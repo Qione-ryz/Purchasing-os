@@ -1343,11 +1343,13 @@ tr.so-separator-row > td {
 .sub-table .col-aksi     { width:124px; min-width:124px; }
 
 /* Progress bar */
-.prog-wrap { background:var(--border); border-radius:4px; height:5px; min-width:60px; overflow:hidden; margin-top:4px; }
-.prog-bar  { height:100%; border-radius:4px; }
-.prog-bar.done    { background:var(--accent2); }
-.prog-bar.partial { background:var(--accent3); }
-.prog-bar.zero    { background:var(--muted); }
+.prog-wrap { background:var(--border); border-radius:4px; height:6px; min-width:60px; overflow:hidden; margin-top:4px; }
+.prog-bar  { height:100%; border-radius:4px; transition:width .3s ease; }
+/* 0%      → merah          */ .prog-bar.zero    { background:#e05252; }
+/* 1–49%   → merah-oranye   */ .prog-bar.low     { background:#e07032; }
+/* 50–99%  → kuning         */ .prog-bar.mid     { background:#d4b800; }
+/* 100%    → hijau          */ .prog-bar.done    { background:#38c96a; }
+/* alias lama (fallback)    */ .prog-bar.partial { background:#d4b800; }
 
 /* Qty input inline */
 .qty-input { background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--mono); font-size:12px; padding:5px 8px; width:72px; outline:none; transition:border-color .2s; }
