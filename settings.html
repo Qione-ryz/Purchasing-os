@@ -130,6 +130,45 @@
 
     /* KODE MODAL HINT */
     .kode-hint { font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono); }
+
+    /* BARANG STORE */
+    .bs-sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); }
+    .bs-sub-tab { padding:10px 18px; font-size:13px; font-weight:600; color:var(--muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; font-family:var(--sans); }
+    .bs-sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .bs-barang-group { padding:6px 18px 4px; font-size:10px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.7px; background:var(--surface2); border-bottom:1px solid var(--border); }
+    .bs-barang-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid rgba(21,44,51,0.4); cursor:pointer; transition:background .1s; user-select:none; }
+    .bs-barang-row:last-child { border-bottom:none; }
+    .bs-barang-row:hover { background:rgba(0,212,255,0.04); }
+    .bs-barang-row.checked { background:rgba(56,217,169,0.04); }
+    .bs-cb { width:18px; height:18px; border-radius:5px; border:1.5px solid var(--border); background:transparent; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; }
+    .bs-barang-row.checked .bs-cb { background:var(--accent2); border-color:var(--accent2); color:#030709; }
+    .bs-barang-nama { font-size:14px; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bs-barang-meta { font-size:11px; font-family:var(--mono); color:var(--muted); flex-shrink:0; }
+    .bs-grup-item { display:flex; align-items:flex-start; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); }
+    .bs-grup-item:last-child { border-bottom:none; }
+    .bs-grup-nama { font-size:14px; font-weight:600; margin-bottom:3px; }
+    .bs-grup-meta { font-size:11px; font-family:var(--mono); color:var(--muted); line-height:1.6; }
+    .bs-member-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background .1s; user-select:none; }
+    .bs-member-row:hover { background:var(--surface2); }
+    .bs-member-row.checked { background:rgba(56,217,169,0.06); }
+    .bs-member-cb { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; transition:all .15s; }
+    .bs-member-row.checked .bs-member-cb { background:var(--accent2); border-color:var(--accent2); color:#030709; }
+    .bs-empty { padding:40px 20px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:13px; }
+    .bs-info-bar { padding:8px 18px; font-size:12px; font-family:var(--mono); color:var(--muted); background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    /* Search — SVG icon, clear button, no overlap */
+    .bs-search-wrap { position:relative; display:flex; align-items:center; }
+    .bs-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; display:flex; align-items:center; line-height:1; }
+    .bs-search-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:13px; padding:9px 32px 9px 36px; outline:none; transition:border-color .2s; }
+    .bs-search-input:focus { border-color:var(--accent); }
+    .bs-search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 5px; border-radius:4px; display:none; align-items:center; line-height:1; transition:color .15s; }
+    .bs-search-clear:hover { color:var(--text); }
+    .bs-grup-form { padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+    .bs-grup-form label { font-size:11px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.6px; display:block; margin-bottom:5px; }
+    .bs-grup-form input[type="text"] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:9px 12px; outline:none; transition:border-color .2s; box-sizing:border-box; }
+    .bs-grup-form input:focus { border-color:var(--accent); }
+    .bs-grup-form select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:9px 12px; outline:none; }
+    #bsGrupFormPanel { display:none; flex-direction:column; }
+    #bsGrupFormPanel.open { display:flex; }
   </style>
 </head>
 <body>
@@ -155,6 +194,9 @@
       <div class="settings-nav">
         <div class="settings-nav-item active" onclick="switchPanel('brands')">
           <span class="settings-nav-icon">🏷️</span> Brand
+        </div>
+        <div class="settings-nav-item" onclick="switchPanel('barang-store')">
+          <span class="settings-nav-icon">📦</span> Barang Store
         </div>
         <div class="settings-nav-item" onclick="switchPanel('users')">
           <span class="settings-nav-icon">👥</span> Pengguna
@@ -204,7 +246,113 @@
           </div>
         </div>
 
-        <!-- ═══════════════════════════════ USERS ═══════════════════════════════ -->
+        <!-- ═══════════════════════════════ BARANG STORE ═══════════════════════════════ -->
+        <div class="panel" id="panel-barang-store">
+
+          <!-- Brand selector row: dropdown + copy -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-body" style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div class="field" style="margin:0;flex:1;min-width:180px">
+                <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Brand</label>
+                <select id="bsBrandSelect" onchange="bsSelectBrand(this.value)" style="width:100%">
+                  <option value="">— Pilih brand —</option>
+                </select>
+              </div>
+              <div class="field" style="margin:0;flex-shrink:0">
+                <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Lainnya</label>
+                <button class="btn btn-ghost btn-sm" onclick="bsOpenCopyModal()" style="white-space:nowrap;height:42px;padding:0 16px">📋 Salin dari Brand Lain</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content card (muncul setelah brand dipilih) -->
+          <div class="card" id="bsCard" style="display:none">
+            <!-- Sub-tabs -->
+            <div class="bs-sub-tabs">
+              <button class="bs-sub-tab active" id="bsSubBarang" onclick="bsSwitchSub('barang')">⚙ Barang Ditampilkan</button>
+              <button class="bs-sub-tab" id="bsSubGrup" onclick="bsSwitchSub('grup')">🗂 Grup Barang</button>
+            </div>
+
+            <!-- ── Panel Barang ── -->
+            <div id="bsPanelBarang">
+              <div class="bs-info-bar">
+                <span id="bsBarangInfo" style="font-size:12px;color:var(--muted);font-family:var(--mono)">—</span>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+                    <button id="bsSortKat" onclick="bsSetSort('kategori')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--accent);color:#030709;border:none;cursor:pointer;font-weight:600">Kategori</button>
+                    <button id="bsSortAz" onclick="bsSetSort('abjad')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--bg);color:var(--muted);border:none;cursor:pointer;font-weight:600">A–Z</button>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="bsSaveBarang()">💾 Simpan</button>
+                </div>
+              </div>
+              <div style="padding:12px 18px 14px;border-bottom:1px solid var(--border)">
+                <div class="bs-search-wrap">
+                  <span class="bs-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                  <input type="text" class="bs-search-input" id="bsSearchBarang" placeholder="Cari barang..." oninput="bsRenderBarangList();document.getElementById('bsSearchBarangClear').style.display=this.value?'flex':'none'"/>
+                  <button class="bs-search-clear" id="bsSearchBarangClear" onclick="document.getElementById('bsSearchBarang').value='';bsRenderBarangList();this.style.display='none'">✕</button>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:10px">
+                  <button class="btn btn-ghost btn-sm" onclick="bsSelectAll()" style="font-size:12px">✓ Pilih Semua</button>
+                  <button class="btn btn-ghost btn-sm" onclick="bsSelectNone()" style="font-size:12px;color:var(--muted)">✕ Hapus Semua</button>
+                </div>
+              </div>
+              <div id="bsBarangList" style="max-height:480px;overflow-y:auto;padding-top:4px"></div>
+            </div>
+
+            <!-- ── Panel Grup ── -->
+            <div id="bsPanelGrup" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:360px" id="bsGrupGrid">
+
+                <!-- Kiri: daftar grup -->
+                <div style="border-right:1px solid var(--border);display:flex;flex-direction:column">
+                  <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <span style="font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Daftar Grup</span>
+                    <span id="bsGrupCount" style="font-size:12px;font-family:var(--mono);color:var(--muted)"></span>
+                  </div>
+                  <div id="bsGrupList" style="flex:1;overflow-y:auto;max-height:400px"></div>
+                  <div style="padding:10px 14px;border-top:1px solid var(--border)">
+                    <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="bsOpenGrupForm()">＋ Tambah Grup Baru</button>
+                  </div>
+                </div>
+
+                <!-- Kanan: form tambah/edit (hidden by default) -->
+                <div id="bsGrupFormPanel">
+                  <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px" id="bsGrupFormTitle">Tambah Grup Baru</span>
+                    <button class="btn btn-ghost btn-sm" onclick="bsResetGrupForm()">✕ Batal</button>
+                  </div>
+                  <div class="bs-grup-form" style="flex:1;overflow-y:auto">
+                    <input type="hidden" id="bsGrupFormId"/>
+                    <div>
+                      <label>Nama Grup</label>
+                      <input type="text" id="bsGrupFormNama" placeholder="cth: Beef Patty Group"/>
+                    </div>
+                    <div>
+                      <label>Anggota Grup</label>
+                      <div class="bs-search-wrap" style="margin-bottom:6px">
+                        <span class="bs-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                        <input type="text" class="bs-search-input" id="bsGrupMemberSearch" placeholder="Cari barang anggota..." oninput="bsRenderGrupMemberList();document.getElementById('bsGrupMemberSearchClear').style.display=this.value?'flex':'none'"/>
+                        <button class="bs-search-clear" id="bsGrupMemberSearchClear" onclick="document.getElementById('bsGrupMemberSearch').value='';bsRenderGrupMemberList();this.style.display='none'">✕</button>
+                      </div>
+                      <div id="bsGrupMemberList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>
+                    </div>
+                    <div id="bsGrupPrimerWrap" style="display:none">
+                      <label>Barang Primer <span style="text-transform:none;font-size:10px;color:var(--muted)">(stok disimpan ke sini)</span></label>
+                      <select id="bsGrupFormPrimer"></select>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
+                      <button class="btn btn-primary btn-sm" onclick="bsSaveGrup()">💾 Simpan Grup</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <style>@media(max-width:768px){#bsGrupGrid{grid-template-columns:1fr!important}#bsGrupGrid>div:first-child{border-right:none;border-bottom:1px solid var(--border)}}</style>
+            </div>
+          </div>
+
+          <div id="bsNoBrand" class="bs-empty" style="display:none">Pilih brand di atas untuk mulai mengatur</div>
+        </div>
         <div class="panel" id="panel-users">
           <div class="card">
             <div class="card-header">
@@ -619,6 +767,38 @@
     </div>
   </div>
 </main>
+
+<!-- MODAL SALIN PENGATURAN BRAND -->
+<div class="modal-overlay" id="bsCopyModal" onclick="if(event.target===this)bsCloseCopyModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">📋 Salin Pengaturan Brand</span>
+      <button class="modal-close" onclick="bsCloseCopyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Salin pengaturan <strong style="color:var(--text)">Barang Ditampilkan</strong> dan <strong style="color:var(--text)">Grup Barang</strong> dari brand lain ke brand yang sedang aktif.</p>
+      <div class="field">
+        <label>Brand Tujuan (aktif)</label>
+        <div id="bsCopyTargetName" style="background:var(--bg);border:1px solid var(--accent);border-radius:8px;padding:9px 13px;font-size:14px;font-weight:600;color:var(--accent)">—</div>
+      </div>
+      <div class="field">
+        <label>Salin dari Brand</label>
+        <select id="bsCopyFrom" style="width:100%">
+          <option value="">— Pilih brand sumber —</option>
+        </select>
+      </div>
+      <div id="bsCopyPreview" style="display:none;margin-top:4px">
+        <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--muted)">
+          ⚠ Pengaturan <strong style="color:var(--danger)">barang ditampilkan</strong> dan <strong style="color:var(--danger)">semua grup barang</strong> di brand tujuan akan ditimpa.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="bsCloseCopyModal()">Batal</button>
+      <button class="btn btn-primary" onclick="bsCopySettings()" id="bsCopyConfirmBtn" disabled>📋 Salin Sekarang</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL BRAND -->
 <div class="modal-overlay" id="brandModal">
@@ -1579,16 +1759,355 @@
     document.querySelectorAll('.settings-nav-item').forEach(n=>n.classList.remove('active'));
     document.getElementById('panel-'+name).classList.add('active');
     event.currentTarget.classList.add('active');
-    if (name === 'users')    window.loadUsers();
-    if (name === 'system')   loadPPN();
-    if (name === 'log')      loadLog();
-    if (name === 'hapus')    initHapusPanel();
-    if (name === 'satuan')     window.loadSatuan();
-    if (name === 'kategori')   window.loadKategoriSettings();
-    if (name === 'kode-order') window.loadKodeOrder();
+    if (name === 'users')         window.loadUsers();
+    if (name === 'system')        loadPPN();
+    if (name === 'log')           loadLog();
+    if (name === 'hapus')         initHapusPanel();
+    if (name === 'satuan')        window.loadSatuan();
+    if (name === 'kategori')      window.loadKategoriSettings();
+    if (name === 'kode-order')    window.loadKodeOrder();
+    if (name === 'barang-store')  initBarangStore();
   }
 
-  /* TOAST */
+  /* ══════════════════════════════════════════
+     BARANG STORE — Kelola Barang & Grup per Brand
+  ══════════════════════════════════════════ */
+  let bsActiveBrandId = null;
+  let bsAllBarang     = [];
+  let bsSelected      = null;
+  let bsGrupList      = [];
+  let bsGrupSelected  = new Set();
+  let bsSortMode      = 'kategori'; // 'kategori' | 'abjad'
+
+  function bsSetSort(mode) {
+    bsSortMode = mode;
+    document.getElementById('bsSortKat').style.background = mode==='kategori' ? 'var(--accent)' : 'var(--bg)';
+    document.getElementById('bsSortKat').style.color      = mode==='kategori' ? '#030709'       : 'var(--muted)';
+    document.getElementById('bsSortAz').style.background  = mode==='abjad'    ? 'var(--accent)' : 'var(--bg)';
+    document.getElementById('bsSortAz').style.color       = mode==='abjad'    ? '#030709'       : 'var(--muted)';
+    bsRenderBarangList();
+  }
+
+  async function initBarangStore() {
+    if (!window.allBrands?.length) {
+      document.getElementById('bsBrandSelect').innerHTML = '<option>Belum ada brand</option>'; return;
+    }
+    const sel = document.getElementById('bsBrandSelect');
+    sel.innerHTML = '<option value="">— Pilih brand —</option>' +
+      window.allBrands.map(b => `<option value="${b.id}">${b.nama}</option>`).join('');
+  }
+
+  async function bsSelectBrand(brandId) {
+    if (!brandId) {
+      document.getElementById('bsCard').style.display = 'none';
+      document.getElementById('bsNoBrand').style.display = 'block';
+      bsActiveBrandId = null;
+      return;
+    }
+    bsActiveBrandId = brandId;
+    document.getElementById('bsCard').style.display = 'block';
+    document.getElementById('bsNoBrand').style.display = 'none';
+    await bsLoadBarang();
+    await bsLoadGrupList();
+    bsRenderBarangList();
+    document.getElementById('bsSearchBarang').value = '';
+    document.getElementById('bsSearchBarangClear').style.display = 'none';
+    bsResetGrupForm();
+    bsSwitchSub('barang');
+  }
+
+  async function bsLoadBarang() {
+    try {
+      const { data: bb } = await window._sb.from('barang_brands').select('barang_id').eq('brand_id', bsActiveBrandId);
+      const ids = (bb||[]).map(r=>r.barang_id).filter(Boolean);
+      if (!ids.length) { bsAllBarang = []; bsSelected = new Set(); return; }
+      const { data: brg } = await window._sb.from('barang').select('id,nama,satuan,sku,kategori').in('id', ids).order('nama');
+      bsAllBarang = brg || [];
+      // Load so_barang_config untuk brand ini
+      const { data: cfg } = await window._sb.from('so_barang_config').select('included_ids').eq('brand_id', bsActiveBrandId).maybeSingle();
+      bsSelected = cfg?.included_ids?.length ? new Set(cfg.included_ids) : new Set(bsAllBarang.map(b=>b.id));
+    } catch(e) { bsAllBarang = []; bsSelected = new Set(); showToast('Gagal load barang: '+e.message, 'error'); }
+  }
+
+  function bsRenderBarangList() {
+    const wrap  = document.getElementById('bsBarangList');
+    const q     = (document.getElementById('bsSearchBarang')?.value||'').toLowerCase();
+    const list  = bsAllBarang.filter(b => !q || b.nama.toLowerCase().includes(q) || (b.sku||'').toLowerCase().includes(q));
+    let html = '';
+
+    if (bsSortMode === 'abjad') {
+      // Urut A-Z flat, tanpa group header
+      const sorted = [...list].sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
+      if (!sorted.length) { html = '<div class="bs-empty">Tidak ada barang</div>'; }
+      else sorted.forEach(b => {
+        const on = bsSelected?.has(b.id);
+        html += `<div class="bs-barang-row${on?' checked':''}" onclick="bsToggleBarang('${b.id}')">
+          <div class="bs-cb">${on?'✓':''}</div>
+          <span class="bs-barang-nama">${b.nama}</span>
+          <span class="bs-barang-meta">${b.satuan||''}</span>
+        </div>`;
+      });
+    } else {
+      // Group by kategori
+      const byKat = {}, katOrder = [];
+      list.forEach(b => { const k=(b.kategori||'Tanpa Kategori').trim(); if(!byKat[k]){byKat[k]=[];katOrder.push(k)} byKat[k].push(b); });
+      katOrder.sort();
+      if (!list.length) { html = '<div class="bs-empty">Tidak ada barang</div>'; }
+      else katOrder.forEach(k => {
+        html += `<div class="bs-barang-group">${k}</div>`;
+        byKat[k].forEach(b => {
+          const on = bsSelected?.has(b.id);
+          html += `<div class="bs-barang-row${on?' checked':''}" onclick="bsToggleBarang('${b.id}')">
+            <div class="bs-cb">${on?'✓':''}</div>
+            <span class="bs-barang-nama">${b.nama}</span>
+            <span class="bs-barang-meta">${b.satuan||''}</span>
+          </div>`;
+        });
+      });
+    }
+
+    wrap.innerHTML = html;
+    const sel = bsSelected?.size ?? bsAllBarang.length;
+    document.getElementById('bsBarangInfo').textContent = `${sel} dari ${bsAllBarang.length} barang ditampilkan`;
+  }
+
+  function bsToggleBarang(id) {
+    if (!bsSelected) bsSelected = new Set(bsAllBarang.map(b=>b.id));
+    if (bsSelected.has(id)) bsSelected.delete(id); else bsSelected.add(id);
+    bsRenderBarangList();
+  }
+
+  function bsSelectAll() {
+    const q = (document.getElementById('bsSearchBarang')?.value||'').toLowerCase();
+    bsAllBarang.filter(b=>!q||b.nama.toLowerCase().includes(q)).forEach(b=>bsSelected.add(b.id));
+    bsRenderBarangList();
+  }
+
+  function bsSelectNone() {
+    const q = (document.getElementById('bsSearchBarang')?.value||'').toLowerCase();
+    bsAllBarang.filter(b=>!q||b.nama.toLowerCase().includes(q)).forEach(b=>bsSelected.delete(b.id));
+    bsRenderBarangList();
+  }
+
+  async function bsSaveBarang() {
+    const sel = [...(bsSelected||[])];
+    const allSelected = sel.length >= bsAllBarang.length;
+    try {
+      if (allSelected) {
+        await window._sb.from('so_barang_config').delete().eq('brand_id', bsActiveBrandId);
+      } else {
+        await window._sb.from('so_barang_config').upsert({ brand_id: bsActiveBrandId, included_ids: sel }, { onConflict: 'brand_id' });
+      }
+      showToast(`✓ Disimpan — ${sel.length} barang ditampilkan`);
+    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
+  }
+
+  /* ── Sub-tabs ── */
+  function bsSwitchSub(sub) {
+    document.getElementById('bsSubBarang').classList.toggle('active', sub==='barang');
+    document.getElementById('bsSubGrup').classList.toggle('active', sub==='grup');
+    document.getElementById('bsPanelBarang').style.display  = sub==='barang' ? 'block' : 'none';
+    document.getElementById('bsPanelGrup').style.display    = sub==='grup'   ? 'block' : 'none';
+    if (sub==='grup') { bsRenderGrupList(); bsRenderGrupMemberList(); }
+  }
+
+  /* ── Grup ── */
+  async function bsLoadGrupList() {
+    try {
+      const { data: grps } = await window._sb.from('so_item_groups')
+        .select('*, so_item_group_members(barang_id)')
+        .eq('brand_id', bsActiveBrandId)
+        .order('nama');
+      bsGrupList = (grps||[]).map(g=>({...g, members:(g.so_item_group_members||[]).map(m=>m.barang_id)}));
+    } catch { bsGrupList = []; }
+    bsRenderGrupList();
+  }
+
+  function bsRenderGrupList() {
+    const wrap = document.getElementById('bsGrupList');
+    const cnt  = document.getElementById('bsGrupCount');
+    if (cnt) cnt.textContent = bsGrupList.length ? bsGrupList.length+' grup' : '';
+    if (!bsGrupList.length) { wrap.innerHTML = '<div class="bs-empty">Belum ada grup</div>'; return; }
+    wrap.innerHTML = bsGrupList.map(g => {
+      const members = g.members.map(mid=>(bsAllBarang.find(x=>x.id===mid)||{}).nama||'?').join(', ');
+      const primer  = (bsAllBarang.find(x=>x.id===g.primer_barang_id)||{}).nama||'?';
+      return `<div class="bs-grup-item">
+        <div style="flex:1;min-width:0">
+          <div class="bs-grup-nama">${g.nama}</div>
+          <div class="bs-grup-meta">Anggota: ${members||'—'}</div>
+          <div class="bs-grup-meta" style="color:var(--accent)">Primer: ${primer}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" onclick="bsEditGrup('${g.id}')">✏</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="bsDeleteGrup('${g.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function bsOpenGrupForm() {
+    bsGrupSelected = new Set();
+    document.getElementById('bsGrupFormId').value = '';
+    document.getElementById('bsGrupFormNama').value = '';
+    document.getElementById('bsGrupMemberSearch').value = '';
+    document.getElementById('bsGrupMemberSearchClear').style.display = 'none';
+    document.getElementById('bsGrupFormTitle').textContent = 'Tambah Grup Baru';
+    document.getElementById('bsGrupPrimerWrap').style.display = 'none';
+    document.getElementById('bsGrupFormPanel').classList.add('open');
+    bsRenderGrupMemberList();
+    document.getElementById('bsGrupFormPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  function bsResetGrupForm() {
+    document.getElementById('bsGrupFormPanel').classList.remove('open');
+    document.getElementById('bsGrupFormId').value   = '';
+    document.getElementById('bsGrupFormNama').value = '';
+    document.getElementById('bsGrupMemberSearch').value = '';
+    document.getElementById('bsGrupPrimerWrap').style.display = 'none';
+    bsGrupSelected = new Set();
+  }
+
+  function bsEditGrup(id) {
+    const g = bsGrupList.find(x=>x.id===id); if(!g) return;
+    document.getElementById('bsGrupFormId').value   = g.id;
+    document.getElementById('bsGrupFormNama').value = g.nama;
+    document.getElementById('bsGrupFormTitle').textContent = 'Edit Grup';
+    document.getElementById('bsGrupMemberSearch').value = '';
+    document.getElementById('bsGrupMemberSearchClear').style.display = 'none';
+    bsGrupSelected = new Set(g.members||[]);
+    document.getElementById('bsGrupFormPanel').classList.add('open');
+    bsRenderGrupMemberList();
+    bsUpdatePrimer(g.primer_barang_id);
+    document.getElementById('bsGrupFormPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  function bsRenderGrupMemberList() {
+    const wrap = document.getElementById('bsGrupMemberList'); if(!wrap) return;
+    const q    = (document.getElementById('bsGrupMemberSearch')?.value||'').toLowerCase();
+    const list = bsAllBarang.filter(b=>!q||b.nama.toLowerCase().includes(q));
+    wrap.innerHTML = list.map(b => {
+      const on = bsGrupSelected.has(b.id);
+      return `<div class="bs-member-row${on?' checked':''}" onclick="bsToggleMember('${b.id}')">
+        <div class="bs-member-cb">${on?'✓':''}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:${on?'600':'400'}">${b.nama}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''}</div>
+        </div>
+      </div>`;
+    }).join('') || '<div class="bs-empty" style="padding:12px">Tidak ada barang</div>';
+  }
+
+  function bsToggleMember(id) {
+    if (bsGrupSelected.has(id)) bsGrupSelected.delete(id); else bsGrupSelected.add(id);
+    bsRenderGrupMemberList();
+    bsUpdatePrimer();
+  }
+
+  function bsUpdatePrimer(defaultId=null) {
+    const members = [...bsGrupSelected];
+    const wrap    = document.getElementById('bsGrupPrimerWrap');
+    const sel     = document.getElementById('bsGrupFormPrimer');
+    if (members.length < 2) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    sel.innerHTML = members.map(id => {
+      const b = bsAllBarang.find(x=>x.id===id)||{};
+      return `<option value="${id}"${id===defaultId?' selected':''}>${b.nama||id}</option>`;
+    }).join('');
+  }
+
+  function bsOpenCopyModal() {
+    if (!bsActiveBrandId) { showToast('Pilih brand tujuan terlebih dahulu', 'error'); return; }
+    const tgtName = (window.allBrands||[]).find(b=>b.id===bsActiveBrandId)?.nama || '—';
+    document.getElementById('bsCopyTargetName').textContent = tgtName;
+    // Populate sumber — exclude active brand
+    const cf = document.getElementById('bsCopyFrom');
+    cf.innerHTML = '<option value="">— Pilih brand sumber —</option>' +
+      (window.allBrands||[]).filter(b=>b.id!==bsActiveBrandId).map(b=>`<option value="${b.id}">${b.nama}</option>`).join('');
+    document.getElementById('bsCopyPreview').style.display = 'none';
+    document.getElementById('bsCopyConfirmBtn').disabled = true;
+    cf.onchange = () => {
+      const has = !!cf.value;
+      document.getElementById('bsCopyPreview').style.display = has ? 'block' : 'none';
+      document.getElementById('bsCopyConfirmBtn').disabled = !has;
+    };
+    document.getElementById('bsCopyModal').classList.add('show');
+  }
+
+  function bsCloseCopyModal() {
+    document.getElementById('bsCopyModal').classList.remove('show');
+  }
+
+  async function bsCopySettings() {
+    const fromId = document.getElementById('bsCopyFrom').value;
+    if (!fromId || !bsActiveBrandId) return;
+    const btn = document.getElementById('bsCopyConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Menyalin...';
+    try {
+      // Copy so_barang_config
+      const { data: srcCfg } = await window._sb.from('so_barang_config').select('included_ids').eq('brand_id', fromId).maybeSingle();
+      if (srcCfg?.included_ids?.length) {
+        await window._sb.from('so_barang_config').upsert({ brand_id: bsActiveBrandId, included_ids: srcCfg.included_ids }, { onConflict:'brand_id' });
+      } else {
+        await window._sb.from('so_barang_config').delete().eq('brand_id', bsActiveBrandId);
+      }
+      // Copy so_item_groups — hapus existing dulu
+      const { data: existGrps } = await window._sb.from('so_item_groups').select('id').eq('brand_id', bsActiveBrandId);
+      for (const g of (existGrps||[])) {
+        await window._sb.from('so_item_group_members').delete().eq('group_id', g.id);
+        await window._sb.from('so_item_groups').delete().eq('id', g.id);
+      }
+      // Insert grup dari sumber
+      const { data: srcGrps } = await window._sb.from('so_item_groups').select('*, so_item_group_members(barang_id)').eq('brand_id', fromId);
+      for (const g of (srcGrps||[])) {
+        const members = (g.so_item_group_members||[]).map(m=>m.barang_id);
+        const { data: newGrp } = await window._sb.from('so_item_groups').insert({ brand_id:bsActiveBrandId, nama:g.nama, primer_barang_id:g.primer_barang_id }).select();
+        if (newGrp?.[0]?.id && members.length) {
+          await window._sb.from('so_item_group_members').insert(members.map(mid=>({ group_id:newGrp[0].id, barang_id:mid })));
+        }
+      }
+      const srcNama = (window.allBrands||[]).find(b=>b.id===fromId)?.nama || '';
+      showToast(`✓ Pengaturan berhasil disalin dari ${srcNama}`);
+      bsCloseCopyModal();
+      await bsLoadBarang();
+      await bsLoadGrupList();
+      bsRenderBarangList();
+    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
+    finally { btn.disabled = false; btn.textContent = '📋 Salin Sekarang'; }
+  }
+
+  async function bsSaveGrup() {
+    const nama    = document.getElementById('bsGrupFormNama').value.trim();
+    const members = [...bsGrupSelected];
+    const primer  = document.getElementById('bsGrupFormPrimer').value || members[0];
+    const id      = document.getElementById('bsGrupFormId').value;
+    if (!nama)            { showToast('Nama grup wajib diisi', 'error'); return; }
+    if (members.length<2) { showToast('Minimal 2 anggota grup', 'error'); return; }
+    try {
+      if (id) {
+        await window._sb.from('so_item_groups').update({ nama, primer_barang_id: primer }).eq('id', id);
+        await window._sb.from('so_item_group_members').delete().eq('group_id', id);
+        if (members.length) await window._sb.from('so_item_group_members').insert(members.map(mid=>({ group_id:id, barang_id:mid })));
+      } else {
+        const { data: newGrp, error } = await window._sb.from('so_item_groups').insert({ brand_id:bsActiveBrandId, nama, primer_barang_id:primer }).select();
+        if (error) throw error;
+        const newId = newGrp[0].id;
+        if (members.length) await window._sb.from('so_item_group_members').insert(members.map(mid=>({ group_id:newId, barang_id:mid })));
+      }
+      showToast('✓ Grup disimpan');
+      bsResetGrupForm(); // also hides form panel
+      await bsLoadGrupList();
+    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
+  }
+
+  async function bsDeleteGrup(id) {
+    if (!confirm('Yakin ingin menghapus grup ini?')) return;
+    try {
+      await window._sb.from('so_item_group_members').delete().eq('group_id', id);
+      await window._sb.from('so_item_groups').delete().eq('id', id);
+      showToast('✓ Grup dihapus');
+      await bsLoadGrupList();
+    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
+  }
   let toastT;
   function showToast(msg,type='success') {
     const t=document.getElementById('toast'); t.className='toast '+type; t.textContent=msg; t.classList.add('show');
