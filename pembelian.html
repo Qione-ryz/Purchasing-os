@@ -380,18 +380,18 @@
 
       <div class="table-card anim">
         <div class="table-wrap">
-          <table>
+          <table style="table-layout:fixed;width:100%">
             <thead>
               <tr>
                 <th style="width:32px"></th>
-                <th onclick="rSortBy('tanggal')">Tanggal <span id="rsort-tanggal">↕</span></th>
-                <th onclick="rSortBy('nomor_faktur')">No. Faktur <span id="rsort-nomor_faktur">↕</span></th>
+                <th style="width:110px" onclick="rSortBy('tanggal')">Tanggal <span id="rsort-tanggal">↕</span></th>
+                <th style="width:150px" onclick="rSortBy('nomor_faktur')">No. Faktur <span id="rsort-nomor_faktur">↕</span></th>
                 <th onclick="rSortBy('vendor_nama')">Vendor <span id="rsort-vendor_nama">↕</span></th>
-                <th onclick="rSortBy('brand_id')">Brand <span id="rsort-brand_id">↕</span></th>
-                <th>Items</th>
-                <th onclick="rSortBy('total')">Total <span id="rsort-total">↕</span> <span style="font-size:9px;font-family:var(--mono);color:var(--muted);font-weight:400">(inc PPN)</span></th>
-                <th onclick="rSortBy('status')">Status <span id="rsort-status">↕</span></th>
-                <th>Aksi</th>
+                <th style="width:130px" onclick="rSortBy('brand_id')">Brand <span id="rsort-brand_id">↕</span></th>
+                <th style="width:60px">Items</th>
+                <th style="width:140px" onclick="rSortBy('total')">Total <span id="rsort-total">↕</span> <span style="font-size:9px;font-family:var(--mono);color:var(--muted);font-weight:400">(inc PPN)</span></th>
+                <th style="width:85px" onclick="rSortBy('status')">Status <span id="rsort-status">↕</span></th>
+                <th style="width:120px">Aksi</th>
               </tr>
             </thead>
             <tbody id="rTableBody">
@@ -536,7 +536,7 @@
 
 <!-- MODAL DETAIL RIWAYAT -->
 <div class="modal-overlay" id="detailOverlay">
-  <div class="modal">
+  <div class="modal" style="max-width:760px">
     <div class="modal-header">
       <span class="modal-title" id="detailTitle">Detail Pembelian</span>
       <button class="modal-close" onclick="closeDetail()">✕</button>
@@ -1339,14 +1339,30 @@
   function toggleRBrandDropdown(e) {
     e.stopPropagation();
     const dd  = document.getElementById('rBrandFilterDropdown');
-    const btn = document.getElementById('rBrandFilterBtn');
     if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+    const btn = document.getElementById('rBrandFilterBtn');
     const rect = btn.getBoundingClientRect();
     dd.style.left  = rect.left + 'px';
     dd.style.top   = (rect.bottom + 4) + 'px';
     dd.style.width = Math.max(rect.width, 200) + 'px';
     dd.style.display = 'block';
   }
+
+  function _positionRDropdown() {
+    const dd  = document.getElementById('rBrandFilterDropdown');
+    const btn = document.getElementById('rBrandFilterBtn');
+    if (!dd || !btn) return;
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
+  }
+
+  window.addEventListener('scroll', (e) => {
+    const dd = document.getElementById('rBrandFilterDropdown');
+    if (dd && dd.style.display !== 'none' && !dd.contains(e.target)) dd.style.display = 'none';
+  }, true);
+  window.addEventListener('resize', _positionRDropdown);
 
   function toggleRBrand(e, id) {
     e.stopPropagation();
@@ -1450,7 +1466,7 @@
   function _positionCbDropdown() {
     const dd  = document.getElementById('cbBrandFilterDropdown');
     const btn = document.getElementById('cbBrandFilterBtn');
-    if (!dd || !btn || dd.style.display === 'none') return;
+    if (!dd || !btn) return;
     const rect = btn.getBoundingClientRect();
     dd.style.left  = rect.left + 'px';
     dd.style.top   = (rect.bottom + 4) + 'px';
@@ -1460,13 +1476,19 @@
   function toggleCbBrandDropdown(e) {
     e.stopPropagation();
     const dd  = document.getElementById('cbBrandFilterDropdown');
-    const btn = document.getElementById('cbBrandFilterBtn');
     if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
-    _positionCbDropdown();
+    const btn = document.getElementById('cbBrandFilterBtn');
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
     dd.style.display = 'block';
   }
 
-  window.addEventListener('scroll', _positionCbDropdown, true);
+  window.addEventListener('scroll', (e) => {
+    const dd = document.getElementById('cbBrandFilterDropdown');
+    if (dd && dd.style.display !== 'none' && !dd.contains(e.target)) dd.style.display = 'none';
+  }, true);
   window.addEventListener('resize', _positionCbDropdown);
 
   function toggleCbBrand(e, id) {
@@ -1604,18 +1626,19 @@
   /* ── Load stats: ikut filter aktif ── */
   async function loadRiwayatStats() {
     try {
-      const brand    = document.getElementById('rFilterBrand').value;
+      const sel      = PageState.rSelectedBrands || [];
       const status   = document.getElementById('rFilterStatus').value;
       const dateFrom = document.getElementById('rDateFrom').value;
       const dateTo   = document.getElementById('rDateTo').value;
       const dateLabel = document.getElementById('dateFilterLabel')?.textContent || 'Filter Ini';
 
       /* Total transaksi sesuai filter */
-      const { count: totalCount } = await _buildCountQuery();
+      const { count: totalCount } = await window._buildCountQuery();
 
       /* Total nilai sesuai filter */
       let nilaiQ = window._sb.from('riwayat_beli').select('total', { count: 'exact' });
-      if (brand)    nilaiQ = nilaiQ.eq('brand_id', brand);
+      if (sel.length === 1)    nilaiQ = nilaiQ.eq('brand_id', sel[0]);
+      else if (sel.length > 1) nilaiQ = nilaiQ.in('brand_id', sel);
       if (status)   nilaiQ = nilaiQ.eq('status', status);
       if (dateFrom) nilaiQ = nilaiQ.gte('tanggal', dateFrom);
       if (dateTo)   nilaiQ = nilaiQ.lte('tanggal', dateTo);
@@ -1660,7 +1683,7 @@
 
       if (search) {
         /* Search mode: fetch semua data lalu filter di client */
-        const { data: allRaw, error } = await _buildRiwayatQuery()
+        const { data: allRaw, error } = await window._buildRiwayatQuery()
           .order(sortCol, { ascending: rSortDir === 'asc' });
         if (error) throw error;
 
@@ -1681,12 +1704,12 @@
         const pageFrom = (rPage - 1) * R_PER_PAGE;
         const pageTo   = rPage * R_PER_PAGE - 1;
 
-        const { data: riwayatRaw, error } = await _buildRiwayatQuery()
+        const { data: riwayatRaw, error } = await window._buildRiwayatQuery()
           .order(sortCol, { ascending: rSortDir === 'asc' })
           .range(pageFrom, pageTo);
         if (error) throw error;
 
-        const { count } = await _buildCountQuery();
+        const { count } = await window._buildCountQuery();
         totalCount = count || 0;
         display = (riwayatRaw || []).map(_normalizeRow);
         PageState.riwayatData = display;
@@ -2681,7 +2704,7 @@
         <td style="font-weight:500">${vendorDisplay}</td>
         <td><span class="badge badge-blue" style="${brandStyle}">${brandNama}</span></td>
         <td><span style="font-family:var(--mono);font-size:12px">${nItems} item</span></td>
-        <td><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
+        <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
         <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
         <td>
           <div style="display:flex;gap:4px;align-items:center">
@@ -2731,6 +2754,10 @@
                 ${(() => {
                   const subtotalInc = r.subtotal || 0;
                   const ppnRate = (window._ppnRate || 11) / 100;
+                  const allInc = (r.items||[]).length > 0 && (r.items||[]).every(i => i.ppn_included !== undefined ? i.ppn_included : (r.ppn_included || false));
+                  if (allInc) {
+                    return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (inc PPN ${window._ppnRate||11}%)</span><span style="color:var(--text)">${formatRp(subtotalInc)}</span></div>`;
+                  }
                   const subtotalExc = Math.round(subtotalInc / (1 + ppnRate));
                   const ppnAmt = subtotalInc - subtotalExc;
                   return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (exc PPN)</span><span style="color:var(--text)">${formatRp(subtotalExc)}</span></div>
@@ -2827,17 +2854,22 @@
         <tbody>${(r.items || []).map(i => {
           /* Baca ppn_included dari item, fallback ke parent record */
           const isInc = i.ppn_included !== undefined ? i.ppn_included : (r.ppn_included || false);
+          const ppnRate = (window._ppnRate || 11) / 100;
+          /* Harga tampil: selalu tampilkan sesuai mode input */
           const hargaTampil = isInc
             ? (i.harga_inc_ppn || i.harga_satuan || 0)
             : (i.harga_exc_ppn || i.harga_satuan || 0);
           const ppnLabel = isInc
             ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(79,142,247,0.12);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
             : '<span style="font-size:9px;font-family:var(--mono);background:rgba(107,114,128,0.12);color:var(--muted);border-radius:3px;padding:1px 4px;margin-left:4px">exc PPN</span>';
+          /* Subtotal selalu exc PPN */
+          const hargaExc = i.harga_exc_ppn || (isInc ? Math.round(hargaTampil / (1 + ppnRate)) : hargaTampil);
+          const subtotalExcItem = i.qty * hargaExc;
           return `<tr>
           <td style="padding:8px;border-bottom:1px solid rgba(37,40,48,0.4)">${i.nama}</td>
           <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${i.qty} <span style="color:var(--muted);font-size:10px">${i.satuan}</span></td>
           <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(hargaTampil)}${ppnLabel}</td>
-          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(i.subtotal || 0)}</td>
+          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(subtotalExcItem)}</td>
         </tr>`;}).join('')}</tbody>
       </table>
       <div style="margin-top:14px;display:flex;justify-content:flex-end">
@@ -2845,6 +2877,10 @@
           ${(() => {
             const subtotalInc = r.subtotal || 0;
             const ppnRate = (window._ppnRate || 11) / 100;
+            const allInc = (r.items||[]).length > 0 && (r.items||[]).every(i => i.ppn_included !== undefined ? i.ppn_included : (r.ppn_included || false));
+            if (allInc) {
+              return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (inc PPN ${window._ppnRate||11}%)</span><span style="color:var(--text)">${formatRp(subtotalInc)}</span></div>`;
+            }
             const subtotalExc = Math.round(subtotalInc / (1 + ppnRate));
             const ppnAmt = subtotalInc - subtotalExc;
             return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (exc PPN)</span><span style="color:var(--text)">${formatRp(subtotalExc)}</span></div>

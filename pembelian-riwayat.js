@@ -47,13 +47,14 @@ function _normalizeRow(r) {
 
 /* ── Build query Supabase berdasarkan filter aktif ── */
 function _buildRiwayatQuery() {
-  const brand    = document.getElementById('rFilterBrand').value;
+  const sel    = PageState.rSelectedBrands || [];
   const status   = document.getElementById('rFilterStatus').value;
   const dateFrom = document.getElementById('rDateFrom').value;
   const dateTo   = document.getElementById('rDateTo').value;
 
   let q = window._sb.from('riwayat_beli').select('*, riwayat_beli_items(*)');
-  if (brand)    q = q.eq('brand_id', brand);
+  if (sel.length === 1)    q = q.eq('brand_id', sel[0]);
+  else if (sel.length > 1) q = q.in('brand_id', sel);
   if (status)   q = q.eq('status', status);
   if (dateFrom) q = q.gte('tanggal', dateFrom);
   if (dateTo)   q = q.lte('tanggal', dateTo);
@@ -63,13 +64,14 @@ function _buildRiwayatQuery() {
 
 /* Query khusus untuk count ── */
 function _buildCountQuery() {
-  const brand    = document.getElementById('rFilterBrand').value;
+  const sel    = PageState.rSelectedBrands || [];
   const status   = document.getElementById('rFilterStatus').value;
   const dateFrom = document.getElementById('rDateFrom').value;
   const dateTo   = document.getElementById('rDateTo').value;
 
   let q = window._sb.from('riwayat_beli').select('id', { count: 'exact', head: true });
-  if (brand)    q = q.eq('brand_id', brand);
+  if (sel.length === 1)    q = q.eq('brand_id', sel[0]);
+  else if (sel.length > 1) q = q.in('brand_id', sel);
   if (status)   q = q.eq('status', status);
   if (dateFrom) q = q.gte('tanggal', dateFrom);
   if (dateTo)   q = q.lte('tanggal', dateTo);
@@ -80,18 +82,17 @@ function _buildCountQuery() {
 /* ── Load stats ── */
 async function loadRiwayatStats() {
   try {
-    const brand    = document.getElementById('rFilterBrand').value;
+    const sel      = PageState.rSelectedBrands || [];
     const status   = document.getElementById('rFilterStatus').value;
     const dateFrom = document.getElementById('rDateFrom').value;
     const dateTo   = document.getElementById('rDateTo').value;
     const dateLabel = document.getElementById('dateFilterLabel')?.textContent || 'Filter Ini';
 
-    /* Total transaksi sesuai filter */
     const { count: totalCount } = await _buildCountQuery();
 
-    /* Total nilai sesuai filter */
     let nilaiQ = window._sb.from('riwayat_beli').select('total', { count: 'exact' });
-    if (brand)    nilaiQ = nilaiQ.eq('brand_id', brand);
+    if (sel.length === 1)    nilaiQ = nilaiQ.eq('brand_id', sel[0]);
+    else if (sel.length > 1) nilaiQ = nilaiQ.in('brand_id', sel);
     if (status)   nilaiQ = nilaiQ.eq('status', status);
     if (dateFrom) nilaiQ = nilaiQ.gte('tanggal', dateFrom);
     if (dateTo)   nilaiQ = nilaiQ.lte('tanggal', dateTo);
@@ -225,12 +226,12 @@ function _renderRiwayatRows(slice) {
     const brandStyle = brandColor ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55` : '';
     return `<tr>
       <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')">▶</button></td>
-      <td><span class="td-date">${tgl}</span></td>
-      <td><span class="td-faktur">${r.nomor_faktur || '—'}</span></td>
-      <td style="font-weight:500">${vendorDisplay}</td>
-      <td><span class="badge badge-blue" style="${brandStyle}">${brandNama}</span></td>
-      <td><span class="td-count">${nItems} item</span></td>
-      <td><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
+      <td><span class="td-date" style="white-space:nowrap">${tgl}</span></td>
+      <td style="overflow:hidden"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:12px;color:var(--accent2)" title="${r.nomor_faktur||''}">${r.nomor_faktur || '—'}</span></td>
+      <td style="font-weight:500;overflow:hidden"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${vendorDisplay}">${vendorDisplay}</span></td>
+      <td style="overflow:hidden"><span class="badge badge-blue" style="${brandStyle};display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${brandNama}</span></td>
+      <td><span class="td-count" style="white-space:nowrap">${nItems} item</span></td>
+      <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
       <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
       <td>
         <div style="display:flex;gap:4px;align-items:center">
@@ -280,6 +281,10 @@ function _renderRiwayatRows(slice) {
               ${(() => {
                 const subtotalInc = r.subtotal || 0;
                 const ppnRate = (window._ppnRate || 11) / 100;
+                const allInc = (r.items||[]).length > 0 && (r.items||[]).every(i => i.ppn_included !== undefined ? i.ppn_included : (r.ppn_included || false));
+                if (allInc) {
+                  return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (inc PPN ${window._ppnRate||11}%)</span><span style="color:var(--text)">${formatRp(subtotalInc)}</span></div>`;
+                }
                 const subtotalExc = Math.round(subtotalInc / (1 + ppnRate));
                 const ppnAmt = subtotalInc - subtotalExc;
                 return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (exc PPN)</span><span style="color:var(--text)">${formatRp(subtotalExc)}</span></div>
@@ -403,6 +408,10 @@ function openDetail(id) {
         ${(() => {
           const subtotalInc = r.subtotal || 0;
           const ppnRate = (window._ppnRate || 11) / 100;
+          const allInc = (r.items||[]).length > 0 && (r.items||[]).every(i => i.ppn_included !== undefined ? i.ppn_included : (r.ppn_included || false));
+          if (allInc) {
+            return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (inc PPN ${window._ppnRate||11}%)</span><span style="color:var(--text)">${formatRp(subtotalInc)}</span></div>`;
+          }
           const subtotalExc = Math.round(subtotalInc / (1 + ppnRate));
           const ppnAmt = subtotalInc - subtotalExc;
           return `<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Subtotal (exc PPN)</span><span style="color:var(--text)">${formatRp(subtotalExc)}</span></div>

@@ -6,6 +6,7 @@
 <title>Inventory Track — PurchaseOS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
@@ -58,6 +59,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s,background .15s;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(0.97)}
 .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#030709}
+.btn-success{background:linear-gradient(135deg,#38d9a9,#00b8e0);color:#030709}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 .btn-primary:hover{opacity:.9}
 .btn-success{background:linear-gradient(135deg,var(--accent2),var(--accent3));color:#030709}
 .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
@@ -454,7 +457,8 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
   .tr-col-items{max-height:none;overflow:visible;display:none}
   .tr-col-right{height:auto;overflow:visible;padding-bottom:80px}
   .tr-right-top{max-height:none;overflow:visible}
-  .tr-right-bottom{overflow:visible;height:auto}
+  .tr-right-bottom{overflow:visible;height:auto;display:flex;flex-direction:column}
+  .tr-items-scroll{overflow:visible;height:auto;flex:none}
   .tr-footer{position:fixed;bottom:0;left:0;right:0;z-index:30;box-shadow:0 -4px 20px rgba(0,0,0,.35);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   .tr-drawer{width:100vw;max-width:100vw}
 }
@@ -911,7 +915,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
           <div id="trEmptyMsg" style="font-size:13px;color:var(--muted);text-align:center;padding:6px 0;font-family:var(--mono)">Isi info transfer &amp; pilih barang</div>
           <div id="trFooterActions" style="display:none;gap:10px;align-items:center">
             <button class="btn btn-primary" style="flex:1;justify-content:center;font-size:14px;padding:13px" onclick="submitTransfer()" id="btnSubmitTransfer">
-              <span id="btnSubmitTransferLabel">💾 Simpan Transfer</span>
+              <span id="btnSubmitTransferLabel">🔄 Transfer Barang</span>
             </button>
             <button class="btn btn-orange" style="white-space:nowrap;padding:13px 18px" onclick="previewSJ()">🖨 Surat Jalan</button>
           </div>
@@ -1100,7 +1104,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       </div>
       <div class="rw-tbl-wrap rw-desktop-only">
         <table class="tbl rw-tbl">
-          <thead><tr><th>No. SJ</th><th>Tanggal</th><th>Dari</th><th>Ke</th><th>Item</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>No. SJ</th><th>Tanggal</th><th>Dari</th><th>Ke</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="transferHistoryTbody"></tbody>
         </table>
       </div>
@@ -1184,19 +1188,75 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       <p class="scanner-hint">Arahkan kamera ke barcode barang</p>
 
       <!-- Status area: loading / sukses / tidak ditemukan / error -->
-      <div id="scanStatus" style="margin-top:10px;display:none;border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:13px"></div>
+      <div id="scanStatus" style="margin-top:12px;display:none;border-radius:10px;padding:13px 16px;font-family:var(--mono);font-size:14px;font-weight:600;line-height:1.4;border:1.5px solid transparent"></div>
 
       <!-- Opsi register — muncul hanya jika barcode tidak ditemukan -->
-      <div id="scanRegisterArea" style="margin-top:12px;display:none">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:var(--mono)">Barcode ini belum terdaftar. Register ke barang:</div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="registerBarcodeInput" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-family:var(--mono);font-size:12px;padding:8px 11px;outline:none"/>
-          <button class="btn btn-ghost btn-sm" onclick="registerBarcode()">Register ke Barang</button>
+      <div id="scanRegisterArea" style="margin-top:14px;display:none;background:rgba(247,146,79,0.08);border:1.5px solid rgba(247,146,79,0.4);border-radius:12px;padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:20px">📦</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text)">Barang tidak ditemukan</div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:2px">Barcode belum terdaftar di sistem</div>
+          </div>
         </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">KODE:</span>
+          <input type="text" id="registerBarcodeInput" readonly style="flex:1;background:transparent;border:none;color:var(--accent);font-family:var(--mono);font-size:15px;font-weight:700;padding:0;outline:none;letter-spacing:1px"/>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px 16px;font-size:14px" onclick="registerBarcode()">🔗 Daftarkan ke Barang</button>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeBarcodeScanner()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: NOTIF PENDING TRANSFER (muncul saat login) -->
+<div class="modal-overlay" id="pendingTransferOverlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">📦 Ada Barang Masuk!</span>
+      <button class="modal-close" onclick="document.getElementById('pendingTransferOverlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:40px;margin-bottom:12px">📥</div>
+        <div id="pendingTransferCount" style="font-size:18px;font-weight:700;color:var(--accent);margin-bottom:6px"></div>
+        <div id="pendingTransferFrom" style="font-size:13px;color:var(--muted);font-family:var(--mono)"></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:8px">Perlu konfirmasi penerimaan barang.</div>
+      </div>
+    </div>
+    <div class="modal-footer" style="gap:8px">
+      <button class="btn btn-ghost" onclick="document.getElementById('pendingTransferOverlay').classList.remove('show')">Nanti</button>
+      <button class="btn btn-primary" onclick="document.getElementById('pendingTransferOverlay').classList.remove('show');switchTab('riwayat');setTimeout(()=>switchRiwayat('transfer'),200)">Lihat Sekarang →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: KONFIRMASI DETAIL TRANSFER -->
+<div class="modal-overlay" id="konfirmasiTransferOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title" id="konfirmasiTransferTitle">📥 Konfirmasi Transfer</span>
+      <button class="modal-close" onclick="closeKonfirmasiTransfer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="konfirmasiTransferId"/>
+      <div id="konfirmasiTransferMeta"></div>
+      <div style="display:grid;grid-template-columns:1fr 80px 90px;gap:4px;font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:0 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+        <span>Barang</span><span style="text-align:center">Dikirim</span><span style="text-align:center">Diterima</span>
+      </div>
+      <div id="konfirmasiTransferItems" style="max-height:320px;overflow-y:auto"></div>
+      <div id="konfirmasiSelisihInfo" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(247,146,79,0.08);border:1px solid rgba(247,146,79,0.3);border-radius:8px;font-size:12px;color:var(--accent3)"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger" onclick="konfirmasiTolak()">✕ Tolak Semua</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeKonfirmasiTransfer()">Tutup</button>
+        <button class="btn btn-success" onclick="konfirmasiTerima()">✅ Terima</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1318,121 +1378,8 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════
-// CONFIG — Supabase (sama dengan PurchaseOS)
-// ══════════════════════════════════════════════════════
-const SUPA_URL  = 'https://jpfqysbaygcvlkxcecdo.supabase.co';
-const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg';
+const _sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
-/*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SQL MIGRATION — Jalankan 1x di Supabase SQL Editor
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
--- Tabel stok per brand
-CREATE TABLE IF NOT EXISTS inventory_stock (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  brand_id    uuid NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-  barang_id   uuid NOT NULL REFERENCES barang(id) ON DELETE CASCADE,
-  qty         numeric DEFAULT 0,
-  min_qty     numeric DEFAULT 0,
-  updated_at  timestamptz DEFAULT now(),
-  UNIQUE(brand_id, barang_id)
-);
-ALTER TABLE inventory_stock ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_stock FOR ALL USING (true) WITH CHECK (true);
-
--- Riwayat gerakan stok
-CREATE TABLE IF NOT EXISTS inventory_log (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  brand_id    uuid NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-  barang_id   uuid REFERENCES barang(id) ON DELETE SET NULL,
-  tipe        text NOT NULL, -- masuk|keluar|transfer_in|transfer_out|audit
-  qty         numeric NOT NULL,
-  ref_id      uuid,          -- ref ke transfer atau audit id
-  catatan     text,
-  oleh        text,          -- kode pemesan
-  tanggal     date DEFAULT CURRENT_DATE,
-  created_at  timestamptz DEFAULT now()
-);
-ALTER TABLE inventory_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_log FOR ALL USING (true) WITH CHECK (true);
-
--- Transfer antar brand
-CREATE TABLE IF NOT EXISTS inventory_transfer (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  no_sj       text,
-  dari_brand  uuid NOT NULL REFERENCES brands(id),
-  ke_brand    uuid NOT NULL REFERENCES brands(id),
-  tanggal     date DEFAULT CURRENT_DATE,
-  catatan     text,
-  status      text DEFAULT 'selesai',
-  oleh        text,
-  created_at  timestamptz DEFAULT now()
-);
-ALTER TABLE inventory_transfer ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_transfer FOR ALL USING (true) WITH CHECK (true);
-
--- Item dalam transfer
-CREATE TABLE IF NOT EXISTS inventory_transfer_items (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  transfer_id uuid NOT NULL REFERENCES inventory_transfer(id) ON DELETE CASCADE,
-  barang_id   uuid REFERENCES barang(id) ON DELETE SET NULL,
-  nama_barang text,
-  satuan      text,
-  qty         numeric NOT NULL
-);
-ALTER TABLE inventory_transfer_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_transfer_items FOR ALL USING (true) WITH CHECK (true);
-
--- Audit stok
-CREATE TABLE IF NOT EXISTS inventory_audit (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  brand_id    uuid NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-  nama        text NOT NULL,
-  tanggal     date DEFAULT CURRENT_DATE,
-  catatan     text,
-  status      text DEFAULT 'draft', -- draft|selesai
-  oleh        text,
-  created_at  timestamptz DEFAULT now()
-);
-ALTER TABLE inventory_audit ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_audit FOR ALL USING (true) WITH CHECK (true);
-
--- Item audit
-CREATE TABLE IF NOT EXISTS inventory_audit_items (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  audit_id    uuid NOT NULL REFERENCES inventory_audit(id) ON DELETE CASCADE,
-  barang_id   uuid REFERENCES barang(id) ON DELETE SET NULL,
-  nama_barang text,
-  satuan      text,
-  qty_sistem  numeric DEFAULT 0,
-  qty_fisik   numeric,
-  selisih     numeric GENERATED ALWAYS AS (COALESCE(qty_fisik,0) - qty_sistem) STORED,
-  catatan     text
-);
-ALTER TABLE inventory_audit_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON inventory_audit_items FOR ALL USING (true) WITH CHECK (true);
-
--- Barcode mapping (opsional — simpan di field sku barang atau tabel terpisah)
-CREATE TABLE IF NOT EXISTS barang_barcodes (
-  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  barang_id   uuid NOT NULL REFERENCES barang(id) ON DELETE CASCADE,
-  barcode     text NOT NULL UNIQUE,
-  created_at  timestamptz DEFAULT now()
-);
-ALTER TABLE barang_barcodes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon full" ON barang_barcodes FOR ALL USING (true) WITH CHECK (true);
-CREATE INDEX IF NOT EXISTS idx_barang_barcodes_barcode ON barang_barcodes(barcode);
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*/
-
-const _sb = supabase.createClient(SUPA_URL, SUPA_ANON);
-
-// ══════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════
 let currentBrand    = null;
 let currentPemesan  = null;
 let isAdminSession  = false; // true jika ada Supabase Auth session aktif (login backoffice)
@@ -1444,9 +1391,6 @@ let riwayatPage_    = 0;
 let riwayatTotal    = 0;
 const PAGE_SIZE     = 40;
 
-// ══════════════════════════════════════════
-// INDEXEDDB (session)
-// ══════════════════════════════════════════
 const _IDB = 'purchaseos_db', _STORE = 'kv';
 function _openDB(){return new Promise((r,j)=>{const q=indexedDB.open(_IDB,1);q.onupgradeneeded=e=>e.target.result.createObjectStore(_STORE);q.onsuccess=e=>r(e.target.result);q.onerror=e=>j(e.target.error)})}
 async function idbSet(k,v){const db=await _openDB();return new Promise((r,j)=>{const tx=db.transaction(_STORE,'readwrite');tx.objectStore(_STORE).put(v,k);tx.oncomplete=()=>r();tx.onerror=e=>j(e.target.error)})}
@@ -1455,9 +1399,6 @@ async function idbDel(k){const db=await _openDB();return new Promise((r,j)=>{con
 async function loadSession(){try{const r=await idbGet('purchaseos_session');return r?JSON.parse(r):null}catch{return null}}
 async function saveSession(){await idbSet('purchaseos_session',JSON.stringify({pemesan:currentPemesan,brand:currentBrand}))}
 
-// ══════════════════════════════════════════
-// INIT & LOGIN
-// ══════════════════════════════════════════
 async function init(){
   const saved=await loadSession();
   if(saved){currentPemesan=saved.pemesan;currentBrand=saved.brand;showApp()}
@@ -1500,15 +1441,34 @@ async function showApp(){
     isAdminSession=!!(session&&session.user);
   }catch{isAdminSession=false}
 
-
-
   // load all brands & barang
   await loadAllBrands();
   await loadBarangForBrand();
   await loadFreq();
-  await loadCfgBarangConfig(); // load config barang yang ditampilkan
+  await loadCfgBarangConfig();
   setTimeout(updateStickyOffsets,0);
   switchTab('io');
+  // Cek transfer masuk yang belum dikonfirmasi
+  setTimeout(checkPendingTransfers, 800);
+}
+
+
+// ── Confirm dialog helper ──
+let _confirmResolve = null;
+function showConfirm({title='Konfirmasi', msg='', okLabel='Ya', okDanger=false}={}){
+  return new Promise(resolve=>{
+    _confirmResolve = resolve;
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    const okBtn = document.getElementById('confirmBtnOk');
+    okBtn.textContent = okLabel;
+    okBtn.className = 'btn ' + (okDanger ? 'btn-danger' : 'btn-primary');
+    document.getElementById('modalConfirm').classList.add('show');
+  });
+}
+function confirmResolve(val){
+  document.getElementById('modalConfirm').classList.remove('show');
+  if(_confirmResolve){ _confirmResolve(val); _confirmResolve=null; }
 }
 
 function showWelcome(){
@@ -1517,14 +1477,13 @@ function showWelcome(){
   document.getElementById('welcomeScreen').style.display='block';
   document.getElementById('tabNav').style.display='none';
   document.getElementById('kodeChip').style.display='none';
+  const typeBar=document.getElementById('ioTypeBar');
+  if(typeBar)typeBar.classList.remove('visible');
   ['io','stock','transfer','audit','riwayat'].forEach(t=>document.getElementById('section'+cap(t)).style.display='none');
   document.getElementById('inputKode').value='';
 }
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 
-// ══════════════════════════════════════════
-// TAB SWITCH
-// ══════════════════════════════════════════
 function switchTab(tab){
   const tabs=['io','stock','transfer','audit','riwayat'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
@@ -1558,9 +1517,6 @@ function setIoDateDefault(){const d=document.getElementById('ioTanggal');if(d&&!
 function setAuditDateDefault(){const d=document.getElementById('auditTanggal');if(d&&!d.value)d.value=todayStr()}
 function todayStr(){return new Date().toISOString().split('T')[0]}
 
-// ══════════════════════════════════════════
-// LOAD DATA
-// ══════════════════════════════════════════
 async function loadAllBrands(){
   try{
     const{data}=await _sb.from('brands').select('id,nama,warna').order('nama');
@@ -1648,7 +1604,6 @@ function renderStockTable(q=''){
 
 function filterStockTable(q){renderStockTable(q)}
 
-// Re-render stock table saat resize (mobile <-> desktop switch)
 let _stockResizeTimer;
 window.addEventListener('resize',()=>{
   clearTimeout(_stockResizeTimer);
@@ -1677,13 +1632,9 @@ function updateStats(){
   document.getElementById('statEmpty').textContent=empty;
 }
 
-// ══════════════════════════════════════════
-// IO TAB — MULTI ITEM (KERANJANG)
-// ══════════════════════════════════════════
 let ioKeranjang = []; // [{barang_id, nama, satuan, qty, stok}]
 let ioType = 'in';
 
-// Konfirmasi refresh/close ketika ada data yang belum disimpan
 window.addEventListener('beforeunload', e => {
   const hasIO = ioKeranjang.length > 0;
   const hasTransfer = typeof transferItems !== 'undefined' && transferItems.length > 0;
@@ -1693,7 +1644,6 @@ window.addEventListener('beforeunload', e => {
     return e.returnValue;
   }
 });
-// Frekuensi pemakaian barang — diambil dari inventory_log di DB
 let freqMap = {};
 async function loadFreq(){
   freqMap={};
@@ -1708,10 +1658,8 @@ async function loadFreq(){
     (data||[]).forEach(r=>{if(r.barang_id)freqMap[r.barang_id]=(freqMap[r.barang_id]||0)+1});
   }catch(e){freqMap={}}
 }
-// bumpFreq sudah otomatis masuk DB via inventory_log — tidak perlu simpan manual
 function bumpFreq(ids){ids.forEach(id=>{freqMap[id]=(freqMap[id]||0)+1})}
 
-// Hitung tinggi tepat untuk io-two-col agar tidak ada scroll di desktop
 function setIoHeight(){
   const vh = window.innerHeight;
   const topbar = document.querySelector('.topbar');
@@ -1738,7 +1686,6 @@ function updateStickyOffsets(){
   document.documentElement.style.setProperty('--toptab-h',(topbarH+tabNavH)+'px');
 }
 window.addEventListener('resize',updateStickyOffsets);
-// Call after DOM is ready
 setTimeout(updateStickyOffsets,50);
 
 window.addEventListener('resize', setIoHeight);
@@ -1775,7 +1722,6 @@ function _applyIoType(type){
   renderIoKeranjang();
 }
 
-// Gabungan filter barang + barcode dari satu input
 function filterIoBarangOrBarcode(q){
   const cl=document.getElementById('ioSearchClear');
   if(cl)cl.style.display=q?'block':'none';
@@ -1815,9 +1761,7 @@ function renderIoBarang(q=''){
   const list_=document.getElementById('ioBarangList');
   const listDrawer=document.getElementById('ioBarangListDrawer');
   let list=_buildVisibleList(q);
-  if(!q&&Object.keys(freqMap).length){
-    list=[...list].sort((a,b)=>(freqMap[b.barang_id]||0)-(freqMap[a.barang_id]||0));
-  }
+
   if(!list.length){
     const empty='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang</div></div>';
     list_.innerHTML=empty;if(listDrawer)listDrawer.innerHTML=empty;return;
@@ -1827,15 +1771,14 @@ function renderIoBarang(q=''){
     const inKeranjang=item.type==='grup'
       ?item.members.some(mid=>ioKeranjang.some(it=>it.barang_id===mid))
       :ioKeranjang.some(it=>it.barang_id===item.barang_id);
-    const freq=freqMap[item.barang_id]||0;
-    const freqBadge=freq>=3?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);margin-left:4px;opacity:.7">×${freq}</span>`:'';
+
     const grupBadge=item.type==='grup'?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);background:rgba(0,194,179,0.12);border-radius:4px;padding:1px 5px;margin-left:6px">grup</span>`:'';
     const clickArg=item.type==='grup'?`'grp_${item.grup_id}'`:`'${item.barang_id}'`;
     return `<div class="io-barang-item${inKeranjang?' in-keranjang':''}" onclick="toggleIoBarang(${clickArg})">
       <div style="display:flex;align-items:center;flex:1;min-width:0">
         <div class="io-barang-dot"></div>
         <div style="min-width:0">
-          <div style="font-size:14px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.nama}${grupBadge}${freqBadge}</div>
+          <div style="font-size:14px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.nama}${grupBadge}</div>
           <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">${item.satuan}${item.sku?'· '+item.sku:''}</div>
         </div>
       </div>
@@ -1928,8 +1871,6 @@ function removeIoItem(i){
   renderIoKeranjang();
 }
 
-
-// ── IO Drawer (mobile) ──
 function openIoDrawer(){
   document.getElementById('ioDrawer').classList.add('open');
   document.getElementById('ioDrawerOverlay').classList.add('open');
@@ -1979,29 +1920,29 @@ async function submitIoBulk(){
   btn.innerHTML=`<span id="btnSubmitIoLabel">💾 Simpan Semua</span>`;btn.disabled=false;
 }
 
-// ══════════════════════════════════════════
-// BARCODE SCANNER
-// ══════════════════════════════════════════
 let scannerStream = null;
 let barcodeDetector = null;
 let scannerInterval = null;
 let lastScanned = '';
 let _quaggaRunning = false;
 
-function _setScanStatus(msg, type = 'info') {
-  const el = document.getElementById('scanStatus');
-  if (!el) return;
-  el.style.display = 'block';
-  const colors = {
-    info:  { bg: 'rgba(0,212,255,0.08)',  border: 'rgba(0,212,255,0.25)',  text: 'var(--accent)' },
-    ok:    { bg: 'rgba(0,184,224,0.08)',  border: 'rgba(0,184,224,0.3)',   text: 'var(--accent2)' },
-    error: { bg: 'rgba(255,77,106,0.08)', border: 'rgba(255,77,106,0.25)', text: 'var(--danger)' },
+function _setScanStatus(msg, type='info'){
+  const el=document.getElementById('scanStatus');
+  if(!el)return;
+  el.style.display='block';
+  const colors={
+    info: {bg:'rgba(0,212,255,0.12)', border:'rgba(0,212,255,0.45)', text:'#e0f8ff'},
+    ok:   {bg:'rgba(56,217,169,0.15)',border:'rgba(56,217,169,0.55)',text:'#b8ffe8'},
+    error:{bg:'rgba(255,77,106,0.18)',border:'rgba(255,77,106,0.6)', text:'#ffd0d8'},
   };
-  const c = colors[type] || colors.info;
-  el.style.background = c.bg;
-  el.style.border = '1px solid ' + c.border;
-  el.style.color = c.text;
-  el.textContent = msg;
+  const c=colors[type]||colors.info;
+  el.style.background=c.bg;
+  el.style.borderColor=c.border;
+  el.style.color=c.text;
+  el.style.fontSize=type==='error'?'15px':'14px';
+  el.style.fontWeight=type==='error'?'700':'600';
+  el.style.letterSpacing='0.2px';
+  el.textContent=msg;
 }
 
 function _stopScanner() {
@@ -2129,7 +2070,7 @@ async function onBarcodeDetected(code) {
     if (foundBySku) { _onBarangFound(foundBySku, code); return; }
 
     // 3. Tidak ditemukan
-    _setScanStatus('❌ Barcode tidak terdaftar: ' + code, 'error');
+    _setScanStatus('❌ BARANG TIDAK DITEMUKAN  ·  ' + code, 'error');
     document.getElementById('scanRegisterArea').style.display = 'block';
     document.getElementById('registerBarcodeInput').value = code;
     setTimeout(() => { lastScanned = ''; }, 3000);
@@ -2139,8 +2080,23 @@ async function onBarcodeDetected(code) {
   }
 }
 
+
+function _beepSuccess(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.15);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.15);
+  }catch(e){}
+}
 function _onBarangFound(found, code) {
   if (!ioKeranjang.some(it => it.barang_id === found.id)) toggleIoBarang(found.id);
+  _beepSuccess();
+  showToast('success','✓ ' + found.nama + ' ditambahkan');
   _setScanStatus('✓ ' + found.nama + ' ditambahkan ke daftar', 'ok');
   document.getElementById('scanRegisterArea').style.display = 'none';
   setTimeout(() => {
@@ -2148,7 +2104,6 @@ function _onBarangFound(found, code) {
     _setScanStatus('📷 Siap scan berikutnya...', 'info');
   }, 1500);
 }
-
 
 async function submitManualBarcode(inputVal){
   const code=(inputVal||document.getElementById('searchIoBarang').value||'').trim();
@@ -2183,16 +2138,15 @@ async function saveRegisterBarcode(){
   if(!barangId){showToast('error','Pilih barang');return}
   try{
     await _sb.from('barang_barcodes').upsert({barang_id:barangId,barcode:code},{onConflict:'barcode'});
-    showToast('success','✓ Barcode terdaftar!');
+    const regBarang=allBarang.find(b=>b.id===barangId);
+    _beepSuccess();
+    showToast('success','✓ '+(regBarang?.nama||'Barang')+' berhasil didaftarkan & ditambahkan');
     closeRegisterBarcode();
     closeBarcodeScanner();
     if(!ioKeranjang.some(it=>it.barang_id===barangId))toggleIoBarang(barangId);
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ══════════════════════════════════════════
-// MIN STOK MODAL
-// ══════════════════════════════════════════
 let _minStokBarangId=null;
 function openMinStok(id,nama,min){
   _minStokBarangId=id;
@@ -2214,9 +2168,6 @@ async function saveMinStok(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ══════════════════════════════════════════
-// TRANSFER TAB
-// ══════════════════════════════════════════
 let _trBarangFiltered = []; // filtered list for search
 
 function setupTransferTab(){
@@ -2255,7 +2206,6 @@ function closeTransferDrawer(){
   document.getElementById('transferDrawerOverlay').classList.remove('show');
 }
 
-// Riwayat tab toggle
 let _rwMode='stok';
 function switchRiwayat(mode){
   _ensureDateInputs();
@@ -2394,7 +2344,7 @@ function renderTransferItems(){
   if(emptyMsg)emptyMsg.style.display='none';
   if(footerActions)footerActions.style.display='flex';
   const lbl=document.getElementById('btnSubmitTransferLabel');
-  if(lbl)lbl.textContent=`💾 Simpan ${n} Item`;
+  if(lbl)lbl.textContent=`🔄 Transfer ${n} Barang`;
   wrap.innerHTML=`<div class="tr-summary-label"><span style="font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Ringkasan — ${n} barang</span></div>`
     +transferItems.map((it,i)=>`
     <div class="tr-item-row">
@@ -2430,7 +2380,6 @@ function removeTransferItem(i){
   renderTransferItems();
 }
 
-
 function addTransferItem(){}
 function closeTransferItem(){}
 function updateTransferItemStok(){}
@@ -2440,7 +2389,6 @@ async function submitTransfer(){
   if(!transferItems.length){showToast('error','Pilih barang dulu');return}
   const toBrand=document.getElementById('transferTo').value;
   if(!toBrand){showToast('error','Pilih brand tujuan');return}
-  // Validasi qty
   for(const it of transferItems){
     if(it.qty<=0){showToast('error',it.nama+': jumlah harus > 0');return}
     if(it.qty>(it.maxQty||0)){showToast('error','Stok '+it.nama+' tidak cukup. Tersedia: '+(it.maxQty||0));return}
@@ -2448,27 +2396,28 @@ async function submitTransfer(){
   const noSJ=document.getElementById('transferNoSJ').value.trim();
   const tgl=document.getElementById('transferTanggal').value||todayStr();
   const catatan=document.getElementById('transferCatatan').value.trim();
-  const ok=await showConfirm({title:'🔄 Konfirmasi Transfer',msg:`Transfer ${transferItems.length} jenis barang ke ${allBrands.find(b=>b.id===toBrand)?.nama||'brand tujuan'}?`,okLabel:'Ya, Transfer'});
+  const toBrandNama=allBrands.find(b=>b.id===toBrand)?.nama||'brand tujuan';
+  const ok=await showConfirm({title:'🔄 Konfirmasi Transfer',msg:`Transfer ${transferItems.length} jenis barang ke ${toBrandNama}?\n\nStok pengirim akan langsung berkurang. Stok penerima bertambah setelah mereka konfirmasi.`,okLabel:'Ya, Kirim'});
   if(!ok)return;
   try{
-    const{data:trData,error:trErr}=await _sb.from('inventory_transfer').insert({no_sj:noSJ,dari_brand:currentBrand.id,ke_brand:toBrand,tanggal:tgl,catatan,oleh:currentPemesan.kode}).select();
+    // Simpan transfer dengan status 'menunggu'
+    const{data:trData,error:trErr}=await _sb.from('inventory_transfer').insert({
+      no_sj:noSJ,dari_brand:currentBrand.id,ke_brand:toBrand,
+      tanggal:tgl,catatan,oleh:currentPemesan.kode,status:'menunggu'
+    }).select();
     if(trErr)throw trErr;
     const trId=trData[0].id;
     for(const it of transferItems){
       await _sb.from('inventory_transfer_items').insert({transfer_id:trId,barang_id:it.barang_id,nama_barang:it.nama,satuan:it.satuan,qty:it.qty});
+      // Kurangi stok pengirim SEKARANG
       const curQty=stockMap[it.barang_id]?.qty||0;
       const newQty=Math.max(0,curQty-it.qty);
       await _sb.from('inventory_stock').upsert({brand_id:currentBrand.id,barang_id:it.barang_id,qty:newQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
       stockMap[it.barang_id]={...(stockMap[it.barang_id]||{}),qty:newQty};
-      const{data:destStock}=await _sb.from('inventory_stock').select('qty').eq('brand_id',toBrand).eq('barang_id',it.barang_id).maybeSingle();
-      const destQty=(destStock?.qty||0)+it.qty;
-      await _sb.from('inventory_stock').upsert({brand_id:toBrand,barang_id:it.barang_id,qty:destQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
-      await _sb.from('inventory_log').insert([
-        {brand_id:currentBrand.id,barang_id:it.barang_id,tipe:'transfer_out',qty:it.qty,ref_id:trId,catatan:'SJ: '+noSJ+' → '+allBrands.find(b=>b.id===toBrand)?.nama,oleh:currentPemesan.kode,tanggal:tgl},
-        {brand_id:toBrand,barang_id:it.barang_id,tipe:'transfer_in',qty:it.qty,ref_id:trId,catatan:'SJ: '+noSJ+' dari '+currentBrand.nama,oleh:currentPemesan.kode,tanggal:tgl}
-      ]);
+      // Log transfer_out untuk pengirim
+      await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:it.barang_id,tipe:'transfer_out',qty:it.qty,ref_id:trId,catatan:'SJ: '+noSJ+' → '+toBrandNama,oleh:currentPemesan.kode,tanggal:tgl});
     }
-    showToast('success','✓ Transfer berhasil disimpan!');
+    showToast('success','✓ Transfer dikirim! Menunggu konfirmasi '+toBrandNama);
     transferItems=[];
     renderTransferItems();
     renderTransferBarangList('');
@@ -2479,10 +2428,189 @@ async function submitTransfer(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
+
+// ── Cek transfer masuk yang menunggu konfirmasi ──
+async function checkPendingTransfers(){
+  try{
+    const{data}=await _sb.from('inventory_transfer')
+      .select('id,no_sj,dari_brand,tanggal,inventory_transfer_items(id)')
+      .eq('ke_brand',currentBrand.id)
+      .eq('status','menunggu')
+      .order('created_at',{ascending:false});
+    if(!data||!data.length) return;
+    const n=data.length;
+    const dariNames=[...new Set(data.map(t=>allBrands.find(b=>b.id===t.dari_brand)?.nama||'—'))].join(', ');
+    // Tampilkan popup notifikasi
+    document.getElementById('pendingTransferCount').textContent=n+' transfer masuk';
+    document.getElementById('pendingTransferFrom').textContent='dari: '+dariNames;
+    document.getElementById('pendingTransferOverlay').classList.add('show');
+  }catch(e){}
+}
+
+// ── Buka modal konfirmasi detail transfer ──
+async function openKonfirmasiTransfer(trId){
+  try{
+    const{data:tr}=await _sb.from('inventory_transfer').select('*').eq('id',trId).single();
+    const{data:items}=await _sb.from('inventory_transfer_items').select('*').eq('transfer_id',trId);
+    const dari=allBrands.find(b=>b.id===tr.dari_brand)?.nama||'—';
+    document.getElementById('konfirmasiTransferId').value=trId;
+    document.getElementById('konfirmasiTransferTitle').textContent='📥 Transfer dari '+dari;
+    document.getElementById('konfirmasiTransferMeta').innerHTML=
+      `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;font-family:var(--mono);color:var(--muted);margin-bottom:12px">
+        <span>No SJ: <b style="color:var(--text)">${tr.no_sj||'—'}</b></span>
+        <span>Tanggal: <b style="color:var(--text)">${tr.tanggal||'—'}</b></span>
+        <span>Dari: <b style="color:var(--accent)">${dari}</b></span>
+      </div>`;
+    document.getElementById('konfirmasiSelisihInfo').style.display='none';
+    document.getElementById('konfirmasiTransferItems').innerHTML=
+      (items||[]).map((it,i)=>`
+        <div style="display:grid;grid-template-columns:1fr 80px 90px;gap:4px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)" id="ktr-row-${i}">
+          <div>
+            <div style="font-size:13px;font-weight:500">${it.nama_barang}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${it.satuan||''}</div>
+          </div>
+          <div style="text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center">${(it.qty||0).toLocaleString('id-ID')}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <input type="number" id="ktr-qty-${i}"
+              value="${it.qty||0}" min="0" step="0.1"
+              data-kirim="${it.qty||0}" data-idx="${i}"
+              style="width:76px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;font-weight:600;padding:5px 4px;outline:none"
+              oninput="_updateKtrSelisih(${i},${it.qty||0},this.value)"
+              onfocus="this.style.borderColor='var(--accent)'"
+              onblur="this.style.borderColor='var(--border)'"/>
+            <div id="ktr-diff-${i}" style="font-size:10px;font-family:var(--mono);height:14px"></div>
+          </div>
+        </div>`).join('');
+    document.getElementById('konfirmasiTransferOverlay').classList.add('show');
+  }catch(e){showToast('error','Gagal memuat detail: '+e.message)}
+}
+
+function _updateKtrSelisih(idx, kirim, val){
+  const v=parseFloat(val)||0;
+  const diff=v-kirim;
+  const el=document.getElementById('ktr-diff-'+idx);
+  const inp=document.getElementById('ktr-qty-'+idx);
+  if(diff<0){
+    el.textContent=diff.toLocaleString('id-ID');
+    el.style.color='var(--danger)';
+    inp.style.borderColor='var(--accent3)';
+  } else if(diff>0){
+    el.textContent='+'+diff.toLocaleString('id-ID');
+    el.style.color='var(--accent2)';
+    inp.style.borderColor='var(--accent2)';
+  } else {
+    el.textContent='';
+    inp.style.borderColor='var(--border)';
+  }
+  // Update info selisih global
+  const allInputs=document.querySelectorAll('[id^="ktr-qty-"]');
+  let hasSelisih=false;
+  allInputs.forEach(inp=>{
+    const k=parseFloat(inp.dataset.kirim)||0;
+    const v2=parseFloat(inp.value)||0;
+    if(v2!==k) hasSelisih=true;
+  });
+  const info=document.getElementById('konfirmasiSelisihInfo');
+  info.style.display=hasSelisih?'block':'none';
+  if(hasSelisih) info.textContent='⚠ Ada penyesuaian jumlah. Stok akan bertambah sesuai angka yang kamu isi, bukan angka kiriman.';
+}
+
+function closeKonfirmasiTransfer(){
+  document.getElementById('konfirmasiTransferOverlay').classList.remove('show');
+}
+
+async function konfirmasiTerima(){
+  const trId=document.getElementById('konfirmasiTransferId').value;
+  const qtyInputs=document.querySelectorAll('[id^="ktr-qty-"]');
+  const qtyMap={};
+  qtyInputs.forEach((inp,i)=>{qtyMap[i]=Math.max(0,parseFloat(inp.value)||0)});
+  const hasSelisih=document.getElementById('konfirmasiSelisihInfo').style.display!=='none';
+  const msg=hasSelisih
+    ?'Ada penyesuaian jumlah. Selisih akan dikembalikan ke stok pengirim. Lanjutkan?'
+    :'Konfirmasi penerimaan barang? Stok akan bertambah.';
+  const ok=await showConfirm({title:'✅ Konfirmasi Terima',msg,okLabel:'Ya, Terima'});
+  if(!ok)return;
+  try{
+    const{data:items}=await _sb.from('inventory_transfer_items').select('*').eq('transfer_id',trId);
+    const{data:tr}=await _sb.from('inventory_transfer').select('*').eq('id',trId).single();
+    const tgl=todayStr();
+    const dariNama=allBrands.find(b=>b.id===tr.dari_brand)?.nama||'—';
+    const keNama=allBrands.find(b=>b.id===tr.ke_brand)?.nama||'—';
+    for(let i=0;i<(items||[]).length;i++){
+      const it=items[i];
+      if(!it.barang_id)continue;
+      const qtyKirim=it.qty;
+      const qtyDiterima=qtyMap[i]??qtyKirim;
+      const qtyReturn=qtyKirim-qtyDiterima;
+
+      // Tambah stok penerima
+      if(qtyDiterima>0){
+        const{data:destStock}=await _sb.from('inventory_stock').select('qty').eq('brand_id',currentBrand.id).eq('barang_id',it.barang_id).maybeSingle();
+        const destQty=(destStock?.qty||0)+qtyDiterima;
+        await _sb.from('inventory_stock').upsert({brand_id:currentBrand.id,barang_id:it.barang_id,qty:destQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
+        if(stockMap[it.barang_id])stockMap[it.barang_id].qty=destQty;
+        else stockMap[it.barang_id]={qty:destQty,min_qty:0};
+        const catIn=qtyReturn>0
+          ?`SJ: ${tr.no_sj||''} dari ${dariNama} (dikirim ${qtyKirim}, diterima ${qtyDiterima})`
+          :`SJ: ${tr.no_sj||''} dari ${dariNama}`;
+        await _sb.from('inventory_log').insert({brand_id:currentBrand.id,barang_id:it.barang_id,tipe:'transfer_in',qty:qtyDiterima,ref_id:trId,catatan:catIn,oleh:currentPemesan.kode,tanggal:tgl});
+      }
+
+      // Kembalikan selisih ke stok pengirim
+      if(qtyReturn>0){
+        const{data:srcStock}=await _sb.from('inventory_stock').select('qty').eq('brand_id',tr.dari_brand).eq('barang_id',it.barang_id).maybeSingle();
+        const returnQty=(srcStock?.qty||0)+qtyReturn;
+        await _sb.from('inventory_stock').upsert({brand_id:tr.dari_brand,barang_id:it.barang_id,qty:returnQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
+        if(tr.dari_brand===currentBrand.id){
+          if(stockMap[it.barang_id])stockMap[it.barang_id].qty=returnQty;
+          else stockMap[it.barang_id]={qty:returnQty,min_qty:0};
+        }
+        await _sb.from('inventory_log').insert({brand_id:tr.dari_brand,barang_id:it.barang_id,tipe:'transfer_return',qty:qtyReturn,ref_id:trId,catatan:`Kembali dari ${keNama} — SJ: ${tr.no_sj||''} (dikirim ${qtyKirim}, diterima ${qtyDiterima})`,oleh:currentPemesan.kode,tanggal:tgl});
+      }
+
+      // Update SJ item: simpan qty diterima + catatan selisih
+      const sjCatatan=qtyReturn>0?`dikirim ${qtyKirim}, diterima ${qtyDiterima}`:null;
+      await _sb.from('inventory_transfer_items').update({
+        qty: qtyDiterima,
+        ...(sjCatatan?{catatan:sjCatatan}:{})
+      }).eq('id',it.id);
+    }
+    await _sb.from('inventory_transfer').update({status:'diterima'}).eq('id',trId);
+    closeKonfirmasiTransfer();
+    showToast('success','✓ Transfer diterima! Stok telah diperbarui');
+    loadTransferHistory();
+    updateStats();
+    renderStockTable();
+  }catch(e){showToast('error','Gagal: '+e.message)}
+}
+
+async function konfirmasiTolak(){
+  const trId=document.getElementById('konfirmasiTransferId').value;
+  const ok=await showConfirm({title:'✕ Tolak Transfer',msg:'Tolak transfer ini? Stok pengirim akan dikembalikan.',okLabel:'Ya, Tolak',okDanger:true});
+  if(!ok)return;
+  try{
+    const{data:items}=await _sb.from('inventory_transfer_items').select('*').eq('transfer_id',trId);
+    const{data:tr}=await _sb.from('inventory_transfer').select('*').eq('id',trId).single();
+    const tgl=todayStr();
+    const keNama=allBrands.find(b=>b.id===tr.ke_brand)?.nama||'—';
+    for(const it of (items||[])){
+      if(!it.barang_id)continue;
+      const{data:srcStock}=await _sb.from('inventory_stock').select('qty').eq('brand_id',tr.dari_brand).eq('barang_id',it.barang_id).maybeSingle();
+      const returnQty=(srcStock?.qty||0)+it.qty;
+      await _sb.from('inventory_stock').upsert({brand_id:tr.dari_brand,barang_id:it.barang_id,qty:returnQty,updated_at:new Date().toISOString()},{onConflict:'brand_id,barang_id'});
+      if(tr.dari_brand===currentBrand.id){if(stockMap[it.barang_id])stockMap[it.barang_id].qty=returnQty;}
+      await _sb.from('inventory_log').insert({brand_id:tr.dari_brand,barang_id:it.barang_id,tipe:'transfer_out',qty:-it.qty,ref_id:trId,catatan:'DITOLAK oleh '+keNama+' — SJ: '+(tr.no_sj||''),oleh:currentPemesan.kode,tanggal:tgl});
+    }
+    await _sb.from('inventory_transfer').update({status:'ditolak'}).eq('id',trId);
+    closeKonfirmasiTransfer();
+    showToast('error','Transfer ditolak. Stok pengirim dikembalikan.');
+    loadTransferHistory();
+  }catch(e){showToast('error','Gagal: '+e.message)}
+}
 async function loadTransferHistory(){
   const tbody=document.getElementById('transferHistoryTbody');
   const mobileList=document.getElementById('transferMobileList');
-  tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Memuat...</div></div></td></tr>';
+  tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Memuat...</div></div></td></tr>';
   try{
     const bulanAwal=document.getElementById('filterTransferBulanAwal')?.value;
     const bulanAkhir=document.getElementById('filterTransferBulanAkhir')?.value;
@@ -2490,46 +2618,61 @@ async function loadTransferHistory(){
     if(bulanAwal){const tglAwal=bulanAwal+'-01';const tglAkhir=(bulanAkhir||bulanAwal)+'-'+String(_lastDay(bulanAkhir||bulanAwal)).padStart(2,'0');q=q.gte('tanggal',tglAwal).lte('tanggal',tglAkhir)}
     const{data}=await q;
     if(!data||!data.length){
-      const empty='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Belum ada transfer</div></div></td></tr>';
+      const empty='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Belum ada transfer</div></div></td></tr>';
       tbody.innerHTML=empty;
       if(mobileList)mobileList.innerHTML='<div style="padding:32px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px">Belum ada transfer</div>';
       return;
     }
-    // Desktop
+    const statusBadge=(s,isPenerima)=>{
+      if(s==='menunggu'&&isPenerima) return '<span class="badge badge-orange" style="animation:pulse 1.5s infinite">⏳ Perlu Konfirmasi</span>';
+      if(s==='menunggu') return '<span class="badge badge-orange">⏳ Menunggu</span>';
+      if(s==='diterima') return '<span class="badge badge-green">✓ Diterima</span>';
+      if(s==='ditolak')  return '<span class="badge badge-red">✕ Ditolak</span>';
+      return '<span class="badge badge-green">✓ Selesai</span>';
+    };
     tbody.innerHTML=data.map(t=>{
       const dari=allBrands.find(b=>b.id===t.dari_brand)?.nama||'—';
       const ke=allBrands.find(b=>b.id===t.ke_brand)?.nama||'—';
       const itemCount=t.inventory_transfer_items?.length||0;
-      return `<tr>
+      const isPenerima=t.ke_brand===currentBrand.id;
+      const status=t.status||'selesai';
+      const aksiBtn=isPenerima&&status==='menunggu'
+        ?`<div style="display:flex;gap:4px"><button class="btn btn-success btn-sm" onclick="openKonfirmasiTransfer('${t.id}')">📥 Konfirmasi</button><button class="btn btn-ghost btn-sm" onclick="printSJById('${t.id}')">🖨 SJ</button></div>`
+        :`<button class="btn btn-ghost btn-sm" onclick="printSJById('${t.id}')">🖨 SJ</button>`;
+      return `<tr${isPenerima&&status==='menunggu'?' style="background:rgba(0,212,255,0.04)"':''}>
         <td style="font-family:var(--mono);font-size:12px">${t.no_sj||'—'}</td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap">${t.tanggal||'—'}</td>
         <td style="font-size:13px">${dari}</td>
         <td style="font-size:13px;color:var(--accent)">${ke}</td>
         <td><span class="badge badge-blue">${itemCount} item</span></td>
-        <td><button class="btn btn-ghost btn-sm" onclick="printSJById('${t.id}')">🖨 SJ</button></td>
+        <td>${statusBadge(status,isPenerima)}</td>
+        <td>${aksiBtn}</td>
       </tr>`;
     }).join('');
-    // Mobile cards — sesuai screenshot 2
     if(mobileList)mobileList.innerHTML=data.map(t=>{
       const dari=allBrands.find(b=>b.id===t.dari_brand)?.nama||'—';
       const ke=allBrands.find(b=>b.id===t.ke_brand)?.nama||'—';
       const itemCount=t.inventory_transfer_items?.length||0;
-      return `<div class="rw-card">
+      const isPenerima=t.ke_brand===currentBrand.id;
+      const status=t.status||'selesai';
+      return `<div class="rw-card"${isPenerima&&status==='menunggu'?' style="border-left:3px solid var(--accent)"':''}>
         <div class="rw-card-r1">
           <span class="rw-card-tgl">${t.tanggal||'—'}</span>
           <span style="font-family:var(--mono);font-size:12px;color:var(--muted)">${t.no_sj||'—'}</span>
         </div>
-        <div class="rw-card-nama" style="color:var(--accent)">${ke}</div>
+        <div class="rw-card-nama">${isPenerima?'<span style="color:var(--muted);font-size:12px">dari </span>'+dari:'<span style="color:var(--muted);font-size:12px">ke </span><span style="color:var(--accent)">'+ke+'</span>'}</div>
         <div class="rw-card-r3">
           <span class="badge badge-blue">${itemCount} item</span>
-          <button class="btn btn-ghost btn-sm" onclick="printSJById('${t.id}')">🖨 SJ</button>
+          <div style="display:flex;gap:6px">
+            ${isPenerima&&status==='menunggu'?`<button class="btn btn-success btn-sm" onclick="openKonfirmasiTransfer('${t.id}')">📥 Konfirmasi</button>`:''}
+            <button class="btn btn-ghost btn-sm" onclick="printSJById('${t.id}')">🖨 SJ</button>
+          </div>
         </div>
       </div>`;
     }).join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="6" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
 }
 
-// Surat Jalan preview & print
 function previewSJ(){
   if(!transferItems.length){showToast('error','Tambahkan barang dulu');return}
   const toBrandId=document.getElementById('transferTo').value;
@@ -2551,7 +2694,7 @@ async function printSJById(trId){
       dari:allBrands.find(b=>b.id===tr.dari_brand)?.nama||'—',
       ke:allBrands.find(b=>b.id===tr.ke_brand)?.nama||'—',
       oleh:tr.oleh||'—',catatan:tr.catatan||'',
-      items:(items||[]).map(it=>({nama:it.nama_barang,satuan:it.satuan,qty:it.qty}))
+      items:(items||[]).map(it=>({nama:it.nama_barang,satuan:it.satuan,qty:it.qty,catatan:it.catatan||null}))
     });
     document.getElementById('sjPreviewOverlay').classList.add('show');
   }catch(e){showToast('error','Gagal cetak: '+e.message)}
@@ -2612,7 +2755,7 @@ function _getSJHtmlDocument(){
     .sj-sign-space{flex:1;min-height:60px}
     .sj-sign-name{font-size:11px;border-top:1px solid #ccc;padding-top:8px;margin-top:auto}
     @media print{body{padding:20px 28px}@page{margin:10mm}}
-  </style>
+  <\/style>
 </head>
 <body>${content}</body>
 </html>`;
@@ -2639,9 +2782,6 @@ function downloadSJPDF(){
   showToast('success','File HTML siap dibuka & di-print sebagai PDF (Ctrl+P → Save as PDF)');
 }
 
-// ══════════════════════════════════════════
-// AUDIT TAB — DIRECT STOCK CORRECTION
-// ══════════════════════════════════════════
 let auditDirectData = []; // [{barang_id, nama, satuan, qty_sistem, qty_fisik, catatan}]
 let auditDirectFiltered = [];
 
@@ -2794,7 +2934,7 @@ async function loadAuditHistory(){
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap">${r.tanggal||'—'}</td>
         <td style="font-weight:500;font-size:13px">${r.barang?.nama||'—'}</td>
         <td style="font-family:var(--mono);font-weight:600;color:${sel>0?'var(--accent2)':sel<0?'var(--danger)':'var(--muted)'};white-space:nowrap">${sel>0?'+':''}${sel.toLocaleString('id-ID')} <span style="font-size:11px;color:var(--muted)">${r.barang?.satuan||''}</span></td>
-        <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.catatan||'—'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.catatan||''}">${r.catatan||'—'}</td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.oleh||'—'}</td>
       </tr>`;
     }).join('');
@@ -2820,9 +2960,6 @@ async function loadAuditHistory(){
   }catch(e){tbody.innerHTML='<tr><td colspan="5" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
 }
 
-// ══════════════════════════════════════════
-// RIWAYAT TAB
-// ══════════════════════════════════════════
 async function loadRiwayat(){
   const tbody=document.getElementById('riwayatTbody');
   const mobileList=document.getElementById('riwayatMobileList');
@@ -2853,21 +2990,25 @@ async function loadRiwayat(){
     const tipeBadge={masuk:'badge-green',keluar:'badge-red',transfer_out:'badge-orange',transfer_in:'badge-blue',audit:'badge-gray'};
     // Desktop rows
     tbody.innerHTML=(data||[]).map(r=>{
-      const tipe=r.tipe||'';const isOut=['keluar','transfer_out'].includes(tipe);
+      const tipe=r.tipe||'';const isOut=tipe==='keluar'||tipe==='transfer_out';const isReturn=tipe==='transfer_return';
+      const qtyColor=isOut?'var(--danger)':isReturn?'#f5c842':'var(--accent2)';
+      const qtySign=isOut?'−':'+';
       return `<tr>
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">${r.tanggal||'—'}</td>
         <td style="font-weight:500;font-size:13px">${r.barang?.nama||'—'}</td>
         <td><span class="badge ${tipeBadge[tipe]||'badge-gray'}">${tipeLabel[tipe]||tipe}</span></td>
-        <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${isOut?'var(--danger)':'var(--accent2)'};white-space:nowrap">${isOut?'−':'+'} ${(r.qty||0).toLocaleString('id-ID')}</td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${qtyColor};white-space:nowrap">${qtySign} ${(r.qty||0).toLocaleString('id-ID')}</td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.barang?.satuan||''}</td>
-        <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.catatan||'—'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.catatan||''}">${r.catatan||'—'}</td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.oleh||'—'}</td>
       </tr>`;
     }).join('');
     // Mobile cards — sesuai screenshot 1
     if(mobileList)mobileList.innerHTML=(data||[]).map(r=>{
-      const tipe=r.tipe||'';const isOut=['keluar','transfer_out'].includes(tipe);
+      const tipe=r.tipe||'';const isOut=tipe==='keluar'||tipe==='transfer_out';const isReturn=tipe==='transfer_return';
       const qty=(r.qty||0).toLocaleString('id-ID');
+      const qtyColor2=isOut?'var(--danger)':isReturn?'#f5c842':'var(--accent2)';
+      const qtySign2=isOut?'−':'+';
       return `<div class="rw-card">
         <div class="rw-card-r1">
           <span class="rw-card-tgl">${r.tanggal||'—'}</span>
@@ -2877,7 +3018,7 @@ async function loadRiwayat(){
         <div class="rw-card-r3">
           <span class="rw-card-sub">${r.catatan||'—'}</span>
           <div style="display:flex;align-items:baseline;gap:4px">
-            <span class="rw-card-val" style="color:${isOut?'var(--danger)':'var(--accent2)'}">${isOut?'−':'+'}${qty}</span>
+            <span class="rw-card-val" style="color:${qtyColor2}">${qtySign2}${qty}</span>
             <span class="rw-card-sat">${r.barang?.satuan||''}</span>
           </div>
         </div>
@@ -2893,7 +3034,6 @@ function riwayatPage(dir){
   loadRiwayat();
 }
 
-// ── Unified date filter — single body-level popup ──
 let _activeDateId=null;
 const _dateIdMap={
   stok:{awal:'filterRiwayatBulanAwal',akhir:'filterRiwayatBulanAkhir',load:()=>{riwayatPage_=0;loadRiwayat()}},
@@ -2966,7 +3106,6 @@ function _updateDateLabel(id,awal,akhir=''){
   else lbl.textContent=`📅 ${awal}`;
 }
 
-// Close popup on outside click
 document.addEventListener('click',e=>{
   const popup=document.getElementById('rwDatePopup');
   if(popup&&popup.style.display!=='none'&&!e.target.closest('#rwDatePopup')&&!e.target.closest('.rw-date-btn')){
@@ -2977,7 +3116,6 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.rw-export-wrap'))document.querySelectorAll('.rw-export-menu').forEach(m=>m.classList.remove('open'));
 });
 
-// ── Export menu helpers ──
 function toggleExportMenu(id){
   const menu=document.getElementById('exportMenu'+cap(id));
   document.querySelectorAll('.rw-export-menu').forEach(m=>{if(m.id!=='exportMenu'+cap(id))m.classList.remove('open')});
@@ -2995,26 +3133,23 @@ function _getDateRange(awalId,akhirId){
   return{gte:a+'-01',lte:end+'-'+String(_lastDay(end)).padStart(2,'0')};
 }
 
-// ── Helper: download blob ──
 function _downloadBlob(blob,filename){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
-// ── Build printable HTML table ──
 function _buildPrintHTML(title,headers,rows,brandName,rangeLabel){
   const thead=`<tr>${headers.map(h=>`<th style="padding:8px 12px;border-bottom:2px solid #ccc;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#666">${h}</th>`).join('')}</tr>`;
   const tbody=rows.map(r=>`<tr style="border-bottom:1px solid #eee">${r.map(c=>`<td style="padding:8px 12px;font-size:13px">${c??'—'}</td>`).join('')}</tr>`).join('');
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-  <style>body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#1a1a1a}h2{margin:0 0 4px;font-size:18px}p{margin:0 0 16px;font-size:12px;color:#888}table{width:100%;border-collapse:collapse}@media print{body{padding:0}}</style>
+  <style>body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#1a1a1a}h2{margin:0 0 4px;font-size:18px}p{margin:0 0 16px;font-size:12px;color:#888}table{width:100%;border-collapse:collapse}@media print{body{padding:0}}<\/style>
   </head><body>
   <h2>${title}</h2><p>${brandName} · ${rangeLabel} · Diekspor: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</p>
   <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
   <script>window.onload=()=>window.print()<\/script></body></html>`;
 }
 
-// ── Riwayat Stok — Excel ──
 async function exportRiwayatExcel(){
   try{
     const tipe=document.getElementById('filterRiwayatTipe').value;
@@ -3031,7 +3166,6 @@ async function exportRiwayatExcel(){
   }catch(e){showToast('error','Gagal export: '+e.message)}
 }
 
-// ── Riwayat Stok — PDF ──
 async function exportRiwayatPDF(){
   try{
     const tipe=document.getElementById('filterRiwayatTipe').value;
@@ -3048,7 +3182,6 @@ async function exportRiwayatPDF(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ── Transfer — Excel ──
 async function exportTransferExcel(){
   try{
     const range=_getDateRange('filterTransferBulanAwal','filterTransferBulanAkhir');
@@ -3068,7 +3201,6 @@ async function exportTransferExcel(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ── Transfer — PDF ──
 async function exportTransferPDF(){
   try{
     const range=_getDateRange('filterTransferBulanAwal','filterTransferBulanAkhir');
@@ -3087,7 +3219,6 @@ async function exportTransferPDF(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ── Audit — Excel ──
 async function exportAuditExcel(){
   try{
     const range=_getDateRange('filterAuditBulanAwal','filterAuditBulanAkhir');
@@ -3103,7 +3234,6 @@ async function exportAuditExcel(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ── Audit — PDF ──
 async function exportAuditPDF(){
   try{
     const range=_getDateRange('filterAuditBulanAwal','filterAuditBulanAkhir');
@@ -3120,20 +3250,14 @@ async function exportAuditPDF(){
   }catch(e){showToast('error','Gagal: '+e.message)}
 }
 
-// ── Build Excel XML (simple .xls) ──
 function _buildXLSX(rows){
   const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const xmlRows=rows.map(r=>`<Row>${r.map(c=>`<Cell><Data ss:Type="String">${esc(c)}</Data></Cell>`).join('')}</Row>`).join('');
   return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Sheet1"><Table>${xmlRows}</Table></Worksheet></Workbook>`;
 }
 
-// ── Legacy (kept for compatibility) ──
 async function exportRiwayat(){exportRiwayatExcel()}
 
-
-// ══════════════════════════════════════════
-// GRUP & CONFIG (state + helpers)
-// ══════════════════════════════════════════
 let _cfgBarangSelected = null; // Set of barang_id yang ditampilkan
 let _invGroups = [];           // [{id,nama,primer_barang_id,members:[barang_id,...]}]
 let _invGroupMemberSet = new Set(); // semua barang_id yang jadi anggota grup
@@ -3161,7 +3285,6 @@ async function loadCfgBarangConfig(){
   }
 }
 
-// Build merged list: grup = 1 entry, member disembunyikan, semua diurutkan abjad
 function _buildVisibleList(q=''){
   const out=[];
   _invGroups.forEach(g=>{
@@ -3181,9 +3304,6 @@ function _buildVisibleList(q=''){
   return out;
 }
 
-// ══════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════
 let toastTimer;
 function showToast(type,msg){
   const t=document.getElementById('toast');
@@ -3194,9 +3314,6 @@ function showToast(type,msg){
   toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// ══════════════════════════════════════════
-// RESPONSIVE
-// ══════════════════════════════════════════
 function checkResponsive(){
   const trGrid=document.getElementById('transferGrid');
   const btnMobile=document.getElementById('btnPilihBarangMobile');
@@ -3213,7 +3330,6 @@ checkResponsive();
 
 init();
 
-// App switcher
 function toggleAppSwitcher(e){
   e.stopPropagation();
   document.getElementById('appSwitcherPopup').classList.toggle('show');
@@ -3224,6 +3340,7 @@ document.addEventListener('click',function(e){
     p.classList.remove('show');
   }
 });
+
 </script>
 </body>
 </html>
