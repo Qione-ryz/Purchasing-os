@@ -1257,6 +1257,20 @@
             // Jika ada filter barang spesifik dari panel kiri, terapkan juga
             const selBarangs2 = window._selectedBarangs || [];
             if (selBarangs2.length > 0 && !selBarangs2.includes(r.barang_id)) return false;
+            // Terapkan filter brand
+            const selBrands2 = window._selectedBrands || [];
+            if (selBrands2.length > 0) {
+              const matchBrand = selBrands2.includes(r.brand_id)
+                || (window._barangBrandsMap?.[r.barang_id] || []).some(bid => selBrands2.includes(bid));
+              if (!matchBrand) return false;
+            }
+            // Terapkan filter tanggal
+            const dateFrom = document.getElementById('hargaDateFrom')?.value || '';
+            const dateTo   = document.getElementById('hargaDateTo')?.value   || '';
+            const fromDate = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
+            const toDate   = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
+            if (fromDate && r.tanggal_js < fromDate) return false;
+            if (toDate   && r.tanggal_js > toDate)   return false;
             return true;
           });
           const bm = {};

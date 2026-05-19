@@ -368,13 +368,26 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   #btnRefreshHarga .refresh-label{ display:none !important; }
   #btnRefreshHarga .refresh-icon{ display:inline !important; }
 }
+
+/* APP SWITCHER POPUP */
+.app-switcher-popup{display:none;position:fixed;top:60px;left:20px;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.7);padding:8px;min-width:220px;animation:modalIn .18s ease}
+.app-switcher-popup.show{display:block}
+.app-switcher-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:background .15s;text-decoration:none;color:var(--text)}
+.app-switcher-item:hover{background:var(--surface2)}
+.app-switcher-item.active{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2)}
+.app-switcher-item-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.app-switcher-item-icon.inv{background:linear-gradient(135deg,#00d4ff,#00b8e0)}
+.app-switcher-item-icon.ord{background:linear-gradient(135deg,#a78bfa,#7c3aed)}
+.app-switcher-item-info{display:flex;flex-direction:column;gap:2px}
+.app-switcher-item-name{font-size:13px;font-weight:600}
+.app-switcher-item-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="brand-row">
+  <div class="brand-row" onclick="toggleAppSwitcher(event)" style="cursor:pointer;user-select:none">
     <div class="brand-icon">🛒</div>
     <div>
       <div class="brand-name">Order Internal</div>
@@ -388,6 +401,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <button class="btn btn-ghost btn-sm" id="btnGantiKode" onclick="showWelcome()">Ganti Akun</button>
   </div>
+
+<!-- APP SWITCHER POPUP -->
+<div id="appSwitcherPopup" class="app-switcher-popup">
+  <a class="app-switcher-item" href="inventory.html">
+    <div class="app-switcher-item-icon inv">📦</div>
+    <div class="app-switcher-item-info">
+      <div class="app-switcher-item-name">Inventory Track</div>
+      <div class="app-switcher-item-sub">Stok & Transfer</div>
+    </div>
+  </a>
+  <a class="app-switcher-item active" href="order.html">
+    <div class="app-switcher-item-icon ord">🛒</div>
+    <div class="app-switcher-item-info">
+      <div class="app-switcher-item-name">Order Internal</div>
+      <div class="app-switcher-item-sub">Buat & kelola order</div>
+    </div>
+  </a>
+</div>
 </div>
 
 <!-- TAB NAV -->
@@ -2552,6 +2583,18 @@ init();
 // Tutup drawer dengan tombol Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDrawer();
+});
+
+// App switcher
+function toggleAppSwitcher(e){
+  e.stopPropagation();
+  document.getElementById('appSwitcherPopup').classList.toggle('show');
+}
+document.addEventListener('click',function(e){
+  const p=document.getElementById('appSwitcherPopup');
+  if(p&&!e.target.closest('#appSwitcherPopup')&&!e.target.closest('.brand-row')){
+    p.classList.remove('show');
+  }
 });
 </script>
 </body>

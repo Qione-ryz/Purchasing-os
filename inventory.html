@@ -531,7 +531,6 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 .cfg-member-row.checked{background:rgba(56,217,169,0.06)}
 .cfg-member-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s}
 .cfg-member-row.checked .cfg-member-cb{background:var(--accent2);border-color:var(--accent2);color:#030709}
-@media(max-width:768px){#cfgGrupGrid{grid-template-columns:1fr!important}}
 .rw-card:last-child{border-bottom:none}
 /* Row 1: tanggal kiri + badge/noSJ kanan */
 .rw-card-r1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -602,6 +601,19 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
   .topbar{padding:12px 16px}
   .tab-btn{padding:11px 13px;font-size:11px}
 }
+
+/* APP SWITCHER POPUP */
+.app-switcher-popup{display:none;position:fixed;top:60px;left:20px;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.7);padding:8px;min-width:220px;animation:modalIn .18s ease}
+.app-switcher-popup.show{display:block}
+.app-switcher-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:background .15s;text-decoration:none;color:var(--text)}
+.app-switcher-item:hover{background:var(--surface2)}
+.app-switcher-item.active{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2)}
+.app-switcher-item-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.app-switcher-item-icon.inv{background:linear-gradient(135deg,#00d4ff,#00b8e0)}
+.app-switcher-item-icon.ord{background:linear-gradient(135deg,#a78bfa,#7c3aed)}
+.app-switcher-item-info{display:flex;flex-direction:column;gap:2px}
+.app-switcher-item-name{font-size:13px;font-weight:600}
+.app-switcher-item-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/quagga2@1.2.6/dist/quagga.min.js"></script>
 </head>
@@ -609,7 +621,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="brand-row">
+  <div class="brand-row" onclick="toggleAppSwitcher(event)" style="cursor:pointer;user-select:none">
     <div class="brand-icon">📦</div>
     <div>
       <div class="brand-name">Inventory Track</div>
@@ -620,6 +632,24 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
     <div class="kode-chip" id="kodeChip">🔑 <span id="kodeDisplay">-</span></div>
     <button class="btn btn-ghost btn-sm" id="btnGantiKode" onclick="showWelcome()">Ganti Akun</button>
   </div>
+
+<!-- APP SWITCHER POPUP -->
+<div id="appSwitcherPopup" class="app-switcher-popup">
+  <a class="app-switcher-item active" href="inventory.html">
+    <div class="app-switcher-item-icon inv">📦</div>
+    <div class="app-switcher-item-info">
+      <div class="app-switcher-item-name">Inventory Track</div>
+      <div class="app-switcher-item-sub">Stok & Transfer</div>
+    </div>
+  </a>
+  <a class="app-switcher-item" href="order.html">
+    <div class="app-switcher-item-icon ord">🛒</div>
+    <div class="app-switcher-item-info">
+      <div class="app-switcher-item-name">Order Internal</div>
+      <div class="app-switcher-item-sub">Buat & kelola order</div>
+    </div>
+  </a>
+</div>
 </div>
 
 <!-- TAB NAV -->
@@ -629,7 +659,6 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
   <button class="tab-btn" onclick="switchTab('transfer')">🔄 Transfer</button>
   <button class="tab-btn" onclick="switchTab('audit')">🔍 Audit</button>
   <button class="tab-btn" onclick="switchTab('riwayat')">📋 Riwayat</button>
-  <button class="tab-btn" onclick="switchTab('pengaturan')">⚙ Pengaturan</button>
 </div>
 
 <!-- IO TYPE BAR — toggle Barang Masuk / Keluar, tampil hanya saat tab IO aktif -->
@@ -1131,86 +1160,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 <!-- ═══════════════════════════════════════ -->
 <!-- TAB: PENGATURAN -->
 <!-- ═══════════════════════════════════════ -->
-<div id="sectionPengaturan" class="section content" style="display:none">
 
-  <!-- Toggle: Kelola Barang / Kelola Grup -->
-  <div class="rw-btn-wrap">
-    <button class="rw-toggle-btn active" id="btnCfgBarang" onclick="switchCfg('barang')">⚙ Kelola Barang</button>
-    <button class="rw-toggle-btn" id="btnCfgGrup" onclick="switchCfg('grup')">🗂 Kelola Grup</button>
-  </div>
-
-  <!-- ── Panel: Kelola Barang ── -->
-  <div id="cfgPanelBarang">
-    <div class="card">
-      <div class="stock-card-header">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%">
-          <span class="card-title">⚙ Kelola Barang Ditampilkan</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-ghost btn-sm" onclick="cfgSelectAll()">✓ Semua</button>
-            <button class="btn btn-ghost btn-sm" onclick="cfgSelectNone()">✕ Hapus Semua</button>
-            <button class="btn btn-primary btn-sm" onclick="saveCfgBarang()">💾 Simpan</button>
-          </div>
-        </div>
-        <div class="search-wrap stock-search" style="position:relative">
-          <span class="io-search-icon">🔍</span>
-          <input type="text" id="cfgSearchBarang" class="io-search-input" style="padding-left:34px" placeholder="Cari barang..." oninput="renderCfgBarangList()"/>
-        </div>
-      </div>
-      <div id="cfgBarangInfo" style="padding:6px 18px 0;font-size:12px;font-family:var(--mono);color:var(--muted)"></div>
-      <div id="cfgBarangList" style="max-height:calc(100vh - 320px);overflow-y:auto"></div>
-    </div>
-  </div>
-
-  <!-- ── Panel: Kelola Grup ── -->
-  <div id="cfgPanelGrup" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="cfgGrupGrid">
-
-      <!-- Kiri: daftar grup -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🗂 Daftar Grup</span>
-          <span id="cfgGrupCount" style="font-size:12px;font-family:var(--mono);color:var(--muted)"></span>
-        </div>
-        <div id="cfgGrupList" style="min-height:100px"></div>
-        <div style="padding:12px 16px;border-top:1px solid var(--border)">
-          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="openCfgGrupForm()">＋ Tambah Grup Baru</button>
-        </div>
-      </div>
-
-      <!-- Kanan: form tambah/edit -->
-      <div class="card" id="cfgGrupFormCard">
-        <div class="card-header">
-          <span class="card-title" id="cfgGrupFormTitle">＋ Tambah Grup Baru</span>
-        </div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          <input type="hidden" id="cfgGrupFormId"/>
-          <div class="field" style="margin:0">
-            <label>Nama Grup</label>
-            <input type="text" id="cfgGrupFormNama" placeholder="cth: Beef Patty Group" style="width:100%"/>
-          </div>
-          <div class="field" style="margin:0">
-            <label>Anggota Grup</label>
-            <div style="position:relative;margin-bottom:6px">
-              <span class="io-search-icon">🔍</span>
-              <input type="text" class="io-search-input" style="padding-left:34px" id="cfgGrupMemberSearch" placeholder="Cari barang anggota..." oninput="renderCfgGrupMemberList()"/>
-            </div>
-            <div id="cfgGrupMemberList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>
-          </div>
-          <div id="cfgGrupPrimerWrap" style="display:none" class="field" style="margin:0">
-            <label>Barang Primer <span style="font-size:11px;color:var(--muted)">(stok disimpan ke sini)</span></label>
-            <select id="cfgGrupFormPrimer" style="width:100%"></select>
-          </div>
-        </div>
-        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn btn-ghost btn-sm" onclick="resetCfgGrupForm()">Batal</button>
-          <button class="btn btn-primary btn-sm" onclick="saveCfgGrup()">💾 Simpan Grup</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-</div>
 
 <!-- ═══════════════════════════════════════ -->
 <!-- MODAL: BARCODE SCANNER -->
@@ -1550,9 +1500,7 @@ async function showApp(){
     isAdminSession=!!(session&&session.user);
   }catch{isAdminSession=false}
 
-  // Tab Pengaturan hanya tampil untuk admin
-  const tabPengaturan=document.querySelector('.tab-btn[onclick*="pengaturan"]');
-  if(tabPengaturan)tabPengaturan.style.display=isAdminSession?'':'none';
+
 
   // load all brands & barang
   await loadAllBrands();
@@ -1578,7 +1526,7 @@ const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 // TAB SWITCH
 // ══════════════════════════════════════════
 function switchTab(tab){
-  const tabs=['io','stock','transfer','audit','riwayat','pengaturan'];
+  const tabs=['io','stock','transfer','audit','riwayat'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
   tabs.forEach(t=>{const el=document.getElementById('section'+cap(t));if(el)el.style.display=t===tab?'block':'none'});
   // Hide audit footer when leaving audit tab
@@ -1603,8 +1551,7 @@ function switchTab(tab){
   if(tab==='transfer'){setupTransferTab()}
   if(tab==='audit') {loadAuditDirect();loadAuditHistory()}
   if(tab==='riwayat'){riwayatPage_=0;_rwMode='stok';_ensureDateInputs();document.getElementById('btnRwStok')?.classList.add('active');document.getElementById('btnRwTransfer')?.classList.remove('active');document.getElementById('rwPanelStok').style.display='block';document.getElementById('rwPanelTransfer').style.display='none';loadRiwayat()}
-  if(tab==='pengaturan'){setupPengaturanTab()}
-  updateStickyOffsets();
+    updateStickyOffsets();
 }
 
 function setIoDateDefault(){const d=document.getElementById('ioTanggal');if(d&&!d.value)d.value=todayStr()}
@@ -1652,50 +1599,49 @@ async function loadStockData(){
 function renderStockTable(q=''){
   const tbody=document.getElementById('stockTbody');
   const isMobile=window.innerWidth<=768;
-  // Filter hanya barang yang diaktifkan di settings
-  const visibleBarang=_cfgBarangSelected&&_cfgBarangSelected.size?allBarang.filter(b=>_cfgBarangSelected.has(b.id)):allBarang;
-  const list=q?visibleBarang.filter(b=>b.nama.toLowerCase().includes(q.toLowerCase())):visibleBarang;
+  const list=_buildVisibleList(q);
   if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang ditemukan</div></div></td></tr>';return}
   if(isMobile){
     tbody.innerHTML='<tr><td colspan="6" style="padding:0;border:none"><div id="stockCardList"></div></td></tr>';
-    document.getElementById('stockCardList').innerHTML=list.map(b=>{
-      const s=stockMap[b.id]||{qty:0,min_qty:0};
+    document.getElementById('stockCardList').innerHTML=list.map(item=>{
+      const s=stockMap[item.barang_id]||{qty:0,min_qty:0};
       const qty=s.qty||0,min=s.min_qty||0;
       let badge='badge-green',levelLabel='Aman';
       if(qty<=0){badge='badge-red';levelLabel='Habis'}
       else if(min>0&&qty<=min){badge='badge-orange';levelLabel='Rendah'}
       const badgeLabel=min>0?`${levelLabel} : min ${min}`:levelLabel;
+      const grupBadge=item.type==='grup'?`<span style="font-size:10px;background:rgba(0,194,179,0.12);color:var(--accent3);border-radius:4px;padding:1px 5px;margin-left:5px">grup</span>`:'';
       return `<div class="stock-mobile-card">
         <div class="stock-mobile-row1">
-          <div class="stock-mobile-nama">${b.nama}</div>
+          <div class="stock-mobile-nama">${item.nama}${grupBadge}</div>
           <span class="badge ${badge} stock-mobile-badge">${badgeLabel}</span>
         </div>
         <div class="stock-mobile-row2">
           <div class="stock-mobile-qty">
             <span class="stock-mobile-num" style="color:${qty<=0?'var(--danger)':'var(--accent2)'}">${qty.toLocaleString('id-ID')}</span>
-            <span class="stock-mobile-sat">${b.satuan||''}</span>
+            <span class="stock-mobile-sat">${item.satuan}</span>
           </div>
-          <button class="stock-btn-min" onclick="openMinStok('${b.id}','${b.nama.replace(/'/g,"\\'")}',${min})">Min. Stok</button>
+          <button class="stock-btn-min" onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})">Min. Stok</button>
         </div>
       </div>`;
     }).join('');
     return;
   }
-  // Desktop: tabel — tanpa tombol I/O
-  tbody.innerHTML=list.map(b=>{
-    const s=stockMap[b.id]||{qty:0,min_qty:0};
+  tbody.innerHTML=list.map(item=>{
+    const s=stockMap[item.barang_id]||{qty:0,min_qty:0};
     const qty=s.qty||0,min=s.min_qty||0;
     let level='ok',badge='badge-green',levelLabel='Aman';
     if(qty<=0){level='empty';badge='badge-red';levelLabel='Habis'}
     else if(min>0&&qty<=min){level='low';badge='badge-orange';levelLabel='Rendah'}
     const pct=min>0?Math.min(100,Math.round(qty/min*100)):100;
+    const grupBadge=item.type==='grup'?`<span style="font-size:10px;background:rgba(0,194,179,0.12);color:var(--accent3);border-radius:4px;padding:1px 5px;margin-left:6px">grup</span>`:'';
     return `<tr>
-      <td style="font-weight:500">${b.nama}</td>
-      <td style="font-family:var(--mono);font-size:13px;color:var(--muted)">${b.satuan||'—'}</td>
+      <td style="font-weight:500">${item.nama}${grupBadge}</td>
+      <td style="font-family:var(--mono);font-size:13px;color:var(--muted)">${item.satuan||'—'}</td>
       <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${qty<=0?'var(--danger)':qty<=min&&min>0?'var(--accent3)':'var(--accent2)'}">${qty.toLocaleString('id-ID')}</td>
       <td><span class="badge ${badge}">${levelLabel}</span>${min>0?`<div class="stock-bar-wrap" style="margin-top:4px"><div class="stock-bar stock-${level}" style="width:${pct}%"></div></div>`:''}</td>
       <td style="font-family:var(--mono);font-size:13px;color:var(--muted)">${min>0?min:'—'}</td>
-      <td><button onclick="openMinStok('${b.id}','${b.nama.replace(/'/g,"\\'")}',${min})" class="stock-btn-min">Min. Stok</button></td>
+      <td><button onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})" class="stock-btn-min">Min. Stok</button></td>
     </tr>`;
   }).join('');
 }
@@ -1868,30 +1814,34 @@ function clearIoSearch(source){
 function renderIoBarang(q=''){
   const list_=document.getElementById('ioBarangList');
   const listDrawer=document.getElementById('ioBarangListDrawer');
-  // Filter hanya barang yang diaktifkan di settings
-  const visibleBarang=_cfgBarangSelected&&_cfgBarangSelected.size?allBarang.filter(b=>_cfgBarangSelected.has(b.id)):allBarang;
-  let list=q?visibleBarang.filter(b=>b.nama.toLowerCase().includes(q.toLowerCase())||b.sku?.toLowerCase().includes(q.toLowerCase())):visibleBarang;
-  // Sort: saat tidak ada query, tampilkan yang paling sering dulu
-  if(!q && Object.keys(freqMap).length){
-    list=[...list].sort((a,b)=>(freqMap[b.id]||0)-(freqMap[a.id]||0));
+  let list=_buildVisibleList(q);
+  if(!q&&Object.keys(freqMap).length){
+    list=[...list].sort((a,b)=>(freqMap[b.barang_id]||0)-(freqMap[a.barang_id]||0));
   }
-  if(!list.length){const empty='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang</div></div>';list_.innerHTML=empty;if(listDrawer)listDrawer.innerHTML=empty;return}
-  list_.innerHTML=list.map(b=>{
-    const s=stockMap[b.id]||{qty:0};
-    const inKeranjang=ioKeranjang.some(it=>it.barang_id===b.id);
-    const freq=freqMap[b.id]||0;
+  if(!list.length){
+    const empty='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang</div></div>';
+    list_.innerHTML=empty;if(listDrawer)listDrawer.innerHTML=empty;return;
+  }
+  list_.innerHTML=list.map(item=>{
+    const s=stockMap[item.barang_id]||{qty:0};
+    const inKeranjang=item.type==='grup'
+      ?item.members.some(mid=>ioKeranjang.some(it=>it.barang_id===mid))
+      :ioKeranjang.some(it=>it.barang_id===item.barang_id);
+    const freq=freqMap[item.barang_id]||0;
     const freqBadge=freq>=3?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);margin-left:4px;opacity:.7">×${freq}</span>`:'';
-    return `<div class="io-barang-item${inKeranjang?' in-keranjang':''}" onclick="toggleIoBarang('${b.id}')">
+    const grupBadge=item.type==='grup'?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);background:rgba(0,194,179,0.12);border-radius:4px;padding:1px 5px;margin-left:6px">grup</span>`:'';
+    const clickArg=item.type==='grup'?`'grp_${item.grup_id}'`:`'${item.barang_id}'`;
+    return `<div class="io-barang-item${inKeranjang?' in-keranjang':''}" onclick="toggleIoBarang(${clickArg})">
       <div style="display:flex;align-items:center;flex:1;min-width:0">
         <div class="io-barang-dot"></div>
         <div style="min-width:0">
-          <div style="font-size:14px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.nama}${freqBadge}</div>
-          <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">${b.satuan||''} ${b.sku?'· '+b.sku:''}</div>
+          <div style="font-size:14px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.nama}${grupBadge}${freqBadge}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">${item.satuan}${item.sku?'· '+item.sku:''}</div>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:8px">
         <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:${s.qty<=0?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
-        <div style="font-size:11px;color:var(--muted)">${b.satuan||''}</div>
+        <div style="font-size:11px;color:var(--muted)">${item.satuan}</div>
       </div>
     </div>`;
   }).join('');
@@ -1899,16 +1849,24 @@ function renderIoBarang(q=''){
 }
 
 function toggleIoBarang(id){
-  const idx=ioKeranjang.findIndex(it=>it.barang_id===id);
-  if(idx>=0){
-    ioKeranjang.splice(idx,1);
+  if(typeof id==='string'&&id.startsWith('grp_')){
+    const grp=_invGroups.find(g=>g.id===id.slice(4));
+    if(!grp)return;
+    const alreadyIn=ioKeranjang.some(it=>grp.members.includes(it.barang_id));
+    if(alreadyIn){
+      grp.members.forEach(mid=>{const i=ioKeranjang.findIndex(it=>it.barang_id===mid);if(i>=0)ioKeranjang.splice(i,1)});
+    } else {
+      const primer=allBarang.find(b=>b.id===grp.primer_barang_id)||allBarang.find(b=>grp.members.includes(b.id));
+      if(!primer)return;
+      const s=stockMap[primer.id]||{qty:0};
+      ioKeranjang.push({barang_id:primer.id,nama:grp.nama,satuan:primer.satuan||'',qty:1,stok:s.qty||0,is_grup:true,grup_id:grp.id});
+    }
   } else {
-    const b=allBarang.find(x=>x.id===id);
-    if(!b)return;
-    const s=stockMap[id]||{qty:0};
-    ioKeranjang.push({barang_id:id,nama:b.nama,satuan:b.satuan||'',qty:1,stok:s.qty||0});
+    const idx=ioKeranjang.findIndex(it=>it.barang_id===id);
+    if(idx>=0){ioKeranjang.splice(idx,1)}
+    else{const b=allBarang.find(x=>x.id===id);if(!b)return;const s=stockMap[id]||{qty:0};ioKeranjang.push({barang_id:id,nama:b.nama,satuan:b.satuan||'',qty:1,stok:s.qty||0})}
   }
-  renderIoBarang(document.getElementById('searchIoBarang').value);
+  renderIoBarang(document.getElementById('searchIoBarang')?.value||'');
   renderIoKeranjang();
 }
 
@@ -2319,27 +2277,25 @@ function renderTransferBarangList(q=''){
     wrap.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:12px;font-family:var(--mono)">Pilih brand tujuan dulu</div>';
     return;
   }
-  const visibleBarang=_cfgBarangSelected&&_cfgBarangSelected.size?allBarang.filter(b=>_cfgBarangSelected.has(b.id)):allBarang;
-  const list=q?visibleBarang.filter(b=>b.nama.toLowerCase().includes(q.toLowerCase())):visibleBarang;
-  if(!list.length){
-    wrap.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:var(--mono)">Tidak ada barang ditemukan</div>';
-    return;
-  }
-  wrap.innerHTML=list.map(b=>{
-    const s=stockMap[b.id]||{qty:0};
-    const selected=transferItems.some(it=>it.barang_id===b.id);
+  const list=_buildVisibleList(q);
+  wrap.innerHTML=list.map(item=>{
+    const s=stockMap[item.barang_id]||{qty:0};
+    const selected=transferItems.some(it=>it.barang_id===item.barang_id);
     const disabled=!s.qty||s.qty<=0;
-    return `<div class="io-barang-item${selected?' in-keranjang':''}${disabled?' tr-disabled':''}" onclick="${disabled?'showToast(\'error\',\'Stok kosong\')':'toggleTransferBarang(\''+b.id+'\')'}">
+    const grupBadge=item.type==='grup'?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);background:rgba(0,194,179,0.12);border-radius:4px;padding:1px 5px;margin-left:6px">grup</span>`:'';
+    const itemId=item.type==='grup'?'grp_'+item.grup_id:item.barang_id;
+    const clickFn=disabled?`showToast('error','Stok kosong')`:`toggleTransferBarangItem('${itemId}')`;
+    return `<div class="io-barang-item${selected?' in-keranjang':''}${disabled?' tr-disabled':''}" onclick="${clickFn}">
       <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:0">
         <div class="io-barang-dot"></div>
         <div style="min-width:0">
-          <div style="font-size:14px;font-weight:${selected?'600':'400'};color:${disabled?'var(--muted)':selected?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.nama}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''}</div>
+          <div style="font-size:14px;font-weight:${selected?'600':'400'};color:${disabled?'var(--muted)':selected?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.nama}${grupBadge}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${item.satuan||''}</div>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:10px">
         <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:${disabled?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
-        <div style="font-size:10px;color:var(--muted)">${b.satuan||''}</div>
+        <div style="font-size:10px;color:var(--muted)">${item.satuan||''}</div>
       </div>
     </div>`;
   }).join('');
@@ -2358,48 +2314,67 @@ function renderTransferBarangPanel(q=''){
     wrap.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:var(--mono)">Pilih brand tujuan dulu</div>';
     return;
   }
-  const visibleBarang=_cfgBarangSelected&&_cfgBarangSelected.size?allBarang.filter(b=>_cfgBarangSelected.has(b.id)):allBarang;
-  const list=q?visibleBarang.filter(b=>b.nama.toLowerCase().includes(q.toLowerCase())):visibleBarang;
+  const list=_buildVisibleList(q);
   if(!list.length){
     wrap.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;font-family:var(--mono)">Tidak ada barang</div>';
     return;
   }
-  wrap.innerHTML=list.map(b=>{
-    const s=stockMap[b.id]||{qty:0};
-    const selected=transferItems.some(it=>it.barang_id===b.id);
+  wrap.innerHTML=list.map(item=>{
+    const s=stockMap[item.barang_id]||{qty:0};
+    const selected=transferItems.some(it=>it.barang_id===item.barang_id);
     const disabled=!s.qty||s.qty<=0;
-    return `<div class="io-barang-item${selected?' in-keranjang':''}${disabled?' tr-disabled':''}" onclick="${disabled?'showToast(\'error\',\'Stok kosong\')':'toggleTransferBarang(\''+b.id+'\')'}">
+    const grupBadge=item.type==='grup'?`<span style="font-size:10px;font-family:var(--mono);color:var(--accent3);background:rgba(0,194,179,0.12);border-radius:4px;padding:1px 5px;margin-left:6px">grup</span>`:'';
+    const clickFn=disabled?`showToast('error','Stok kosong')`:`toggleTransferBarangItem('${item.type==='grup'?'grp_'+item.grup_id:item.barang_id}')`;
+    return `<div class="io-barang-item${selected?' in-keranjang':''}${disabled?' tr-disabled':''}" onclick="${clickFn}">
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
         <div class="io-barang-dot"></div>
         <div style="min-width:0">
-          <div style="font-size:13px;font-weight:${selected?'600':'400'};color:${disabled?'var(--muted)':selected?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.nama}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''}</div>
+          <div style="font-size:13px;font-weight:${selected?'600':'400'};color:${disabled?'var(--muted)':selected?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.nama}${grupBadge}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${item.satuan||''}</div>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:8px">
         <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:${disabled?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
-        <div style="font-size:10px;color:var(--muted)">${b.satuan||''}</div>
+        <div style="font-size:10px;color:var(--muted)">${item.satuan||''}</div>
       </div>
     </div>`;
   }).join('');
   if(selCountPanel) selCountPanel.textContent=transferItems.length?`${transferItems.length} dipilih`:'';
 }
 
-function toggleTransferBarang(id){
-  const idx=transferItems.findIndex(it=>it.barang_id===id);
-  if(idx>=0){
-    transferItems.splice(idx,1);
+function toggleTransferBarangItem(id){
+  if(typeof id==='string'&&id.startsWith('grp_')){
+    const grp=_invGroups.find(g=>g.id===id.slice(4));
+    if(!grp)return;
+    const primer=allBarang.find(b=>b.id===grp.primer_barang_id)||allBarang.find(b=>grp.members.includes(b.id));
+    if(!primer)return;
+    const alreadyIn=transferItems.some(it=>it.barang_id===primer.id);
+    if(alreadyIn){
+      const i=transferItems.findIndex(it=>it.barang_id===primer.id);
+      if(i>=0)transferItems.splice(i,1);
+    } else {
+      const s=stockMap[primer.id]||{qty:0};
+      if(!s.qty||s.qty<=0){showToast('error','Stok '+grp.nama+' kosong');return}
+      transferItems.push({barang_id:primer.id,nama:grp.nama,satuan:primer.satuan||'',qty:1,maxQty:s.qty||0,is_grup:true,grup_id:grp.id});
+    }
   } else {
-    const b=allBarang.find(x=>x.id===id);
-    if(!b)return;
-    const s=stockMap[id]||{qty:0};
-    if(!s.qty||s.qty<=0){showToast('error','Stok '+b.nama+' kosong');return}
-    transferItems.push({barang_id:id,nama:b.nama,satuan:b.satuan||'',qty:1,maxQty:s.qty||0});
+    const idx=transferItems.findIndex(it=>it.barang_id===id);
+    if(idx>=0){
+      transferItems.splice(idx,1);
+    } else {
+      const b=allBarang.find(x=>x.id===id);
+      if(!b)return;
+      const s=stockMap[id]||{qty:0};
+      if(!s.qty||s.qty<=0){showToast('error','Stok '+b.nama+' kosong');return}
+      transferItems.push({barang_id:id,nama:b.nama,satuan:b.satuan||'',qty:1,maxQty:s.qty||0});
+    }
   }
-  renderTransferBarangList(document.getElementById('searchTransferBarang').value);
+  renderTransferBarangList(document.getElementById('searchTransferBarang')?.value||'');
   renderTransferBarangPanel(document.getElementById('searchTransferBarangPanel')?.value||'');
   renderTransferItems();
 }
+
+function toggleTransferBarang(id){toggleTransferBarangItem(id)}
 
 function renderTransferItems(){
   const wrap=document.getElementById('transferItems');
@@ -2672,15 +2647,15 @@ let auditDirectFiltered = [];
 
 async function loadAuditDirect(){
   await loadBarangForBrand();
-  // Hanya tampilkan barang yang diaktifkan di settings
-  const visibleBarang=_cfgBarangSelected&&_cfgBarangSelected.size?allBarang.filter(b=>_cfgBarangSelected.has(b.id)):allBarang;
-  auditDirectData = visibleBarang.map(b=>({
-    barang_id: b.id,
-    nama: b.nama,
-    satuan: b.satuan||'',
-    qty_sistem: stockMap[b.id]?.qty||0,
-    qty_fisik: null,
-    catatan: ''
+  const list=_buildVisibleList('');
+  auditDirectData=list.map(item=>({
+    barang_id:item.barang_id,
+    nama:item.nama,
+    satuan:item.satuan,
+    qty_sistem:stockMap[item.barang_id]?.qty||0,
+    qty_fisik:null,
+    catatan:'',
+    is_grup:item.type==='grup'
   }));
   filterAuditTable(document.getElementById('searchAudit')?.value||'');
   updateAuditFooter();
@@ -3155,26 +3130,13 @@ function _buildXLSX(rows){
 // ── Legacy (kept for compatibility) ──
 async function exportRiwayat(){exportRiwayatExcel()}
 
-// ══════════════════════════════════════════
-// TAB PENGATURAN — Kelola Barang & Grup
-// ══════════════════════════════════════════
-let _cfgMode='barang';
-let _cfgBarangSelected=null; // Set of barang_id yang ditampilkan
-let _cfgGrupSelected=new Set(); // anggota grup yang sedang diedit
-let _cfgGrupList=[]; // [{id,nama,members:[],primer_barang_id}]
 
-function switchCfg(mode){
-  _cfgMode=mode;
-  document.getElementById('btnCfgBarang').classList.toggle('active',mode==='barang');
-  document.getElementById('btnCfgGrup').classList.toggle('active',mode==='grup');
-  document.getElementById('cfgPanelBarang').style.display=mode==='barang'?'block':'none';
-  document.getElementById('cfgPanelGrup').style.display=mode==='grup'?'block':'none';
-  if(mode==='barang')renderCfgBarangList();
-  if(mode==='grup'){loadCfgGrupList();renderCfgGrupMemberList()}
-}
-
-// ── Admin check: ada Supabase Auth session aktif (login backoffice) ──
-function isAdmin(){return isAdminSession}
+// ══════════════════════════════════════════
+// GRUP & CONFIG (state + helpers)
+// ══════════════════════════════════════════
+let _cfgBarangSelected = null; // Set of barang_id yang ditampilkan
+let _invGroups = [];           // [{id,nama,primer_barang_id,members:[barang_id,...]}]
+let _invGroupMemberSet = new Set(); // semua barang_id yang jadi anggota grup
 
 async function loadCfgBarangConfig(){
   try{
@@ -3182,251 +3144,41 @@ async function loadCfgBarangConfig(){
       _sb.from('so_barang_config').select('included_ids').eq('brand_id',currentBrand.id).maybeSingle(),
       _sb.from('so_item_groups').select('*,so_item_group_members(barang_id)').eq('brand_id',currentBrand.id)
     ]);
-    // Base set dari so_barang_config
+    _invGroups=(grpRes.data||[]).map(g=>({
+      id:g.id, nama:g.nama, primer_barang_id:g.primer_barang_id,
+      members:(g.so_item_group_members||[]).map(m=>m.barang_id)
+    }));
+    _invGroupMemberSet=new Set(_invGroups.flatMap(g=>g.members));
     const baseSet=cfgRes.data?.included_ids?.length
       ?new Set(cfgRes.data.included_ids)
       :new Set(allBarang.map(b=>b.id));
-    // Tambahkan semua member grup agar barang dalam grup tetap muncul
-    const grps=(grpRes.data||[]).map(g=>({...g,members:(g.so_item_group_members||[]).map(m=>m.barang_id)}));
-    grps.forEach(g=>g.members.forEach(mid=>baseSet.add(mid)));
+    _invGroupMemberSet.forEach(mid=>baseSet.add(mid));
     _cfgBarangSelected=baseSet;
   }catch{
+    _invGroups=[];_invGroupMemberSet=new Set();
     const key='inv_cfg_barang_'+(currentBrand?.id||'x');
     try{const s=localStorage.getItem(key);_cfgBarangSelected=s?new Set(JSON.parse(s)):new Set(allBarang.map(b=>b.id))}catch{_cfgBarangSelected=new Set(allBarang.map(b=>b.id))}
   }
 }
 
-function setupPengaturanTab(){
-  if(!isAdmin()){
-    // Jika bukan admin, redirect ke tab IO
-    switchTab('io');
-    showToast('error','Pengaturan hanya untuk admin');
-    return;
-  }
-  // Init selected dari so_barang_config atau localStorage (per brand)
-  _cfgBarangSelected=_cfgBarangSelected||new Set(allBarang.map(b=>b.id));
-  renderCfgBarangList();
-  loadCfgGrupList();
-}
-
-// ── Kelola Barang ──
-function renderCfgBarangList(){
-  const wrap=document.getElementById('cfgBarangList');
-  const q=(document.getElementById('cfgSearchBarang')?.value||'').toLowerCase();
-  const list=allBarang.filter(b=>!q||b.nama.toLowerCase().includes(q)||(b.sku||'').toLowerCase().includes(q));
-  // Group by kategori
-  const byKat={},katOrder=[];
-  list.forEach(b=>{const k=(b.kategori||'Tanpa Kategori').trim();if(!byKat[k]){byKat[k]=[];katOrder.push(k)}byKat[k].push(b)});
-  katOrder.sort();
-  let html='';
-  katOrder.forEach(k=>{
-    html+=`<div class="cfg-barang-group">${k}</div>`;
-    byKat[k].forEach(b=>{
-      const on=_cfgBarangSelected&&_cfgBarangSelected.has(b.id);
-      html+=`<div class="cfg-barang-row${on?' checked':''}" onclick="toggleCfgBarang('${b.id}')">
-        <div class="cfg-barang-cb">${on?'✓':''}</div>
-        <span class="cfg-barang-nama">${b.nama}</span>
-        <span class="cfg-barang-meta">${b.satuan||''}</span>
-      </div>`;
-    });
+// Build merged list: grup = 1 entry, member disembunyikan, semua diurutkan abjad
+function _buildVisibleList(q=''){
+  const out=[];
+  _invGroups.forEach(g=>{
+    if(!g.members.length)return;
+    const primer=allBarang.find(b=>b.id===g.primer_barang_id)||allBarang.find(b=>g.members.includes(b.id));
+    if(!primer)return;
+    if(q&&!g.nama.toLowerCase().includes(q.toLowerCase()))return;
+    out.push({type:'grup',id:'grp_'+g.id,grup_id:g.id,nama:g.nama,satuan:primer.satuan||'',barang_id:primer.id,members:g.members});
   });
-  if(!list.length)html='<div style="padding:32px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px">Tidak ada barang</div>';
-  wrap.innerHTML=html;
-  const total=allBarang.length;
-  const sel=_cfgBarangSelected?_cfgBarangSelected.size:total;
-  document.getElementById('cfgBarangInfo').textContent=`${sel} dari ${total} barang ditampilkan`;
-}
-
-function toggleCfgBarang(id){
-  if(!_cfgBarangSelected)_cfgBarangSelected=new Set(allBarang.map(b=>b.id));
-  if(_cfgBarangSelected.has(id))_cfgBarangSelected.delete(id);
-  else _cfgBarangSelected.add(id);
-  renderCfgBarangList();
-}
-
-function cfgSelectAll(){
-  const q=(document.getElementById('cfgSearchBarang')?.value||'').toLowerCase();
-  allBarang.filter(b=>!q||b.nama.toLowerCase().includes(q)).forEach(b=>_cfgBarangSelected.add(b.id));
-  renderCfgBarangList();
-}
-
-function cfgSelectNone(){
-  const q=(document.getElementById('cfgSearchBarang')?.value||'').toLowerCase();
-  allBarang.filter(b=>!q||b.nama.toLowerCase().includes(q)).forEach(b=>_cfgBarangSelected.delete(b.id));
-  renderCfgBarangList();
-}
-
-async function saveCfgBarang(){
-  const total=allBarang.length;
-  const sel=_cfgBarangSelected?[..._cfgBarangSelected]:allBarang.map(b=>b.id);
-  try{
-    // Simpan ke so_barang_config — sama seperti stock-opname
-    const allSelected=sel.length>=total;
-    if(allSelected){
-      // Semua dipilih → hapus config (default = semua)
-      await _sb.from('so_barang_config').delete().eq('brand_id',currentBrand.id);
-    } else {
-      await _sb.from('so_barang_config').upsert({brand_id:currentBrand.id,included_ids:sel},{onConflict:'brand_id'});
-    }
-  }catch(e){
-    // Fallback ke localStorage jika tabel belum ada
-    const key='inv_cfg_barang_'+(currentBrand?.id||'x');
-    try{localStorage.setItem(key,JSON.stringify(sel))}catch{}
-  }
-  showToast('success',`✓ Pengaturan disimpan — ${sel.length} barang ditampilkan`);
-  renderIoBarang();
-  renderStockTable(document.getElementById('searchStock')?.value||'');
-}
-
-// ── Kelola Grup ──
-async function loadCfgGrupList(){
-  try{
-    const{data:grps}=await _sb.from('so_item_groups')
-      .select('*, so_item_group_members(barang_id)')
-      .eq('brand_id',currentBrand.id)
-      .order('nama');
-    _cfgGrupList=(grps||[]).map(g=>({...g,members:(g.so_item_group_members||[]).map(m=>m.barang_id)}));
-  }catch{_cfgGrupList=[]}
-  renderCfgGrupList();
-}
-
-function renderCfgGrupList(){
-  const wrap=document.getElementById('cfgGrupList');
-  const count=document.getElementById('cfgGrupCount');
-  if(count)count.textContent=_cfgGrupList.length?_cfgGrupList.length+' grup':'';
-  if(!_cfgGrupList.length){
-    wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px">Belum ada grup</div>';
-    return;
-  }
-  wrap.innerHTML=_cfgGrupList.map(g=>{
-    const members=(g.members||[]).map(mid=>(allBarang.find(x=>x.id===mid)||{}).nama||'?').join(', ');
-    const primer=(allBarang.find(x=>x.id===g.primer_barang_id)||{}).nama||'?';
-    return `<div class="cfg-grup-item">
-      <div style="flex:1">
-        <div class="cfg-grup-nama">${g.nama}</div>
-        <div class="cfg-grup-meta">Anggota: ${members||'—'}</div>
-        <div class="cfg-grup-meta" style="color:var(--accent)">Primer: ${primer}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" onclick="editCfgGrup('${g.id}')">✏</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteCfgGrup('${g.id}')">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function openCfgGrupForm(){
-  resetCfgGrupForm();
-  document.getElementById('cfgGrupFormCard').scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-
-function resetCfgGrupForm(){
-  document.getElementById('cfgGrupFormId').value='';
-  document.getElementById('cfgGrupFormNama').value='';
-  document.getElementById('cfgGrupMemberSearch').value='';
-  document.getElementById('cfgGrupFormTitle').textContent='＋ Tambah Grup Baru';
-  _cfgGrupSelected=new Set();
-  document.getElementById('cfgGrupPrimerWrap').style.display='none';
-  renderCfgGrupMemberList();
-}
-
-function editCfgGrup(id){
-  const g=_cfgGrupList.find(x=>x.id===id);if(!g)return;
-  document.getElementById('cfgGrupFormId').value=g.id;
-  document.getElementById('cfgGrupFormNama').value=g.nama;
-  document.getElementById('cfgGrupFormTitle').textContent='✏ Edit Grup';
-  _cfgGrupSelected=new Set(g.members||[]);
-  renderCfgGrupMemberList();
-  updateCfgGrupPrimer(g.primer_barang_id);
-  document.getElementById('cfgGrupFormCard').scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-
-function renderCfgGrupMemberList(){
-  const wrap=document.getElementById('cfgGrupMemberList');
-  if(!wrap)return;
-  const q=(document.getElementById('cfgGrupMemberSearch')?.value||'').toLowerCase();
-  const list=allBarang.filter(b=>!q||b.nama.toLowerCase().includes(q));
-  wrap.innerHTML=list.map(b=>{
-    const on=_cfgGrupSelected.has(b.id);
-    return `<div class="cfg-member-row${on?' checked':''}" onclick="toggleCfgGrupMember('${b.id}')">
-      <div class="cfg-member-cb">${on?'✓':''}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:${on?'600':'400'}">${b.nama}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${b.satuan||''}</div>
-      </div>
-    </div>`;
-  }).join('')||'<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Tidak ada barang</div>';
-}
-
-function toggleCfgGrupMember(id){
-  if(_cfgGrupSelected.has(id))_cfgGrupSelected.delete(id);
-  else _cfgGrupSelected.add(id);
-  renderCfgGrupMemberList();
-  updateCfgGrupPrimer();
-}
-
-function updateCfgGrupPrimer(defaultId=null){
-  const members=[..._cfgGrupSelected];
-  const wrap=document.getElementById('cfgGrupPrimerWrap');
-  const sel=document.getElementById('cfgGrupFormPrimer');
-  if(members.length<2){wrap.style.display='none';return}
-  wrap.style.display='block';
-  sel.innerHTML=members.map(id=>{
-    const b=allBarang.find(x=>x.id===id)||{};
-    return `<option value="${id}"${id===defaultId?' selected':''}>${b.nama||id}</option>`;
-  }).join('');
-}
-
-async function saveCfgGrup(){
-  const nama=document.getElementById('cfgGrupFormNama').value.trim();
-  if(!nama){showToast('error','Nama grup wajib diisi');return}
-  const members=[..._cfgGrupSelected];
-  if(members.length<2){showToast('error','Minimal 2 anggota grup');return}
-  const primer=document.getElementById('cfgGrupFormPrimer').value||members[0];
-  const id=document.getElementById('cfgGrupFormId').value;
-  try{
-    if(id){
-      // Update nama & primer
-      await _sb.from('so_item_groups').update({nama,primer_barang_id:primer}).eq('id',id);
-      // Replace members
-      await _sb.from('so_item_group_members').delete().eq('group_id',id);
-      if(members.length)await _sb.from('so_item_group_members').insert(members.map(mid=>({group_id:id,barang_id:mid})));
-    } else {
-      // Insert grup baru
-      const{data:newGrp,error}=await _sb.from('so_item_groups').insert({brand_id:currentBrand.id,nama,primer_barang_id:primer}).select();
-      if(error)throw error;
-      const newId=newGrp[0].id;
-      if(members.length)await _sb.from('so_item_group_members').insert(members.map(mid=>({group_id:newId,barang_id:mid})));
-    }
-    showToast('success','✓ Grup disimpan');
-    resetCfgGrupForm();
-    loadCfgGrupList();
-  }catch(e){showToast('error','Gagal: '+e.message)}
-}
-
-async function deleteCfgGrup(id){
-  const ok=await showConfirm({title:'Hapus Grup',msg:'Yakin ingin menghapus grup ini?',okLabel:'Ya, Hapus',okDanger:true});
-  if(!ok)return;
-  try{
-    // Hapus members dulu, lalu grup
-    await _sb.from('so_item_group_members').delete().eq('group_id',id);
-    await _sb.from('so_item_groups').delete().eq('id',id);
-    showToast('success','✓ Grup dihapus');
-    loadCfgGrupList();
-  }catch(e){showToast('error','Gagal: '+e.message)}
-}
-// ══════════════════════════════════════════
-let confirmResolve=null;
-function showConfirm({title='Konfirmasi',msg,okLabel='Ya, Lanjutkan',okDanger=false}){
-  return new Promise(resolve=>{
-    document.getElementById('confirmTitle').textContent=title;
-    document.getElementById('confirmMsg').textContent=msg;
-    const btnOk=document.getElementById('confirmBtnOk');
-    btnOk.textContent=okLabel;
-    btnOk.className='btn '+(okDanger?'btn-danger':'btn-primary');
-    document.getElementById('modalConfirm').classList.add('show');
-    confirmResolve=val=>{document.getElementById('modalConfirm').classList.remove('show');resolve(val)};
+  allBarang.forEach(b=>{
+    if(_invGroupMemberSet.has(b.id))return;
+    if(_cfgBarangSelected&&_cfgBarangSelected.size&&!_cfgBarangSelected.has(b.id))return;
+    if(q&&!b.nama.toLowerCase().includes(q.toLowerCase())&&!(b.sku||'').toLowerCase().includes(q.toLowerCase()))return;
+    out.push({type:'barang',id:b.id,grup_id:null,nama:b.nama,satuan:b.satuan||'',barang_id:b.id,sku:b.sku});
   });
+  out.sort((a,b)=>a.nama.localeCompare(b.nama,'id',{sensitivity:'base'}));
+  return out;
 }
 
 // ══════════════════════════════════════════
@@ -3460,6 +3212,18 @@ window.addEventListener('resize',checkResponsive);
 checkResponsive();
 
 init();
+
+// App switcher
+function toggleAppSwitcher(e){
+  e.stopPropagation();
+  document.getElementById('appSwitcherPopup').classList.toggle('show');
+}
+document.addEventListener('click',function(e){
+  const p=document.getElementById('appSwitcherPopup');
+  if(p&&!e.target.closest('#appSwitcherPopup')&&!e.target.closest('.brand-row')){
+    p.classList.remove('show');
+  }
+});
 </script>
 </body>
 </html>

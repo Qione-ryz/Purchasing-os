@@ -6,6 +6,7 @@
 <title>PurchaseOS — Order Masuk</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="ordermasuk-mobile.css"/>
 <link rel="stylesheet" href="theme.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
@@ -19,6 +20,8 @@
 </script>
 <script src="push-setup.js" defer></script>
 <script src="sidebar.js" defer></script>
+<link rel="stylesheet" href="ordermasuk-mobile.css"/>
+<script src="mobile.js" defer></script>
 </head>
 <body>
 
@@ -69,7 +72,7 @@
     <div class="filter-bar om-filter-bar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input class="search-input" id="searchInput" placeholder="Cari kode order, brand, pemesan, catatan..." oninput="onSearchInput()"/>
+        <input class="search-input" id="searchInput" placeholder="Cari kode order, brand, pemesan, nama barang, catatan..." oninput="onSearchInput()"/>
         <button id="searchClearBtn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
       </div>
       <!-- Multi-brand dropdown -->
@@ -912,13 +915,13 @@ async function loadAll() {
       try {
         allItemRows = await _inBatch(
           'order_items',
-          'id,order_id,barang_id,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
+          'id,order_id,barang_id,nama_barang,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
           'order_id', orderIds
         );
         if (!allItemRows.length) {
           allItemRows = await _inBatch(
             'order_items',
-            'id,order_id,barang_id,qty_order,qty_terpenuhi,faktor_konversi',
+            'id,order_id,barang_id,nama_barang,qty_order,qty_terpenuhi,faktor_konversi',
             'order_id', orderIds
           );
         }
@@ -944,6 +947,14 @@ async function loadAll() {
       if (!progressMap[it.order_id]) {
         progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
       }
+    });
+
+    /* Build map order_id → array nama barang untuk search */
+    window._orderItemNamasMap = {};
+    (allItemRows || []).forEach(it => {
+      if (!it.order_id || !it.nama_barang) return;
+      if (!window._orderItemNamasMap[it.order_id]) window._orderItemNamasMap[it.order_id] = [];
+      window._orderItemNamasMap[it.order_id].push(it.nama_barang.toLowerCase());
     });
 
     // Bangun allOrders cache awal
@@ -1117,11 +1128,13 @@ function applyFilters() {
       if (_selectedBrands.length > 0 && !_selectedBrands.includes(o.brand_id)) return false;
       if (status && o.status !== status) return false;
       if (q) {
-        const brandNama = (brands[o.brand_id]||'').toLowerCase();
-        const kode      = (o.pemesan?.kode||'').toLowerCase();
-        const id        = o.id.toLowerCase();
-        const catatan   = (o.catatan||'').toLowerCase();
-        if (!brandNama.includes(q) && !kode.includes(q) && !id.includes(q) && !catatan.includes(q)) return false;
+        const brandNama   = (brands[o.brand_id]||'').toLowerCase();
+        const kode        = (o.pemesan?.kode||'').toLowerCase();
+        const id          = o.id.toLowerCase();
+        const catatan     = (o.catatan||'').toLowerCase();
+        const namaBarangs = (window._orderItemNamasMap?.[o.id] || []);
+        const matchBarang = namaBarangs.some(n => n.includes(q));
+        if (!brandNama.includes(q) && !kode.includes(q) && !id.includes(q) && !catatan.includes(q) && !matchBarang) return false;
       }
       return true;
     });
@@ -1146,11 +1159,13 @@ function applyFilters() {
     if (!_showCancelled && status && o.status !== status) return false;
     // Search
     if (q) {
-      const brandNama = (brands[o.brand_id]||'').toLowerCase();
-      const kode      = (o.pemesan?.kode||'').toLowerCase();
-      const id        = o.id.toLowerCase();
-      const catatan   = (o.catatan||'').toLowerCase();
-      if (!brandNama.includes(q) && !kode.includes(q) && !id.includes(q) && !catatan.includes(q)) return false;
+      const brandNama   = (brands[o.brand_id]||'').toLowerCase();
+      const kode        = (o.pemesan?.kode||'').toLowerCase();
+      const id          = o.id.toLowerCase();
+      const catatan     = (o.catatan||'').toLowerCase();
+      const namaBarangs = (window._orderItemNamasMap?.[o.id] || []);
+      const matchBarang = namaBarangs.some(n => n.includes(q));
+      if (!brandNama.includes(q) && !kode.includes(q) && !id.includes(q) && !catatan.includes(q) && !matchBarang) return false;
     }
     return true;
   });
@@ -1976,6 +1991,27 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
          </div>`
       : '';
 
+    const hargaLabel = it.harga_estimasi ? 'Rp '+Number(it.harga_estimasi).toLocaleString('id-ID') : '—';
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      return `<tr data-item-id="${it.id}" style="${isCancelled?'opacity:0.55':''}">
+        <td colspan="6" style="padding:0;border:none">
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-weight:600;font-size:13px;line-height:1.4">${it.nama_barang}${it.is_custom?'<span class="custom-tag">custom</span>':''}</div>
+            ${beliLink}
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${it.satuan||'—'} · ${hargaLabel}</div>
+            <div>
+              <div style="font-size:12px;font-family:var(--mono);color:var(--muted)">${progressLabel}</div>
+              <div class="prog-wrap" style="height:6px;border-radius:3px;margin-top:5px"><div class="prog-bar ${cls}" style="width:${pct}%"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+              <div>${badgeCell}</div>
+              <div style="display:flex;gap:6px">${aksiCell}</div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    }
     return `<tr data-item-id="${it.id}" style="${isCancelled?'opacity:0.45':''}">
       <td class="col-barang" style="vertical-align:middle">
         <div style="font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(it.nama_barang||'').replace(/"/g,'&quot;')}">${it.nama_barang}${it.is_custom?'<span class="custom-tag">custom</span>':''}</div>

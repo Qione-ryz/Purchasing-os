@@ -11,6 +11,8 @@ const _SIDEBAR_NAV = [
   { href: 'harga.html',        icon: '📈', label: 'Riwayat Harga' },
   { href: 'stock-opname.html', icon: '📦', label: 'Stock Opname' },
   { href: 'ordermasuk.html',   icon: '📥', label: 'Order Masuk',    section: 'Order Barang' },
+  { href: 'inventory.html',    icon: '🗂️', label: 'Inventory Track', section: 'Operational', newTab: true },
+  { href: 'order.html',        icon: '📝', label: 'Order Internal',  newTab: true },
   { href: 'settings.html',     icon: '⚙️', label: 'Pengaturan',    section: 'Pengaturan' },
 ];
 
@@ -48,7 +50,7 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
             animation:badgePulse 2s infinite;
           ">0</span>`
       : '';
-    html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}" style="display:flex;align-items:center;gap:10px">
+    html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}"${item.newTab ? ' target="_blank"' : ''} style="display:flex;align-items:center;gap:10px">
       <span class="nav-icon">${item.icon}</span>
       <span style="flex:1">${item.label}</span>
       ${badgeHTML}
@@ -69,6 +71,12 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
         </select>
        </div>`;
 
+  sidebar.style.display       = 'flex';
+  sidebar.style.flexDirection = 'column';
+  sidebar.style.height        = '100vh';
+  sidebar.style.maxHeight     = '100vh';
+  sidebar.style.overflow      = 'hidden';
+
   sidebar.innerHTML = `
     <style>
       @keyframes badgePulse {
@@ -83,7 +91,7 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
       </div>
     </div>
     ${brandSelectorHTML}
-    <nav class="nav">${navHTML}</nav>
+    <nav class="nav" style="overflow-y:auto;flex:1;min-height:0">${navHTML}</nav>
     <div class="sidebar-user">
       <div class="user-row">
         <div class="user-avatar" id="userAvatar">?</div>
