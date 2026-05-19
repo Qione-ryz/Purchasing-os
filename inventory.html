@@ -1930,6 +1930,8 @@ let barcodeDetector = null;
 let scannerInterval = null;
 let lastScanned = '';
 let _quaggaRunning = false;
+let _scanProcessing = false;  // cegah double scan saat async query
+let _audioCtx = null;         // reuse AudioContext agar tidak gagal di mobile
 
 function _setScanStatus(msg, type='info'){
   const el=document.getElementById('scanStatus');
@@ -2062,6 +2064,8 @@ function closeBarcodeScanner() {
 }
 
 async function onBarcodeDetected(code) {
+  if(_scanProcessing) return; // block double scan
+  _scanProcessing = true;
   _setScanStatus('🔍 Mendeteksi: ' + code + ' ...', 'info');
   try {
     // 1. Cek di barang_barcodes
@@ -2078,26 +2082,25 @@ async function onBarcodeDetected(code) {
     _setScanStatus('❌ BARANG TIDAK DITEMUKAN  ·  ' + code, 'error');
     document.getElementById('scanRegisterArea').style.display = 'block';
     document.getElementById('registerBarcodeInput').value = code;
-    setTimeout(() => { lastScanned = ''; }, 3000);
+    setTimeout(() => { lastScanned = ''; _scanProcessing = false; }, 3000);
   } catch(e) {
     _setScanStatus('Error: ' + e.message, 'error');
-    setTimeout(() => { lastScanned = ''; }, 2000);
+    setTimeout(() => { lastScanned = ''; _scanProcessing = false; }, 2000);
   }
 }
 
 
 function _beepSuccess(){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    // Kompressor agar maksimal volume tanpa clipping
+    if(!_audioCtx||_audioCtx.state==='closed'){
+      _audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    }
+    if(_audioCtx.state==='suspended') _audioCtx.resume();
+    const ctx=_audioCtx;
     const comp=ctx.createDynamicsCompressor();
-    comp.threshold.value=-6;
-    comp.knee.value=0;
-    comp.ratio.value=20;
-    comp.attack.value=0;
-    comp.release.value=0.1;
+    comp.threshold.value=-6;comp.knee.value=0;
+    comp.ratio.value=20;comp.attack.value=0;comp.release.value=0.1;
     comp.connect(ctx.destination);
-    // 2 nada pendek, gain penuh
     [0,0.13].forEach(t=>{
       const o=ctx.createOscillator();
       const g=ctx.createGain();
@@ -2127,6 +2130,7 @@ function _onBarangFound(found, code) {
   document.getElementById('scanRegisterArea').style.display = 'none';
   setTimeout(() => {
     lastScanned = '';
+    _scanProcessing = false;
     _setScanStatus('📷 Siap scan berikutnya...', 'info');
   }, 5000);
 }
@@ -2152,7 +2156,9 @@ async function registerBarcode(){
   document.getElementById('registerBarcodeCode').textContent=code;
   // Fill barang dropdown
   const sel=document.getElementById('registerBarcodeBarang');
-  sel.innerHTML='<option value="">— Pilih barang —</option>'+allBarang.map(b=>`<option value="${b.id}">${b.nama} (${b.satuan||'—'})</option>`).join('');
+  const visibleList=_buildVisibleList('');
+  const visibleBarang=visibleList.filter(it=>it.type==='barang').map(it=>allBarang.find(b=>b.id===it.barang_id)).filter(Boolean);
+  sel.innerHTML='<option value="">— Pilih barang —</option>'+visibleBarang.map(b=>`<option value="${b.id}">${b.nama} (${b.satuan||'—'})</option>`).join('');
   document.getElementById('registerBarcodeOverlay').classList.add('show');
 }
 
