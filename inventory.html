@@ -2089,15 +2089,25 @@ async function onBarcodeDetected(code) {
 function _beepSuccess(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    // Beep keras: 2 nada singkat
-    [0,0.12].forEach(t=>{
+    // Kompressor agar maksimal volume tanpa clipping
+    const comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-6;
+    comp.knee.value=0;
+    comp.ratio.value=20;
+    comp.attack.value=0;
+    comp.release.value=0.1;
+    comp.connect(ctx.destination);
+    // 2 nada pendek, gain penuh
+    [0,0.13].forEach(t=>{
       const o=ctx.createOscillator();
       const g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='square';o.frequency.value=1200;
-      g.gain.setValueAtTime(0.6,ctx.currentTime+t);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.08);
-      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.09);
+      o.connect(g);g.connect(comp);
+      o.type='square';
+      o.frequency.value=t===0?1400:1000;
+      g.gain.setValueAtTime(1.0,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.1);
+      o.start(ctx.currentTime+t);
+      o.stop(ctx.currentTime+t+0.11);
     });
   }catch(e){}
 }
@@ -2794,7 +2804,6 @@ async function downloadSJJpg(){
   const btn=document.getElementById('btnDownloadJpg');
   if(btn){btn.textContent='⏳ Memproses...';btn.disabled=true;}
   try{
-    // Load html2canvas jika belum ada
     if(!window.html2canvas){
       await new Promise((res,rej)=>{
         const s=document.createElement('script');
@@ -2803,16 +2812,30 @@ async function downloadSJJpg(){
         document.head.appendChild(s);
       });
     }
-    const canvas=await html2canvas(el,{
+    // Buat clone dengan lebar fixed 794px agar hasil sama di desktop & mobile
+    const FIXED_WIDTH = 794;
+    const clone = el.cloneNode(true);
+    clone.style.cssText = `
+      position:fixed;left:-9999px;top:0;
+      width:${FIXED_WIDTH}px;min-width:${FIXED_WIDTH}px;max-width:${FIXED_WIDTH}px;
+      background:#fff;color:#000;
+      padding:40px 48px;font-family:'Arial',sans-serif;font-size:13px;
+      box-sizing:border-box;overflow:visible;
+    `;
+    document.body.appendChild(clone);
+    // Tunggu layout selesai
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const canvas=await html2canvas(clone,{
       scale:2,
       useCORS:true,
       backgroundColor:'#ffffff',
       logging:false,
-      width:el.scrollWidth,
-      height:el.scrollHeight,
-      windowWidth:el.scrollWidth,
+      width:FIXED_WIDTH,
+      height:clone.scrollHeight,
+      windowWidth:FIXED_WIDTH,
     });
-    const url=canvas.toDataURL('image/jpeg',0.92);
+    document.body.removeChild(clone);
+    const url=canvas.toDataURL('image/jpeg',0.93);
     const a=document.createElement('a');
     a.href=url;
     a.download=noSJ+'.jpg';
