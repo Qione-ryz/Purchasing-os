@@ -236,11 +236,20 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(13,15,20,0.8);
-  backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
   z-index: 50;
+}
+/* backdrop-filter dipindah ke ::before agar tidak buat stacking context
+   di .topbar — supaya dropdown picker & brand filter bisa tampil di atas */
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(13,15,20,0.8);
+  backdrop-filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .page-title { font-size: 20px; font-weight: 600; }
@@ -565,11 +574,50 @@ select {
 }
 
 /* ══════════════════════════════════════════
-   DATE PICKER — dipakai di semua halaman
-   (dashboard, pembelian, harga, dll)
+   DATE FILTER v4 — df-* classes
+   Auto-rendered oleh datefilter.js
 ══════════════════════════════════════════ */
-.date-quick-btn {
-  padding: 6px 8px;
+
+/* Panel container */
+.date-picker-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  min-width: 420px;
+}
+
+/* Layout 2 kolom */
+.df-layout {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+}
+
+.df-col-left  { display: flex; flex-direction: column; gap: 8px; }
+.df-col-right { display: flex; flex-direction: column; gap: 6px; }
+
+/* Section label */
+.df-section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 4px;
+}
+
+/* Quick preset buttons — vertikal di kolom kiri */
+.df-quick-list { display: flex; flex-direction: column; gap: 5px; }
+
+.df-quick-btn {
+  width: 100%;
+  padding: 7px 10px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -577,20 +625,120 @@ select {
   font-family: var(--mono);
   font-size: 11px;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
   transition: border-color .15s, color .15s;
-  width: 100%;
 }
-.date-quick-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.date-quick-btn.active {
+.df-quick-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.df-quick-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #001f2e;
   font-weight: 600;
 }
+
+/* Month grid (year nav + 4x3 grid) */
+.df-year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.df-year-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.df-year-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  width: 24px; height: 24px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.df-year-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.df-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.df-mg-cell {
+  padding: 6px 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.df-mg-cell:hover    { border-color: var(--accent); color: var(--accent); }
+.df-mg-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #001f2e;
+  font-weight: 600;
+}
+.df-mg-inrange {
+  background: rgba(0,212,255,0.1);
+  border-color: rgba(0,212,255,0.3);
+  color: var(--accent);
+}
+.df-mp-apply {
+  width: 100%;
+  padding: 7px;
+  border: none;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.df-mp-apply:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Custom range */
+.df-custom-range { display: flex; flex-direction: column; gap: 5px; }
+.df-custom-row   { display: flex; align-items: center; gap: 8px; }
+.df-range-span   { font-size: 11px; color: var(--muted); width: 28px; flex-shrink: 0; font-family: var(--mono); }
+.df-range-input  {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 28px 6px 8px;
+  outline: none;
+}
+.df-range-input:focus { border-color: var(--accent); }
+
+/* Reset button */
+.df-reset-btn {
+  width: 100%;
+  padding: 7px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--mono);
+  margin-top: 4px;
+  transition: border-color .15s, color .15s;
+}
+.df-reset-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ============================================================
    Pembelian page — fine-tuning layout
@@ -2096,24 +2244,6 @@ td[style*="font-family: var(--mono)"] { font-size: 13px; }
 
 /* ── DATE CHIP (topbar) ── */
 .date-chip { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; }
-
-/* ── DATE PICKER DROPDOWN ── */
-.date-picker-section-label {
-  font-family: var(--mono); font-size: 10px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px;
-}
-.date-picker-section-label + .date-picker-section-label { margin-top: 8px; }
-.date-range-span  { font-size: 11px; color: var(--muted); width: 32px; flex-shrink: 0; }
-.date-range-input {
-  flex: 1; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text); font-family: var(--mono);
-  font-size: 11px; padding: 6px 8px; outline: none;
-}
-.date-reset-btn   {
-  margin-top: 12px; width: 100%; padding: 6px; background: none;
-  border: 1px solid var(--border); border-radius: 6px; color: var(--muted);
-  font-size: 11px; cursor: pointer; font-family: var(--mono);
-}
 
 /* ── TOPBAR BRAND ROW ── */
 .topbar-brand-label { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }

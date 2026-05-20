@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PurchaseOS — Pastry</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="theme.css"/>
+  <script>
+/**
+ * datefilter.js — Reusable Date Filter Module (v2)
+ * ─────────────────────────────────────────────────
+ * Cara pakai di setiap page:
+ *
+ *   const df = DateFilter.create({
+ *     pickerEl     : 'idElementDatePicker',
+ *     triggerBtn   : 'idTombolFilter',
+ *     labelEl      : 'idSpanLabel',
+ *     inputFrom    : 'idInputHiddenFrom',
+ *     inputTo      : 'idInputHiddenTo',
+ *     visFrom      : 'idInputVisibleFrom',
+ *     visTo        : 'idInputVisibleTo',
+ *     quickBtnMap  : {
+ *       'idBtnAll'      : 'all',
+ *       'idBtnToday'    : 'today',
+ *       'idBtn30'       : 30,
+ *       'idBtnThisMonth': 'thismonth',
+ *       'idBtnLastMonth': 'lastmonth',
+ *       'idBtn3Month'   : 90,
+ *       'idBtn6Month'   : 180,
+ *       'idBtnThisYear' : 'thisyear',
+ *       'idBtnLastYear' : 'lastyear',
+ *     },
+ *     monthPickerEl : 'idMonthPickerContainer', // <div> untuk dropdown bulan+tahun
+ *     onChange     : (from, to, label) => { },
+ *     default      : 'thismonth',
+ *   });
+ *
+ *   // Ambil nilai saat ini:
+ *   const { from, to } = df.getRange();
+ *
+ *   // Set programatik:
+ *   df.setQuick('thisyear');
+ *   df.setCustom('2024-01-01', '2024-06-30');
+ *   df.applyMonthDropdown();
+ *   df.clear();
+ *   df.toggle();
+ */
+
+const DateFilter = (() => {
+
+  /* ── Utilitas tanggal lokal ─────────────────────────────────────────── */
+  function _fmt(d) {
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  function _today() {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  }
+
+  const MONTH_NAMES = [
+    'Januari','Februari','Maret','April','Mei','Juni',
+    'Juli','Agustus','September','Oktober','November','Desember'
+  ];
+
+  /* ── Hitung range dari preset ───────────────────────────────────────── */
+  function _resolvePreset(preset) {
+    const today = _today();
+    let from, to, label;
+
+    switch (preset) {
+      case 'today':
+        from = _fmt(today); to = _fmt(today); label = 'Hari Ini'; break;
+
+      case 'thismonth':
+        from  = _fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+        to    = _fmt(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+        label = 'Bulan Ini'; break;
+
+      case 'lastmonth':
+        from  = _fmt(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+        to    = _fmt(new Date(today.getFullYear(), today.getMonth(), 0));
+        label = 'Bulan Lalu'; break;
+
+      case 'thisyear':
+        from  = _fmt(new Date(today.getFullYear(), 0, 1));
+        to    = _fmt(new Date(today.getFullYear(), 11, 31));
+        label = 'Tahun Ini'; break;
+
+      case 'lastyear':
+        from  = _fmt(new Date(today.getFullYear() - 1, 0, 1));
+        to    = _fmt(new Date(today.getFullYear() - 1, 11, 31));
+        label = 'Tahun Lalu'; break;
+
+      case 'all':
+      case '':
+      case undefined:
+        from = ''; to = ''; label = 'Semua Waktu'; break;
+
+      default:
+        if (typeof preset === 'number') {
+          const d = new Date(today); d.setDate(today.getDate() - preset);
+          from  = _fmt(d);
+          to    = _fmt(today);
+          label = preset === 30  ? '30 Hari'
+                : preset === 90  ? '3 Bulan'
+                : preset === 180 ? '6 Bulan'
+                : `${preset} Hari`;
+        } else {
+          from = ''; to = ''; label = 'Semua Waktu';
+        }
+    }
+
+    return { from, to, label };
+  }
+
+  /* ── Bangun label custom ────────────────────────────────────────────── */
+  function _customLabel(from, to) {
+    if (from && to)   return `${from.slice(5)} – ${to.slice(5)}`;
+    if (from)         return `≥ ${from.slice(5)}`;
+    if (to)           return `≤ ${to.slice(5)}`;
+    return 'Semua Tanggal';
+  }
+
+  /* ── Factory utama ──────────────────────────────────────────────────── */
+  function create(opts = {}) {
+    const {
+      pickerEl,
+      triggerBtn,
+      labelEl,
+      inputFrom,
+      inputTo,
+      visFrom,
+      visTo,
+      quickBtnMap = {},
+      onChange,
+      default: defaultPreset = 'all',
+      monthPickerEl,
+    } = opts;
+
+    const el = id => (typeof id === 'string' ? document.getElementById(id) : id);
+    const _allQuickIds = Object.keys(quickBtnMap);
+
+    /* ── Internal: apply ke DOM ── */
+    function _apply(from, to, label) {
+      if (el(inputFrom)) el(inputFrom).value = from || '';
+      if (el(inputTo))   el(inputTo).value   = to   || '';
+      if (el(visFrom))   el(visFrom).value   = from || '';
+      if (el(visTo))     el(visTo).value     = to   || '';
+      if (el(labelEl))   el(labelEl).textContent = label;
+
+      const btn = el(triggerBtn);
+      if (btn) {
+        btn.style.borderColor = from ? 'var(--accent)' : '';
+        btn.style.color       = from ? 'var(--accent)' : '';
+      }
+    }
+
+    /* ── Internal: highlight tombol aktif ── */
+    function _highlightBtn(activePreset) {
+      _allQuickIds.forEach(id => el(id)?.classList.remove('active'));
+      if (activePreset !== null) {
+        const activeId = Object.keys(quickBtnMap).find(
+          id => String(quickBtnMap[id]) === String(activePreset)
+        );
+        if (activeId) el(activeId)?.classList.add('active');
+      }
+    }
+
+    /* ── Internal: tutup picker ── */
+    function _closePicker() {
+      const dp = el(pickerEl);
+      if (dp) dp.style.display = 'none';
+      document.removeEventListener('mousedown', _outsideHandler);
+    }
+
+    function _outsideHandler(e) {
+      const dp  = el(pickerEl);
+      const btn = el(triggerBtn);
+      if (dp && !dp.contains(e.target) && btn && !btn.contains(e.target)) {
+        _closePicker();
+      }
+    }
+
+    /* ── Month Picker Renderer ── */
+    function _renderMonthPicker() {
+      const container = el(monthPickerEl);
+      if (!container) return;
+
+      const today = _today();
+      const cy    = today.getFullYear();
+      const cm    = today.getMonth() + 1;
+
+      container.innerHTML = `
+        <div class="df-mp-row">
+          <select class="df-mp-select" id="_dfSelMonth">
+            ${MONTH_NAMES.map((name, i) =>
+              `<option value="${i + 1}"${i + 1 === cm ? ' selected' : ''}>${name}</option>`
+            ).join('')}
+          </select>
+          <select class="df-mp-select" id="_dfSelYear">
+            ${(() => {
+              let html = '';
+              for (let y = cy - 5; y <= cy + 1; y++) {
+                html += `<option value="${y}"${y === cy ? ' selected' : ''}>${y}</option>`;
+              }
+              return html;
+            })()}
+          </select>
+        </div>
+        <button class="df-mp-apply" id="_dfBtnApply">Terapkan</button>
+      `;
+
+      container.querySelector('#_dfBtnApply').addEventListener('click', applyMonthDropdown);
+    }
+
+    /* ═══════════════════════════════════════════
+       PUBLIC API
+    ═══════════════════════════════════════════ */
+
+    /**
+     * setQuick(preset)
+     * Preset: 'today','thismonth','lastmonth','thisyear','lastyear','all',
+     * atau angka hari (30, 90, 180).
+     */
+    function setQuick(preset) {
+      const { from, to, label } = _resolvePreset(preset);
+      _apply(from, to, label);
+      _highlightBtn(preset);
+      _closePicker();
+      if (typeof onChange === 'function') onChange(from, to, label);
+    }
+
+    /**
+     * applyMonthDropdown()
+     * Baca nilai dari dropdown bulan+tahun lalu terapkan sebagai filter
+     * satu bulan penuh. Dipanggil otomatis saat tombol "Terapkan" diklik.
+     */
+    function applyMonthDropdown() {
+      const selMonth = document.getElementById('_dfSelMonth');
+      const selYear  = document.getElementById('_dfSelYear');
+      if (!selMonth || !selYear) return;
+
+      const m     = parseInt(selMonth.value, 10);
+      const y     = parseInt(selYear.value,  10);
+      const from  = _fmt(new Date(y, m - 1, 1));
+      const to    = _fmt(new Date(y, m, 0));
+      const label = `${MONTH_NAMES[m - 1]} ${y}`;
+
+      _apply(from, to, label);
+      _highlightBtn(null);
+      _closePicker();
+      if (typeof onChange === 'function') onChange(from, to, label);
+    }
+
+    /**
+     * setCustom(from, to)
+     * Terapkan rentang kustom. from & to format 'YYYY-MM-DD', boleh kosong.
+     */
+    function setCustom(from, to) {
+      if (!from && !to) return;
+      const label = _customLabel(from, to);
+      _apply(from, to, label);
+      _highlightBtn(null);
+      if (typeof onChange === 'function') onChange(from, to, label);
+    }
+
+    /**
+     * clear()
+     * Reset filter ke 'Semua Tanggal'.
+     */
+    function clear() {
+      _apply('', '', 'Semua Tanggal');
+      _highlightBtn(null);
+      _closePicker();
+      if (typeof onChange === 'function') onChange('', '', 'Semua Tanggal');
+    }
+
+    /**
+     * toggle()
+     * Buka/tutup dropdown picker.
+     */
+    function toggle() {
+      const dp = el(pickerEl);
+      if (!dp) return;
+      const isOpen = dp.style.display !== 'none' && dp.style.display !== '';
+      if (isOpen) {
+        _closePicker();
+      } else {
+        dp.style.display = '';
+        setTimeout(() => document.addEventListener('mousedown', _outsideHandler), 0);
+      }
+    }
+
+    /** close() — tutup picker secara programatik */
+    function close() { _closePicker(); }
+
+    /** getRange() — kembalikan { from, to } nilai saat ini */
+    function getRange() {
+      return {
+        from: el(inputFrom) ? el(inputFrom).value : '',
+        to:   el(inputTo)   ? el(inputTo).value   : '',
+      };
+    }
+
+    /**
+     * onVisibleInputChange()
+     * Pasang sebagai: onchange="df.onVisibleInputChange()"
+     */
+    function onVisibleInputChange() {
+      const from = el(visFrom)?.value || '';
+      const to   = el(visTo)?.value   || '';
+      setCustom(from, to);
+    }
+
+    /* ── Inisialisasi default ── */
+    if (defaultPreset && defaultPreset !== 'none') {
+      const { from, to, label } = _resolvePreset(defaultPreset);
+      _apply(from, to, label);
+      _highlightBtn(defaultPreset);
+    }
+
+    if (monthPickerEl) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _renderMonthPicker);
+      } else {
+        _renderMonthPicker();
+      }
+    }
+
+    return { setQuick, applyMonthDropdown, setCustom, clear, toggle, close, getRange, onVisibleInputChange };
+  }
+
+  return { create };
+
+})();
+  </script>
+  <script src="sidebar.js"></script>
+  <style>
+    .tab-bar { display:flex; gap:4px; margin-bottom:18px; border-bottom:2px solid var(--border); }
+    .tab-btn {
+      padding:8px 18px; font-size:13px; font-family:var(--sans); font-weight:500;
+      background:none; border:none; cursor:pointer; color:var(--muted);
+      border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s,border-color .15s;
+    }
+    .tab-btn.active { color:#000; border-bottom-color:var(--accent); font-weight:700; }
+    .tab-btn:hover:not(.active) { color:var(--text); }
+    .tab-panel { display:none; } .tab-panel.active { display:block; }
+
+    .badge-tipe {
+      display:inline-block; padding:2px 8px; border-radius:10px;
+      font-size:11px; font-family:var(--mono); font-weight:600; text-transform:uppercase;
+    }
+    .badge-dispose    { background:#fee2e2; color:#dc2626; }
+    .badge-compliment { background:#dcfce7; color:#16a34a; }
+
+    .export-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+    .export-bar select, .export-bar input[type=month] {
+      height:34px; padding:0 10px; border:1px solid var(--border);
+      border-radius:6px; font-size:13px; font-family:var(--mono);
+      background:var(--surface); color:var(--text);
+    }
+    .date-quick-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 11px; font-family: var(--mono);
+      padding: 5px 8px; cursor: pointer; transition: all .15s; text-align:center;
+    }
+    .date-quick-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05); }
+    .date-quick-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.1); font-weight:600; }
+  </style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <div class="topbar" id="mainTopbar">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Pastry</div>
+      <div class="page-sub" id="activeBrandLabel">—</div>
+    </div>
+
+  </div>
+
+  <div class="content">
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('daftar')">📋 Daftar Pastry</button>
+      <button class="tab-btn" onclick="switchTab('riwayat')">📜 Riwayat</button>
+    </div>
+
+    <!-- ══ TAB: DAFTAR ══ -->
+    <div class="tab-panel active" id="tab-daftar">
+      <div class="toolbar">
+        <div class="search-wrap" style="position:relative;flex:1">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="searchInput" type="text" placeholder="Cari nama pastry... (Ctrl+K)" oninput="onSearch();toggleSearchClear()"/>
+          <button id="searchClearBtn" onclick="clearSearch()" title="Hapus pencarian"
+            style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal()" style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Pastry
+        </button>
+      </div>
+      <div id="searchResultInfo" style="display:none;font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 2px 10px;margin-top:-8px"></div>
+
+      <div class="card anim">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortBy('nama')">Nama Pastry <span id="sort-nama">↕</span></th>
+                <th style="width:1%;white-space:nowrap;padding-left:8px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="3" style="text-align:center;padding:40px;color:var(--muted)">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginInfo">—</span>
+          <div class="page-btns" id="pageBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: RIWAYAT ══ -->
+    <div class="tab-panel" id="tab-riwayat">
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="mini-stat-val" id="rStatTotal">—</div><div class="mini-stat-label">Total Entri</div></div>
+        <div class="mini-stat"><div class="mini-stat-val" id="rStatDispose" style="color:#dc2626">—</div><div class="mini-stat-label">Dispose</div></div>
+        <div class="mini-stat"><div class="mini-stat-val" id="rStatCompliment" style="color:#16a34a">—</div><div class="mini-stat-label">Compliment</div></div>
+      </div>
+
+      <div class="export-bar">
+        <select id="rFilterTipe" onchange="rCurrentPage=1;fetchRiwayat()">
+          <option value="">Semua Tipe</option>
+          <option value="dispose">Dispose</option>
+          <option value="compliment">Compliment</option>
+        </select>
+        <!-- Brand filter — dropdown multi-tag style -->
+        <div class="brand-filter-wrap" style="position:relative">
+          <button id="rBrandFilterBtn" onclick="toggleRBrandDropdown(event)"
+            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans);height:34px"
+            onmouseover="this.style.borderColor='var(--accent)'"
+            onmouseout="if(!(PageState_r&&PageState_r.selectedBrands||[]).length)this.style.borderColor='var(--border)'">
+            <span id="rBrandFilterLabel">🏷 Semua Brand</span>
+            <span id="rBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
+            <span style="font-size:10px;color:var(--muted)">▾</span>
+          </button>
+          <div id="rBrandFilterDropdown"
+            style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
+            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+              <input type="checkbox" id="rChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+              <span>Semua Brand</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:6px 0"></div>
+            <div id="rBrandOptionsList"></div>
+          </div>
+        </div>
+        <!-- hidden single-value untuk query compat -->
+        <select id="rFilterBrand" style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"><option value="">Semua Brand</option></select>
+        <!-- hidden date state carriers -->
+        <input type="date" id="rDateFrom" style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"/>
+        <input type="date" id="rDateTo"   style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"/>
+        <!-- Date picker — persis seperti dashboard, pakai datefilter.js -->
+        <div class="topbar-date-wrap" style="position:relative">
+          <button class="btn btn-ghost btn-sm" id="btnDateFilter" onclick="rDf && rDf.toggle()" style="white-space:nowrap;min-width:130px">
+            📅 <span id="dateFilterLabel">Bulan Ini</span>
+          </button>
+          <div id="datePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+            <div class="date-picker-section-label">Filter Cepat</div>
+            <div style="margin-bottom:6px">
+              <button class="date-quick-btn" id="rBtnAll" onclick="rDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+              <button class="date-quick-btn" id="rBtnToday"     onclick="rDf.setQuick('today')">Hari Ini</button>
+              <button class="date-quick-btn" id="rBtnYesterday" onclick="rDf.setQuick('yesterday')">Kemarin</button>
+              <button class="date-quick-btn" id="rBtn7"         onclick="rDf.setQuick(7)">7 Hari</button>
+              <button class="date-quick-btn" id="rBtn30"        onclick="rDf.setQuick(30)">30 Hari</button>
+              <button class="date-quick-btn" id="rBtnThisMonth" onclick="rDf.setQuick('thismonth')">Bulan Ini</button>
+              <button class="date-quick-btn" id="rBtnLastMonth" onclick="rDf.setQuick('lastmonth')">Bulan Lalu</button>
+              <button class="date-quick-btn" id="rBtn3Month"    onclick="rDf.setQuick(90)">3 Bulan</button>
+              <button class="date-quick-btn" id="rBtn6Month"    onclick="rDf.setQuick(180)">6 Bulan</button>
+              <button class="date-quick-btn" id="rBtnThisYear"  onclick="rDf.setQuick('thisyear')">Tahun Ini</button>
+              <button class="date-quick-btn" id="rBtnLastYear"  onclick="rDf.setQuick('lastyear')">Tahun Lalu</button>
+            </div>
+            <div class="date-picker-section-label">Rentang Kustom</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="date-range-span">Dari</span>
+                <input type="date" id="rDateFromVis" class="date-range-input" onchange="rDf.onVisibleInputChange()"/>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="date-range-span">S/d</span>
+                <input type="date" id="rDateToVis" class="date-range-input" onchange="rDf.onVisibleInputChange()"/>
+              </div>
+            </div>
+            <button onclick="rDf.setQuick('thismonth')" class="date-reset-btn">✕ Reset Filter</button>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
+        <button class="btn btn-primary admin-only" onclick="openRiwayatModal()" style="display:flex;align-items:center;gap:5px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Catat Riwayat
+        </button>
+      </div>
+
+      <div class="card anim">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Nama Pastry</th>
+                <th>Tipe</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Keterangan</th>
+                <th>Brand</th>
+                <th class="admin-only" style="width:1%;white-space:nowrap;padding-left:16px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="rTableBody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="rPaginInfo">—</span>
+          <div class="page-btns" id="rPageBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL TAMBAH / EDIT PASTRY -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Tambah Pastry</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="error-box" id="modalError"></div>
+      <div class="field">
+        <label>Nama Pastry *</label>
+        <input type="text" id="fNama" placeholder="cth: Croissant Butter"/>
+      </div>
+      <input type="hidden" id="fSatuan" value="pcs"/>
+      <input type="hidden" id="fId"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" id="btnSave" onclick="savePastry()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HAPUS PASTRY -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title">Hapus Pastry</span>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Batal</button>
+      <button class="btn btn-danger" id="btnConfirmDel">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATAT RIWAYAT -->
+<div class="modal-overlay" id="rModalOverlay">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title" id="rModalTitle">Catat Riwayat</span>
+      <button class="modal-close" onclick="closeRiwayatModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="error-box" id="rModalError"></div>
+      <div class="field">
+        <label>Pastry *</label>
+        <select id="rFPastry"><option value="">— Pilih Pastry —</option></select>
+      </div>
+      <div class="field">
+        <label>Tipe *</label>
+        <select id="rFTipe">
+          <option value="">— Pilih Tipe —</option>
+          <option value="dispose">Dispose</option>
+          <option value="compliment">Compliment</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Jumlah *</label>
+        <input type="number" id="rFJumlah" min="0.01" step="0.01" placeholder="cth: 12"/>
+      </div>
+      <div class="field">
+        <label>Tanggal *</label>
+        <input type="date" id="rFTanggal"/>
+      </div>
+      <div class="field">
+        <label>Keterangan</label>
+        <input type="text" id="rFKeterangan" placeholder="Opsional"/>
+      </div>
+      <div class="field">
+        <label>Brand</label>
+        <select id="rFBrand">
+          <option value="">— Pilih Brand —</option>
+        </select>
+      </div>
+      <input type="hidden" id="rFId"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeRiwayatModal()">Batal</button>
+      <button class="btn btn-primary" id="rBtnSave" onclick="saveRiwayat()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HAPUS RIWAYAT -->
+<div class="modal-overlay" id="rConfirmOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title">Hapus Riwayat</span>
+      <button class="modal-close" onclick="closeRConfirm()">✕</button>
+    </div>
+    <div class="confirm-body" id="rConfirmBody">Yakin hapus entri riwayat ini?</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeRConfirm()">Batal</button>
+      <button class="btn btn-danger" id="rBtnConfirmDel" onclick="confirmDeleteRiwayat()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="logger.js"></script>
+<script>
+  window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+  /* ── STATE ── */
+  let allData = [], allPastryList = [];
+  let currentPage = 1, sortField = 'nama', sortDir = 'asc';
+  let deleteId = null, searchTimer = null;
+  const PER_PAGE = 12;
+
+  let rAllData = [], rCurrentPage = 1, rDeleteId = null;
+  const R_PER_PAGE = 15;
+
+  /* ── INIT ── */
+  (async () => {
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+
+    renderSidebar('pastry.html');
+
+    const user = session.user;
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    document.getElementById('userName').textContent   = name;
+    document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+    const role = await getUserRole();
+    applyRoleUI(role);
+    window._userRole = role;
+
+    window._sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') window.location.href = 'index.html'; });
+
+    /* set tanggal default riwayat = hari ini */
+    document.getElementById('rFTanggal').value = new Date().toISOString().slice(0,10);
+
+    await loadBrands();
+    await fetchPage();
+
+    window.toggleRBrandDropdown = toggleRBrandDropdown;
+    window.rToggleBrand         = rToggleBrand;
+    window.rSelectAllBrands     = rSelectAllBrands;
+    // Setelah semua siap, set date filter default → trigger fetchRiwayat
+    let _dfWait = 0;
+    const _dfReady = setInterval(() => {
+      if (window.rDf || ++_dfWait > 30) {
+        clearInterval(_dfReady);
+        if (window.rDf) window.rDf.setQuick('thismonth');
+        else fetchRiwayat();
+      }
+    }, 100);
+  })();
+
+  /* ── TABS ── */
+  let _riwayatLoaded = false;
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['daftar','riwayat'][i] === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    if (name === 'riwayat' && !_riwayatLoaded) {
+      _riwayatLoaded = true;
+      if (window.rDf) window.rDf.setQuick('thismonth');
+      else fetchRiwayat();
+    }
+  }
+
+  let _brandMap = {}; // id → nama
+  let _rSelectedBrands = []; // [] = semua
+
+  async function loadBrands() {
+    try {
+      const { data } = await window._sb.from('brands').select('id,nama').order('nama');
+      const brands = data || [];
+      _brandMap = {};
+      brands.forEach(b => { _brandMap[b.id] = b.nama; });
+
+      /* populate modal brand select */
+      const selMod = document.getElementById('rFBrand');
+      brands.forEach(b => {
+        if (!selMod) return;
+        const o = document.createElement('option');
+        o.value = b.id; o.textContent = b.nama; selMod.appendChild(o);
+      });
+
+      /* Build brand checkbox list */
+      const listEl = document.getElementById('rBrandOptionsList');
+      if (listEl) {
+        listEl.innerHTML = brands.map(b => `
+          <div onclick="rToggleBrand('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+            <input type="checkbox" id="rChkBrand_${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+            <span>${b.nama}</span>
+          </div>`).join('');
+      }
+    } catch(e) { console.warn('loadBrands:', e); }
+  }
+
+  function toggleRBrandDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('rBrandFilterDropdown');
+    const btn = document.getElementById('rBrandFilterBtn');
+    if (!dd) return;
+    const isOpen = dd.style.display !== 'none';
+    if (isOpen) { dd.style.display = 'none'; return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.display = '';
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    setTimeout(() => document.addEventListener('mousedown', _rBrandOutside), 0);
+  }
+
+  function _rBrandOutside(e) {
+    const dd = document.getElementById('rBrandFilterDropdown');
+    const btn = document.getElementById('rBrandFilterBtn');
+    if (dd && !dd.contains(e.target) && btn && !btn.contains(e.target)) {
+      dd.style.display = 'none';
+      document.removeEventListener('mousedown', _rBrandOutside);
+    }
+  }
+
+  function rToggleBrand(id) {
+    const idx = _rSelectedBrands.indexOf(id);
+    if (idx === -1) _rSelectedBrands.push(id);
+    else _rSelectedBrands.splice(idx, 1);
+    _rUpdateBrandUI();
+    rCurrentPage = 1; fetchRiwayat();
+  }
+
+  function rSelectAllBrands() {
+    _rSelectedBrands = [];
+    _rUpdateBrandUI();
+    rCurrentPage = 1; fetchRiwayat();
+  }
+
+  function _rUpdateBrandUI() {
+    const allChk = document.getElementById('rChkAllBrands');
+    const countEl = document.getElementById('rBrandFilterCount');
+    const labelEl = document.getElementById('rBrandFilterLabel');
+    const btn = document.getElementById('rBrandFilterBtn');
+
+    Object.keys(_brandMap).forEach(id => {
+      const chk = document.getElementById('rChkBrand_' + id);
+      if (chk) chk.checked = _rSelectedBrands.includes(id);
+    });
+
+    if (_rSelectedBrands.length === 0) {
+      if (allChk) allChk.checked = true;
+      if (countEl) countEl.style.display = 'none';
+      if (labelEl) labelEl.textContent = '🏷 Semua Brand';
+      if (btn) { btn.style.borderColor = ''; btn.style.color = ''; }
+    } else {
+      if (allChk) allChk.checked = false;
+      if (countEl) { countEl.textContent = _rSelectedBrands.length; countEl.style.display = ''; }
+      if (labelEl) labelEl.textContent = '🏷 Brand';
+      if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; }
+    }
+  }
+
+  /* ── FETCH DAFTAR ── */
+  async function fetchPage() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--muted)">Memuat...</td></tr>`;
+    try {
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const sat    = ''; // filterSatuan removed, satuan is always pcs
+      let display, totalCount;
+
+      if (search) {
+        let q = window._sb.from('pastry').select('*').order(sortField, { ascending: sortDir === 'asc' });
+        if (sat) q = q.eq('satuan', sat);
+        const { data: raw, error } = await q;
+        if (error) throw error;
+        const filtered = (raw||[]).filter(p => (p.nama||'').toLowerCase().includes(search));
+        totalCount = filtered.length;
+        display = filtered.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+        allData = filtered;
+      } else {
+        let q = window._sb.from('pastry').select('*').order(sortField, { ascending: sortDir === 'asc' });
+        if (sat) q = q.eq('satuan', sat);
+        let cq = window._sb.from('pastry').select('id', { count: 'exact', head: true });
+        if (sat) cq = cq.eq('satuan', sat);
+        const [{ data: raw, error }, cr] = await Promise.all([
+          q.range((currentPage-1)*PER_PAGE, currentPage*PER_PAGE-1), cq
+        ]);
+        if (error) throw error;
+        totalCount = cr.count || 0;
+        display = raw || [];
+        allData = display;
+      }
+
+      /* refresh pastry dropdown di modal riwayat */
+      allPastryList = allData;
+      refreshPastryDropdown();
+
+      renderTable(display, totalCount);
+    } catch(e) {
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--danger)">${e.message}</td></tr>`;
+    }
+  }
+
+  function refreshPastryDropdown() {
+    /* Ambil full list untuk dropdown riwayat */
+    window._sb.from('pastry').select('id,nama,satuan').order('nama').then(({ data }) => {
+      allPastryList = data || [];
+      const sel = document.getElementById('rFPastry');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Pilih Pastry —</option>';
+      allPastryList.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.nama; o.dataset.satuan = p.satuan || '';
+        sel.appendChild(o);
+      });
+      if (cur) sel.value = cur;
+    });
+  }
+
+  /* ── RENDER DAFTAR TABLE ── */
+  function renderTable(data, total) {
+    const tbody = document.getElementById('tableBody');
+    const pages = Math.ceil(total/PER_PAGE)||1;
+    currentPage = Math.min(currentPage, pages);
+
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state">
+        <div class="empty-icon">🥐</div><div class="empty-text">Tidak ada pastry ditemukan</div>
+        <button class="btn btn-primary" onclick="openModal()">＋ Tambah Pastry</button>
+      </div></td></tr>`;
+    } else {
+      tbody.innerHTML = data.map(p => {
+        const mid = 'menu-' + p.id;
+        return `<tr>
+          <td style="font-weight:500">${p.nama||'—'}</td>
+          <td><span style="font-family:var(--mono);font-size:13px">pcs</span></td>
+          <td style="white-space:nowrap;padding-left:8px">
+            <div class="action-group" style="justify-content:flex-start;flex-wrap:nowrap">
+              <button class="btn btn-ghost btn-sm" onclick="openModal('${p.id}')" title="Edit Pastry">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="openConfirm('${p.id}','${(p.nama||'').replace(/'/g,"\\'")}' )" title="Hapus Pastry">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                Hapus
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    const q = document.getElementById('searchInput').value.trim();
+    const infoEl = document.getElementById('searchResultInfo');
+    if (q) {
+      infoEl.style.display = '';
+      infoEl.innerHTML = `🔍 <strong style="color:var(--text)">${total}</strong> hasil untuk "<em>${q}</em>" &nbsp;·&nbsp; <button onclick="clearSearch()" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;padding:0">Hapus ✕</button>`;
+    } else { infoEl.style.display = 'none'; }
+
+    document.getElementById('paginInfo').textContent =
+      `Menampilkan ${Math.min((currentPage-1)*PER_PAGE+1,total||1)}–${Math.min(currentPage*PER_PAGE,total)} dari ${total} pastry`;
+
+    const pb = document.getElementById('pageBtns'); pb.innerHTML = '';
+    const addBtn = (lbl,pg,dis,act) => {
+      const b = document.createElement('button');
+      b.className='page-btn'+(act?' active':''); b.textContent=lbl; b.disabled=dis;
+      b.onclick=()=>{ currentPage=pg; fetchPage(); }; pb.appendChild(b);
+    };
+    addBtn('««',1,currentPage===1,false); addBtn('‹',currentPage-1,currentPage===1,false);
+    for(let p=Math.max(1,currentPage-2);p<=Math.min(pages,currentPage+2);p++) addBtn(p,p,false,p===currentPage);
+    addBtn('›',currentPage+1,currentPage===pages,false); addBtn('»»',pages,currentPage===pages,false);
+
+    if(window._userRole) applyRoleUI(window._userRole);
+  }
+
+  /* ── FETCH RIWAYAT ── */
+  async function fetchRiwayat() {
+    if (!window._sb) return; // guard: tunggu auth selesai
+    const tbody = document.getElementById('rTableBody');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">Memuat...</td></tr>`;
+    try {
+      const tipe  = document.getElementById('rFilterTipe').value;
+      const dari  = document.getElementById('rDateFrom').value;
+      const akhir = document.getElementById('rDateTo').value;
+
+      let q = window._sb.from('pastry_riwayat').select('*').order('tanggal', { ascending: false }).order('created_at', { ascending: false });
+      if (tipe)  q = q.eq('tipe', tipe);
+      if (_rSelectedBrands.length === 1) q = q.eq('brand_id', _rSelectedBrands[0]);
+      else if (_rSelectedBrands.length > 1) q = q.in('brand_id', _rSelectedBrands);
+      if (dari)  q = q.gte('tanggal', dari);
+      if (akhir) q = q.lte('tanggal', akhir);
+
+      const { data, error } = await q;
+      if (error) throw error;
+      rAllData = data || [];
+
+      /* Stats */
+      document.getElementById('rStatTotal').textContent     = rAllData.length;
+      document.getElementById('rStatDispose').textContent   = rAllData.filter(r=>r.tipe==='dispose').length;
+      document.getElementById('rStatCompliment').textContent= rAllData.filter(r=>r.tipe==='compliment').length;
+
+      renderRiwayatTable();
+    } catch(e) {
+      document.getElementById('rTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--danger)">${e.message}</td></tr>`;
+    }
+  }
+
+  function renderRiwayatTable() {
+    const tbody = document.getElementById('rTableBody');
+    const total = rAllData.length;
+    const pages = Math.ceil(total/R_PER_PAGE)||1;
+    rCurrentPage = Math.min(rCurrentPage, pages);
+    const slice = rAllData.slice((rCurrentPage-1)*R_PER_PAGE, rCurrentPage*R_PER_PAGE);
+    const isAdmin = window._userRole === 'admin';
+
+    if (!slice.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        <div class="empty-icon">📜</div><div class="empty-text">Belum ada riwayat</div>
+        <button class="btn btn-primary admin-only" onclick="openRiwayatModal()">＋ Catat Riwayat</button>
+      </div></td></tr>`;
+    } else {
+      tbody.innerHTML = slice.map(r => {
+        const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+        const badge = r.tipe === 'dispose'
+          ? `<span class="badge-tipe badge-dispose">Dispose</span>`
+          : `<span class="badge-tipe badge-compliment">Compliment</span>`;
+        return `<tr>
+          <td style="font-family:var(--mono);font-size:12px">${tgl}</td>
+          <td style="font-weight:500">${r.nama_pastry||'—'}</td>
+          <td>${badge}</td>
+          <td style="font-family:var(--mono)">${r.jumlah}</td>
+          <td style="font-family:var(--mono);font-size:12px">${r.satuan||'—'}</td>
+          <td style="color:var(--muted);font-size:12px">${r.keterangan||'—'}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.brand_id?(_brandMap[r.brand_id]||r.brand_id):'—'}</td>
+          <td class="admin-only" style="padding-left:16px;white-space:nowrap">
+            ${isAdmin ? `
+            <div class="action-group" style="justify-content:flex-start;flex-wrap:nowrap">
+              <button class="btn btn-ghost btn-sm" onclick="openRiwayatModal('${r.id}')" title="Edit">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="openRConfirm('${r.id}')" title="Hapus">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                Hapus
+              </button>
+            </div>` : '—'}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('rPaginInfo').textContent =
+      `Menampilkan ${Math.min((rCurrentPage-1)*R_PER_PAGE+1,total||1)}–${Math.min(rCurrentPage*R_PER_PAGE,total)} dari ${total} entri`;
+
+    const pb = document.getElementById('rPageBtns'); pb.innerHTML = '';
+    const addBtn = (lbl,pg,dis,act) => {
+      const b = document.createElement('button');
+      b.className='page-btn'+(act?' active':''); b.textContent=lbl; b.disabled=dis;
+      b.onclick=()=>{ rCurrentPage=pg; renderRiwayatTable(); }; pb.appendChild(b);
+    };
+    addBtn('««',1,rCurrentPage===1,false); addBtn('‹',rCurrentPage-1,rCurrentPage===1,false);
+    for(let p=Math.max(1,rCurrentPage-2);p<=Math.min(pages,rCurrentPage+2);p++) addBtn(p,p,false,p===rCurrentPage);
+    addBtn('›',rCurrentPage+1,rCurrentPage===pages,false); addBtn('»»',pages,rCurrentPage===pages,false);
+
+    if(window._userRole) applyRoleUI(window._userRole);
+  }
+
+  function clearRFilter() {
+    document.getElementById('rFilterTipe').value = '';
+    _rSelectedBrands = [];
+    _rUpdateBrandUI();
+    rDf.clear();
+  }
+
+  /* ── EXPORT EXCEL ── */
+  function exportExcel() {
+    if (!rAllData.length) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
+    if (typeof XLSX === 'undefined') { showToast('Library XLSX belum dimuat', 'error'); return; }
+    const rows = rAllData.map(r => ({
+      'Tanggal'     : r.tanggal || '',
+      'Nama Pastry' : r.nama_pastry || '',
+      'Tipe'        : r.tipe || '',
+      'Jumlah'      : r.jumlah,
+      'Satuan'      : r.satuan || '',
+      'Keterangan'  : r.keterangan || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    /* lebar kolom */
+    ws['!cols'] = [{ wch:12 },{ wch:28 },{ wch:12 },{ wch:8 },{ wch:10 },{ wch:30 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Pastry');
+    const tipe  = document.getElementById('rFilterTipe').value || 'semua';
+    const dari  = document.getElementById('rDateFrom').value;
+    const label = dari ? dari.slice(0,7) : 'alltime';
+    XLSX.writeFile(wb, `riwayat-pastry_${tipe}_${label}.xlsx`);
+    showToast('Excel berhasil diekspor ✓', 'success');
+  }
+
+  /* ── SORT DAFTAR ── */
+  function sortBy(field) {
+    if (sortField===field) sortDir = sortDir==='asc'?'desc':'asc';
+    else { sortField=field; sortDir='asc'; }
+    document.querySelectorAll('th [id^="sort-"]').forEach(el=>el.textContent='↕');
+    const icon = document.getElementById('sort-'+field);
+    if (icon) { icon.textContent=sortDir==='asc'?'↑':'↓'; }
+    currentPage=1; fetchPage();
+  }
+
+  /* ── SEARCH ── */
+  function onSearch() { clearTimeout(searchTimer); searchTimer=setTimeout(()=>{ currentPage=1; fetchPage(); },250); }
+  function toggleSearchClear() { document.getElementById('searchClearBtn').style.display=document.getElementById('searchInput').value?'block':'none'; }
+  function clearSearch() { document.getElementById('searchInput').value=''; document.getElementById('searchClearBtn').style.display='none'; currentPage=1; fetchPage(); }
+
+  /* ── MODAL PASTRY ── */
+  async function openModal(id) {
+    document.getElementById('modalError').classList.remove('show');
+    if (id) {
+      let p = allData.find(x=>x.id===id);
+      if (!p) { const {data}=await window._sb.from('pastry').select('*').eq('id',id).single(); if(!data)return; p=data; }
+      document.getElementById('modalTitle').textContent='Edit Pastry';
+      document.getElementById('fId').value=p.id;
+      document.getElementById('fNama').value=p.nama||'';
+    } else {
+      document.getElementById('modalTitle').textContent='Tambah Pastry';
+      ['fId','fNama'].forEach(i=>document.getElementById(i).value='');
+    }
+    document.getElementById('modalOverlay').classList.add('show');
+    setTimeout(()=>document.getElementById('fNama').focus(),100);
+  }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+  async function savePastry() {
+    const nama=document.getElementById('fNama').value.trim();
+    const satuan='pcs';
+    const id=document.getElementById('fId').value;
+    if (!nama) return showModalError('Nama pastry wajib diisi.');
+    const btn=document.getElementById('btnSave');
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Menyimpan...';
+    try {
+      if (id) {
+        const {error}=await window._sb.from('pastry').update({nama,satuan,updated_at:new Date().toISOString()}).eq('id',id);
+        if(error)throw error;
+        showToast('Pastry berhasil diperbarui ✓','success'); logActivity('edit','pastry',nama);
+      } else {
+        const {error}=await window._sb.from('pastry').insert({nama,satuan,updated_at:new Date().toISOString()});
+        if(error)throw error;
+        showToast('Pastry berhasil ditambahkan ✓','success'); logActivity('tambah','pastry',nama);
+      }
+      closeModal(); await fetchPage();
+    } catch(e) { showModalError('Gagal: '+e.message); }
+    finally { btn.disabled=false; btn.innerHTML='Simpan'; }
+  }
+
+  function openConfirm(id, nama) {
+    deleteId=id;
+    document.getElementById('confirmBody').innerHTML=`Yakin hapus pastry <strong>${nama}</strong>?<br><br>Data tidak bisa dikembalikan.`;
+    document.getElementById('btnConfirmDel').onclick=confirmDelete;
+    document.getElementById('confirmOverlay').classList.add('show');
+  }
+  function closeConfirm() { deleteId=null; document.getElementById('confirmOverlay').classList.remove('show'); }
+
+  async function confirmDelete() {
+    const btn=document.getElementById('btnConfirmDel'); btn.disabled=true; btn.textContent='Menghapus...';
+    try {
+      const name=allData.find(x=>x.id===deleteId)?.nama||deleteId;
+      const {error}=await window._sb.from('pastry').delete().eq('id',deleteId);
+      if(error)throw error;
+      logActivity('hapus','pastry',name); showToast('Pastry berhasil dihapus','success');
+      closeConfirm(); await fetchPage();
+    } catch(e) { showToast('Gagal: '+e.message,'error'); }
+    finally { btn.disabled=false; btn.textContent='Hapus'; }
+  }
+
+  /* ── MODAL RIWAYAT ── */
+  async function openRiwayatModal(id) {
+    document.getElementById('rModalError').classList.remove('show');
+    refreshPastryDropdown();
+    if (id) {
+      const r = rAllData.find(x=>x.id===id);
+      if (!r) return;
+      document.getElementById('rModalTitle').textContent = 'Edit Riwayat';
+      document.getElementById('rFId').value         = r.id;
+      document.getElementById('rFPastry').value     = r.pastry_id || '';
+      document.getElementById('rFTipe').value       = r.tipe || '';
+      document.getElementById('rFBrand').value      = r.brand_id || '';
+      document.getElementById('rFJumlah').value     = r.jumlah || '';
+      document.getElementById('rFTanggal').value    = r.tanggal || '';
+      document.getElementById('rFKeterangan').value = r.keterangan || '';
+    } else {
+      document.getElementById('rModalTitle').textContent = 'Catat Riwayat';
+      ['rFId','rFKeterangan'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('rFPastry').value  = '';
+      document.getElementById('rFTipe').value    = '';
+      document.getElementById('rFBrand').value   = '';
+      document.getElementById('rFJumlah').value  = '';
+      document.getElementById('rFTanggal').value = new Date().toISOString().slice(0,10);
+    }
+    document.getElementById('rModalOverlay').classList.add('show');
+  }
+  function closeRiwayatModal() { document.getElementById('rModalOverlay').classList.remove('show'); }
+
+  async function saveRiwayat() {
+    if (!requireAdmin(showToast)) return;
+    const pastryId  = document.getElementById('rFPastry').value;
+    const tipe      = document.getElementById('rFTipe').value;
+    const jumlah    = parseFloat(document.getElementById('rFJumlah').value);
+    const tanggal   = document.getElementById('rFTanggal').value;
+    const keterangan= document.getElementById('rFKeterangan').value.trim();
+    const id        = document.getElementById('rFId').value;
+
+    if (!pastryId)       return showRModalError('Pilih pastry.');
+    if (!tipe)           return showRModalError('Pilih tipe.');
+    if (!jumlah || jumlah<=0) return showRModalError('Jumlah harus > 0.');
+    if (!tanggal)        return showRModalError('Tanggal wajib diisi.');
+
+    const pastryItem = allPastryList.find(p=>p.id===pastryId);
+    const nama_pastry= pastryItem?.nama || '';
+    const satuan     = pastryItem?.satuan || '';
+
+    const btn=document.getElementById('rBtnSave');
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Menyimpan...';
+    try {
+      const brandId = document.getElementById('rFBrand')?.value || null;
+      const payload = { pastry_id:pastryId, nama_pastry, satuan, tipe, jumlah, tanggal, keterangan: keterangan||null, brand_id: brandId||null };
+      if (id) {
+        const {error}=await window._sb.from('pastry_riwayat').update(payload).eq('id',id);
+        if(error)throw error;
+        showToast('Riwayat berhasil diperbarui ✓','success');
+      } else {
+        const {error}=await window._sb.from('pastry_riwayat').insert(payload);
+        if(error)throw error;
+        showToast('Riwayat berhasil dicatat ✓','success');
+      }
+      closeRiwayatModal(); await fetchRiwayat();
+    } catch(e) { showRModalError('Gagal: '+e.message); }
+    finally { btn.disabled=false; btn.innerHTML='Simpan'; }
+  }
+
+  function openRConfirm(id) {
+    rDeleteId=id;
+    document.getElementById('rConfirmOverlay').classList.add('show');
+  }
+  function closeRConfirm() { rDeleteId=null; document.getElementById('rConfirmOverlay').classList.remove('show'); }
+
+  async function confirmDeleteRiwayat() {
+    if (!rDeleteId) return;
+    const btn=document.getElementById('rBtnConfirmDel'); btn.disabled=true; btn.textContent='Menghapus...';
+    try {
+      const {error}=await window._sb.from('pastry_riwayat').delete().eq('id',rDeleteId);
+      if(error)throw error;
+      showToast('Riwayat dihapus','success'); closeRConfirm(); await fetchRiwayat();
+    } catch(e) { showToast('Gagal: '+e.message,'error'); }
+    finally { btn.disabled=false; btn.textContent='Hapus'; }
+  }
+
+  /* ── UTILS ── */
+  function showModalError(msg) { const el=document.getElementById('modalError'); el.textContent=msg; el.classList.add('show'); }
+  function showRModalError(msg) { const el=document.getElementById('rModalError'); el.textContent=msg; el.classList.add('show'); }
+
+  let toastTimer;
+  function showToast(msg, type='success') {
+    const t=document.getElementById('toast');
+    t.className='toast '+type; t.innerHTML=msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+  }
+
+  async function doLogout() { if(!confirm('Yakin keluar?'))return; await window._sb.auth.signOut(); }
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+  function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+  document.addEventListener('keydown', e => {
+    if(e.key==='Escape'){ closeModal(); closeConfirm(); closeRiwayatModal(); closeRConfirm(); }
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); document.getElementById('searchInput').focus(); }
+  });
+
+  /* ── Init DateFilter (datefilter.js) — setelah DOM ready ── */
+  let rDf;
+  (function initDf() {
+    if (typeof DateFilter === 'undefined' || typeof DateFilter.create !== 'function') {
+      setTimeout(initDf, 80); return;
+    }
+    rDf = DateFilter.create({
+      pickerEl    : 'datePicker',
+      triggerBtn  : 'btnDateFilter',
+      labelEl     : 'dateFilterLabel',
+      inputFrom   : 'rDateFrom',
+      inputTo     : 'rDateTo',
+      visFrom     : 'rDateFromVis',
+      visTo       : 'rDateToVis',
+      quickBtnMap : {
+        'rBtnAll':'all','rBtnToday':'today','rBtnYesterday':'yesterday',
+        'rBtn7':7,'rBtn30':30,'rBtnThisMonth':'thismonth','rBtnLastMonth':'lastmonth',
+        'rBtn3Month':90,'rBtn6Month':180,'rBtnThisYear':'thisyear','rBtnLastYear':'lastyear',
+      },
+      default  : 'none', // set manual setelah auth selesai
+      onChange : () => { rCurrentPage = 1; fetchRiwayat(); },
+    });
+    window.rDf = rDf;
+  })();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>

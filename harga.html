@@ -130,7 +130,7 @@
         <input type="hidden" id="hargaDateFrom" value=""/>
         <input type="hidden" id="hargaDateTo"   value=""/>
         <div style="position:relative">
-          <button class="btn btn-ghost filter-date-btn" id="btnHargaDate" onclick="toggleHargaDate()">
+          <button class="btn btn-ghost filter-date-btn" id="btnHargaDate" >
             📅 <span id="hargaDateLabel">Semua Waktu</span>
           </button>
         </div>
@@ -694,50 +694,37 @@
   /* ══════════════════════════════════════════
      PERIODE DATE PICKER — menggunakan DateFilter module
   ══════════════════════════════════════════ */
-  const hargaDf = DateFilter.create({
-    pickerEl    : 'hargaDatePicker',
-    triggerBtn  : 'btnHargaDate',
-    labelEl     : 'hargaDateLabel',
-    inputFrom   : 'hargaDateFrom',
-    inputTo     : 'hargaDateTo',
-    visFrom     : 'hargaDateFromVis',
-    visTo       : 'hargaDateToVis',
-    quickBtnMap : {
-      'hBtnAll'       : 'all',
-      'hBtnToday'     : 'today',
-      'hBtnYesterday' : 'yesterday',
-      'hBtn7'         : 7,
-      'hBtn30'        : 30,
-      'hBtnThisMonth' : 'thismonth',
-      'hBtnLastMonth' : 'lastmonth',
-      'hBtn3Month'    : 90,
-      'hBtn6Month'    : 180,
-      'hBtnThisYear'  : 'thisyear',
-      'hBtnLastYear'  : 'lastyear',
-    },
-    default     : 'none', // diset manual setelah loadMaster() selesai
-    onChange    : (from, to, label) => {
-      applyFilters();
-    },
-  });
-
-  /* Wrapper toggle: hitung posisi portal dulu sebelum buka picker */
-  function toggleHargaDate() {
+  /* Attach manual sebelum DateFilter.create — v4 skip auto-attach jika dfBound sudah di-set */
+  document.getElementById('btnHargaDate').addEventListener('click', function toggleHargaDate() {
     const btn  = document.getElementById('btnHargaDate');
     const dp   = document.getElementById('hargaDatePicker');
-    if (dp && dp.style.display === 'none' || dp.style.display === '') {
+    if (dp && (dp.style.display === 'none' || dp.style.display === '')) {
       const rect    = btn.getBoundingClientRect();
-      const pickerW = 260;
+      const pickerW = 420;
       const spaceRight = window.innerWidth - rect.left;
       const left = spaceRight >= pickerW ? rect.left : rect.right - pickerW;
       dp.style.left = Math.max(8, left) + 'px';
       dp.style.top  = (rect.bottom + 6) + 'px';
     }
     hargaDf.toggle();
-  }
+  });
+  document.getElementById('btnHargaDate').dataset.dfBound = '1';
 
-  window.hargaDf        = hargaDf;
-  window.toggleHargaDate = toggleHargaDate;
+  const hargaDf = DateFilter.create({
+    pickerEl     : 'hargaDatePicker',
+    triggerBtn   : 'btnHargaDate',
+    labelEl      : 'hargaDateLabel',
+    inputFrom    : 'hargaDateFrom',
+    inputTo      : 'hargaDateTo',
+
+    default      : 'none', // diset manual setelah loadMaster() selesai
+    onChange     : (from, to, label) => {
+      applyFilters();
+    },
+  });
+
+  /* Wrapper toggle: hitung posisi portal dulu sebelum buka picker */
+  window.hargaDf = hargaDf;
 
   function applyFilters() {
     const selBarangs = window._selectedBarangs || [];
@@ -3097,38 +3084,7 @@
 </script>
 <script src="harga-export.js"></script>
 <!-- HARGA DATE PICKER PORTAL — render di body agar tidak tertimpa elemen lain -->
-<div id="hargaDatePicker" style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
-  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
-  <div style="margin-bottom:6px">
-    <button class="date-quick-btn" id="hBtnAll" onclick="hargaDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-    <button class="date-quick-btn" id="hBtnToday"     onclick="hargaDf.setQuick('today')">Hari Ini</button>
-    <button class="date-quick-btn" id="hBtnYesterday" onclick="hargaDf.setQuick('yesterday')">Kemarin</button>
-    <button class="date-quick-btn" id="hBtn7"         onclick="hargaDf.setQuick(7)">7 Hari</button>
-    <button class="date-quick-btn" id="hBtn30"        onclick="hargaDf.setQuick(30)">30 Hari</button>
-    <button class="date-quick-btn" id="hBtnThisMonth" onclick="hargaDf.setQuick('thismonth')">Bulan Ini</button>
-    <button class="date-quick-btn" id="hBtnLastMonth" onclick="hargaDf.setQuick('lastmonth')">Bulan Lalu</button>
-    <button class="date-quick-btn" id="hBtn3Month"    onclick="hargaDf.setQuick(90)">3 Bulan</button>
-    <button class="date-quick-btn" id="hBtn6Month"    onclick="hargaDf.setQuick(180)">6 Bulan</button>
-    <button class="date-quick-btn" id="hBtnThisYear"  onclick="hargaDf.setQuick('thisyear')">Tahun Ini</button>
-    <button class="date-quick-btn" id="hBtnLastYear"  onclick="hargaDf.setQuick('lastyear')">Tahun Lalu</button>
-  </div>
-  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
-  <div style="display:flex;flex-direction:column;gap:6px">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-      <input type="date" id="hargaDateFromVis" onchange="hargaDf.onVisibleInputChange()"
-        style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-      <input type="date" id="hargaDateToVis" onchange="hargaDf.onVisibleInputChange()"
-        style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-    </div>
-  </div>
-  <button onclick="hargaDf.setQuick('all')" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
-</div>
+<div id="hargaDatePicker" class="date-picker-panel" style="display:none;position:fixed;z-index:9999"></div>
 <script>
   /* ══════════════════════════════════════════════════════════
      THEME SYNC — redraw chart saat theme berubah dari tab lain

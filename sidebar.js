@@ -13,6 +13,7 @@ const _SIDEBAR_NAV = [
   { href: 'ordermasuk.html',   icon: '📥', label: 'Order Masuk',    section: 'Order Barang' },
   { href: 'inventory.html',    icon: '🗂️', label: 'Inventory Track', section: 'Operational', newTab: true },
   { href: 'order.html',        icon: '📝', label: 'Order Internal',  newTab: true },
+  { href: 'pastry.html',       icon: '🥐', label: 'Pastry',           newTab: true },
   { href: 'settings.html',     icon: '⚙️', label: 'Pengaturan',    section: 'Pengaturan' },
 ];
 

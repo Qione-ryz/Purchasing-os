@@ -336,39 +336,10 @@
         <input type="date" id="rDateFrom" onchange="renderRiwayat()" style="display:none"/>
         <input type="date" id="rDateTo"   onchange="renderRiwayat()" style="display:none"/>
         <div style="position:relative">
-          <button class="btn btn-ghost btn-sm" id="btnDateFilter" onclick="rDf.toggle()" style="white-space:nowrap;min-width:120px">
+          <button class="btn btn-ghost btn-sm" id="btnDateFilter" style="white-space:nowrap;min-width:120px">
             📅 <span id="dateFilterLabel">Semua Tanggal</span>
           </button>
-          <div id="datePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
-            <div style="margin-bottom:6px">
-              <button class="date-quick-btn" id="rBtnAll" onclick="rDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-              <button class="date-quick-btn" id="rBtnToday"     onclick="rDf.setQuick('today')">Hari Ini</button>
-              <button class="date-quick-btn" id="rBtnYesterday" onclick="rDf.setQuick('yesterday')">Kemarin</button>
-              <button class="date-quick-btn" id="rBtn7"         onclick="rDf.setQuick(7)">7 Hari</button>
-              <button class="date-quick-btn" id="rBtn30"        onclick="rDf.setQuick(30)">30 Hari</button>
-              <button class="date-quick-btn" id="rBtnThisMonth" onclick="rDf.setQuick('thismonth')">Bulan Ini</button>
-              <button class="date-quick-btn" id="rBtnLastMonth" onclick="rDf.setQuick('lastmonth')">Bulan Lalu</button>
-              <button class="date-quick-btn" id="rBtn3Month"    onclick="rDf.setQuick(90)">3 Bulan</button>
-              <button class="date-quick-btn" id="rBtn6Month"    onclick="rDf.setQuick(180)">6 Bulan</button>
-              <button class="date-quick-btn" id="rBtnThisYear"  onclick="rDf.setQuick('thisyear')">Tahun Ini</button>
-              <button class="date-quick-btn" id="rBtnLastYear"  onclick="rDf.setQuick('lastyear')">Tahun Lalu</button>
-            </div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-                <input type="date" id="rDateFromVis" onchange="rDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-                <input type="date" id="rDateToVis" onchange="rDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-              </div>
-            </div>
-            <button onclick="rDf.clear()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
-          </div>
+          <div id="datePicker" class="date-picker-panel" style="display:none"></div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="rDf.clear()" style="display:none" id="btnClearDate">✕</button>
         <button class="btn btn-ghost btn-sm" onclick="exportRiwayat()" style="margin-left:auto;display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
@@ -452,39 +423,10 @@
 
         <!-- Date picker dropdown -->
         <div style="position:relative">
-          <button class="btn btn-ghost btn-sm" id="cbBtnDateFilter" onclick="cbDf.toggle()" style="white-space:nowrap;min-width:140px">
+          <button class="btn btn-ghost btn-sm" id="cbBtnDateFilter" style="white-space:nowrap;min-width:140px">
             📅 <span id="cbDateFilterLabel">3 Bulan Terakhir</span>
           </button>
-          <div id="cbDatePicker" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:200;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Filter Cepat</div>
-            <div style="margin-bottom:6px">
-              <button class="date-quick-btn" id="cbQAll" onclick="cbDf.setQuick('all')" style="width:100%">🗂 Semua Waktu</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-              <button class="date-quick-btn" id="cbQToday"     onclick="cbDf.setQuick('today')">Hari Ini</button>
-              <button class="date-quick-btn" id="cbQYesterday" onclick="cbDf.setQuick('yesterday')">Kemarin</button>
-              <button class="date-quick-btn" id="cbQ7"         onclick="cbDf.setQuick(7)">7 Hari</button>
-              <button class="date-quick-btn" id="cbQ30"        onclick="cbDf.setQuick(30)">30 Hari</button>
-              <button class="date-quick-btn" id="cbQThisMonth" onclick="cbDf.setQuick('thismonth')">Bulan Ini</button>
-              <button class="date-quick-btn" id="cbQLastMonth" onclick="cbDf.setQuick('lastmonth')">Bulan Lalu</button>
-              <button class="date-quick-btn" id="cbQ3Month"    onclick="cbDf.setQuick(90)">3 Bulan</button>
-              <button class="date-quick-btn" id="cbQ6Month"    onclick="cbDf.setQuick(180)">6 Bulan</button>
-              <button class="date-quick-btn" id="cbQThisYear"  onclick="cbDf.setQuick('thisyear')">Tahun Ini</button>
-              <button class="date-quick-btn" id="cbQLastYear"  onclick="cbDf.setQuick('lastyear')">Tahun Lalu</button>
-            </div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Rentang Kustom</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:11px;color:var(--muted);width:32px">Dari</span>
-                <input type="date" id="cbDateFromVis" onchange="cbDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:11px;color:var(--muted);width:32px">S/d</span>
-                <input type="date" id="cbDateToVis" onchange="cbDf.onVisibleInputChange()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none"/>
-              </div>
-            </div>
-            <button onclick="cbDf.clear()" style="margin-top:12px;width:100%;padding:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--mono)">✕ Reset Filter</button>
-          </div>
+          <div id="cbDatePicker" class="date-picker-panel" style="display:none"></div>
         </div>
 
         <!-- Group by toggle -->
@@ -813,53 +755,25 @@
      DATE FILTER INSTANCES
   ══════════════════════════════════════════ */
   const rDf = DateFilter.create({
-    pickerEl   : 'datePicker',
-    triggerBtn : 'btnDateFilter',
-    labelEl    : 'dateFilterLabel',
-    inputFrom  : 'rDateFrom',
-    inputTo    : 'rDateTo',
-    visFrom    : 'rDateFromVis',
-    visTo      : 'rDateToVis',
-    quickBtnMap: {
-      'rBtnAll'      : 'all',
-      'rBtnToday'    : 'today',
-      'rBtnYesterday': 'yesterday',
-      'rBtn7'        : 7,
-      'rBtn30'       : 30,
-      'rBtnThisMonth': 'thismonth',
-      'rBtnLastMonth': 'lastmonth',
-      'rBtn3Month'   : 90,
-      'rBtn6Month'   : 180,
-      'rBtnThisYear' : 'thisyear',
-      'rBtnLastYear' : 'lastyear',
-    },
-    default    : 'none', /* init dilakukan di dalam init() setelah URL param dicek */
-    onChange   : (from, to) => { rPage = 1; fetchRiwayatPage(); },
+    pickerEl     : 'datePicker',
+    triggerBtn   : 'btnDateFilter',
+    labelEl      : 'dateFilterLabel',
+    inputFrom    : 'rDateFrom',
+    inputTo      : 'rDateTo',
+
+    default      : 'none', /* init dilakukan di dalam init() setelah URL param dicek */
+    onChange     : (from, to) => { rPage = 1; fetchRiwayatPage(); },
   });
 
   const cbDf = DateFilter.create({
-    pickerEl   : 'cbDatePicker',
-    triggerBtn : 'cbBtnDateFilter',
-    labelEl    : 'cbDateFilterLabel',
-    inputFrom  : 'cbDateFrom',
-    inputTo    : 'cbDateTo',
-    visFrom    : 'cbDateFromVis',
-    visTo      : 'cbDateToVis',
-    quickBtnMap: {
-      'cbQAll'      : 'all',
-      'cbQToday'    : 'today',
-      'cbQYesterday': 'yesterday',
-      'cbQ7'        : 7,
-      'cbQ30'       : 30,
-      'cbQThisMonth': 'thismonth',
-      'cbQLastMonth': 'lastmonth',
-      'cbQ3Month'   : 90,
-      'cbQ6Month'   : 180,
-      'cbQThisYear' : 'thisyear',
-      'cbQLastYear' : 'lastyear',
-    },
-    default    : 'none', /* init dilakukan di cbInit() */
-    onChange   : () => cbFetch(),
+    pickerEl     : 'cbDatePicker',
+    triggerBtn   : 'cbBtnDateFilter',
+    labelEl      : 'cbDateFilterLabel',
+    inputFrom    : 'cbDateFrom',
+    inputTo      : 'cbDateTo',
+
+    default      : 'none', /* init dilakukan di cbInit() */
+    onChange     : () => cbFetch(),
   });
 
   window.rDf = rDf;
@@ -2299,7 +2213,7 @@
     document.getElementById('konversiHargaPopup')?.remove();
 
     const rows = document.querySelectorAll('#itemList .item-row');
-    const hargaInput = rows[idx]?.querySelector('input.item-input[inputmode="decimal"]');
+    const hargaInput = rows[idx]?.querySelectorAll('input.item-input[inputmode="decimal"]')[1];
     if (!hargaInput) return;
 
     const rect = hargaInput.getBoundingClientRect();
@@ -2323,8 +2237,9 @@
                  outline:none;width:60px"
           oninput="
             const d = parseFloat(this.value)||1;
-            const res = Math.round(${harga} / d);
-            document.getElementById('konversiPreview').textContent = 'Rp ' + res.toLocaleString('id-ID');
+            const res = ${harga} / d;
+            const rounded = Math.round(res * 1000) / 1000;
+            document.getElementById('konversiPreview').textContent = 'Rp ' + rounded.toLocaleString('id-ID', {maximumFractionDigits:3});
           "/>
         <span style="font-size:11px;color:var(--muted)">=</span>
         <span id="konversiPreview" style="font-size:13px;font-family:var(--mono);
@@ -2353,13 +2268,13 @@
 
   function applyKonversiHarga(idx) {
     const divisor  = parseFloat(document.getElementById('konversiDivisor')?.value) || 1;
-    const newHarga = Math.round(items[idx].harga_satuan / divisor);
+    const newHarga = Math.round((items[idx].harga_satuan / divisor) * 1000) / 1000;
     document.getElementById('konversiHargaPopup')?.remove();
     items[idx].harga_satuan = newHarga;
     items[idx].harga_src    = 'manual';
     const rows = document.querySelectorAll('#itemList .item-row');
     if (rows[idx]) {
-      const inp = rows[idx].querySelector('input.item-input[inputmode="decimal"]');
+      const inp = rows[idx].querySelectorAll('input.item-input[inputmode="decimal"]')[1];
       if (inp) inp.value = newHarga;
       const sub = rows[idx].querySelector('.item-subtotal');
       if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));

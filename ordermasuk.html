@@ -958,12 +958,14 @@ async function loadAll() {
     });
 
     // Bangun allOrders cache awal
+    const initialStatusUpdates = [];
     allOrders = (ordersRaw || []).map(o => {
       const prog = progressMap[o.id] || null;
+      const hasAnyItems = allItemRows.some(it => it.order_id === o.id);
+      let effectiveStatus = o.status;
+
       // Jika semua items cancelled (prog null atau totalItems=0) tapi DB belum update,
       // paksa status ke cancelled agar UI konsisten
-      let effectiveStatus = o.status;
-      const hasAnyItems = allItemRows.some(it => it.order_id === o.id);
       if (hasAnyItems && (!prog || prog.totalItems === 0) && cancelledItemsMap[o.id] && o.status !== 'cancelled') {
         effectiveStatus = 'cancelled';
         // Update DB di background agar konsisten
@@ -971,6 +973,18 @@ async function loadAll() {
           .then(() => console.log('[loadAll] Auto-fix status cancelled for', o.id.substring(0,8)))
           .catch(e => console.warn('[loadAll] Auto-fix failed:', e));
       }
+
+      // Hitung status langsung dari qty_terpenuhi DB tanpa tunggu FIFO —
+      // supaya order yang progressnya sudah 100% langsung tampil 'selesai'
+      if (effectiveStatus !== 'cancelled' && prog && prog.totalItems > 0) {
+        const pct = prog.totalOrder > 0 ? prog.totalTerpenuhi / prog.totalOrder : 0;
+        const derivedStatus = pct >= 1 ? 'selesai' : pct > 0 ? 'partial' : 'pending';
+        if (derivedStatus !== effectiveStatus) {
+          effectiveStatus = derivedStatus;
+          initialStatusUpdates.push({ id: o.id, status: derivedStatus, o });
+        }
+      }
+
       return {
         ...o,
         status:              effectiveStatus,
@@ -979,6 +993,24 @@ async function loadAll() {
         has_cancelled_items: !!(cancelledItemsMap[o.id] && effectiveStatus !== 'cancelled'),
       };
     });
+
+    // Simpan koreksi status awal ke DB di background
+    if (initialStatusUpdates.length > 0) {
+      (async () => {
+        for (const { id, status, o } of initialStatusUpdates) {
+          try {
+            const upd = { status };
+            if (status === 'selesai' && !o.selesai_at) {
+              upd.selesai_at = new Date().toISOString();
+              // update di allOrders juga agar auto-archive bisa deteksi
+              const found = allOrders.find(x => x.id === id);
+              if (found) found.selesai_at = upd.selesai_at;
+            }
+            await _sb.from('orders').update(upd).eq('id', id);
+          } catch(e) { console.warn('[loadAll] initial status fix failed:', id, e); }
+        }
+      })();
+    }
 
     // Auto-archive tetap blocking agar order arsip tidak sempat tampil
     await _autoArchiveSelesai();

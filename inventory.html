@@ -41,6 +41,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .io-type-bar-btn{padding:9px 20px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:7px}
 .io-type-bar-btn.in.active{background:rgba(56,217,169,.15);color:var(--accent2);border-color:rgba(56,217,169,.5)}
 .io-type-bar-btn.out.active{background:rgba(248,113,113,.15);color:var(--danger);border-color:rgba(248,113,113,.5)}
+.io-type-bar-btn.pastry.active{background:rgba(251,191,36,.12);color:#f59e0b;border-color:rgba(251,191,36,.45)}
+.pastry-tipe-select{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:var(--mono);padding:5px 8px;cursor:pointer;outline:none;transition:border-color .2s;min-width:120px;width:120px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a6e78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
+.pastry-tipe-select:focus{border-color:var(--accent)}
+.pastry-tipe-dispose{color:#dc2626}
+.pastry-tipe-compliment{color:#16a34a}
 .tab-btn{padding:16px 24px;font-size:14px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:7px}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab-btn:hover:not(.active){color:var(--text)}
@@ -365,8 +370,9 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
   .io-qty-del{width:30px;min-width:30px;height:30px;font-size:13px}
 
   /* io-type-bar di mobile */
-  .io-type-bar{padding:9px 16px;top:auto;position:relative;z-index:1}
-  .io-type-bar-btn{font-size:13px;padding:8px 14px}
+  .io-type-bar{padding:9px 16px;top:auto;position:relative;z-index:1;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  .io-type-bar::-webkit-scrollbar{height:0}
+  .io-type-bar-btn{font-size:12px;padding:7px 12px;flex-shrink:0}
 
   /* Tab nav kompak */
   .tab-btn{padding:12px 13px;font-size:13px;gap:4px}
@@ -671,6 +677,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 <div class="io-type-bar" id="ioTypeBar">
   <button class="io-type-bar-btn in active" id="btnTypeIn" onclick="setIoType('in')">📥 Barang Masuk</button>
   <button class="io-type-bar-btn out" id="btnTypeOut" onclick="setIoType('out')">📤 Barang Keluar</button>
+  <button class="io-type-bar-btn pastry" id="btnTypePastry" onclick="setIoType('pastry')">🥐 Pastry</button>
 </div>
 
 <!-- WELCOME SCREEN -->
@@ -1029,6 +1036,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
     <button class="rw-toggle-btn active" id="btnRwStok" onclick="switchRiwayat('stok')">📊 Stok</button>
     <button class="rw-toggle-btn" id="btnRwTransfer" onclick="switchRiwayat('transfer')">🔄 Transfer</button>
     <button class="rw-toggle-btn" id="btnRwAudit" onclick="switchRiwayat('audit')">📁 Audit</button>
+    <button class="rw-toggle-btn" id="btnRwPastry" onclick="switchRiwayat('pastry')">🥐 Pastry</button>
   </div>
 
   <!-- ── Panel: Gerakan Stok ── -->
@@ -1145,6 +1153,43 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
         </table>
       </div>
       <div class="rw-mobile-list rw-mobile-only" id="auditMobileListRw"></div>
+    </div>
+  </div>
+
+  <!-- ── Panel: Riwayat Pastry ── -->
+  <div id="rwPanelPastry" style="display:none">
+    <div class="card">
+      <div class="rw-filter-bar">
+        <div class="rw-top-row">
+          <div class="rw-title-group">
+            <span class="card-title">🥐 Riwayat Pastry</span>
+          </div>
+        </div>
+        <div class="rw-filters">
+          <select id="rwPastryFilterTipe" onchange="loadRiwayatPastry()" class="rw-select">
+            <option value="">Semua Tipe</option>
+            <option value="dispose">🗑 Dispose</option>
+            <option value="compliment">🎁 Compliment</option>
+          </select>
+          <button class="rw-date-btn" id="rwDateBtnPastry" onclick="toggleDateFilter('pastry',this)">
+            <span id="rwDateLabelPastry">📅 Semua Waktu</span> ▾
+          </button>
+        </div>
+      </div>
+      <div class="rw-tbl-wrap rw-desktop-only">
+        <table class="tbl rw-tbl">
+          <thead><tr><th>Tanggal</th><th>Nama Pastry</th><th>Tipe</th><th style="text-align:right">Jumlah</th><th>Satuan</th><th>Keterangan</th></tr></thead>
+          <tbody id="rwPastryTbody"></tbody>
+        </table>
+      </div>
+      <div class="rw-mobile-list rw-mobile-only" id="rwPastryMobileList"></div>
+      <div class="rw-pagination">
+        <span id="rwPastryInfo" class="rw-info"></span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" id="btnRwPastryPrev" onclick="rwPastryPage(-1)">←</button>
+          <button class="btn btn-ghost btn-sm" id="btnRwPastryNext" onclick="rwPastryPage(1)">→</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1699,8 +1744,9 @@ function setIoType(type){
   if(type === ioType) return;
   // Peringatan jika keranjang sudah ada isi
   if(ioKeranjang.length > 0){
-    const labelFrom = ioType === 'in' ? 'Barang Masuk' : 'Barang Keluar';
-    const labelTo   = type   === 'in' ? 'Barang Masuk' : 'Barang Keluar';
+    const _ioLabels = {in:'Barang Masuk',out:'Barang Keluar',pastry:'Pastry'};
+    const labelFrom = _ioLabels[ioType] || ioType;
+    const labelTo   = _ioLabels[type]   || type;
     showConfirm({
       title: '⚠ Ganti Mode?',
       msg: `Kamu punya ${ioKeranjang.length} item di ${labelFrom}. Pindah ke ${labelTo} akan menghapus semua item dari daftar. Lanjutkan?`,
@@ -1718,16 +1764,29 @@ function setIoType(type){
 
 function _applyIoType(type){
   ioType = type;
-  // Update tombol di io-type-bar
   document.getElementById('btnTypeIn').classList.toggle('active', type === 'in');
   document.getElementById('btnTypeOut').classList.toggle('active', type === 'out');
-  renderIoBarang(document.getElementById('searchIoBarang').value);
-  renderIoKeranjang();
+  document.getElementById('btnTypePastry').classList.toggle('active', type === 'pastry');
+  /* hide scan buttons saat mode pastry */
+  const scanMain   = document.querySelector('#ioGrid .btn.btn-ghost[onclick*="openBarcodeScanner"]');
+  const scanMobile = document.querySelector('.btn-scan-mobile');
+  if (scanMain)   scanMain.style.display   = type === 'pastry' ? 'none' : '';
+  if (scanMobile) scanMobile.style.display = type === 'pastry' ? 'none' : '';
+  if (type === 'pastry') {
+    _ensurePastryList().then(() => {
+      renderIoPastryList(document.getElementById('searchIoBarang').value);
+      renderIoKeranjang();
+    });
+  } else {
+    renderIoBarang(document.getElementById('searchIoBarang').value);
+    renderIoKeranjang();
+  }
 }
 
 function filterIoBarangOrBarcode(q){
   const cl=document.getElementById('ioSearchClear');
   if(cl)cl.style.display=q?'block':'none';
+  if(ioType==='pastry'){renderIoPastryList(q);return;}
   const dr=document.getElementById('searchIoBarangDrawer');
   if(dr&&dr.value!==q)dr.value=q;
   const cld=document.getElementById('ioSearchClearDrawer');
@@ -1844,11 +1903,21 @@ function renderIoKeranjang(){
   document.getElementById('btnSubmitIoLabel').textContent=`💾 Simpan ${n} Item`;
   wrap.innerHTML=ioKeranjang.map((it,i)=>{
     const maxQty=ioType==='out'?it.stok:999999;
+    const isPastry = ioType === 'pastry';
+    const tipeSelect = isPastry ? `
+      <select class="pastry-tipe-select" onchange="ioKeranjang[${i}].tipe=this.value;renderIoKeranjang()" title="Pilih tipe">
+        <option value="dispose" ${it.tipe==='dispose'?'selected':''}>🗑 Dispose</option>
+        <option value="compliment" ${it.tipe==='compliment'?'selected':''}>🎁 Compliment</option>
+      </select>` : '';
+    const stokInfo = isPastry
+      ? `<div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${it.satuan}</div>`
+      : `<div class="io-keranjang-stok">Stok: ${it.stok.toLocaleString('id-ID')} ${it.satuan}</div>`;
     return `<div class="io-keranjang-item">
       <div style="flex:1;min-width:0">
         <div class="io-keranjang-nama">${it.nama}</div>
-        <div class="io-keranjang-stok">Stok: ${it.stok.toLocaleString('id-ID')} ${it.satuan}</div>
+        ${stokInfo}
       </div>
+      ${tipeSelect}
       <div class="io-qty-ctrl">
         <button class="io-qty-btn" onclick="ioQtyDelta(${i},-1)">−</button>
         <input class="io-qty-input" type="number" value="${it.qty}" min="0.1" step="0.1" max="${maxQty}"
@@ -1887,9 +1956,73 @@ function closeIoDrawer(){
 }
 window.openIoDrawer=openIoDrawer;
 window.closeIoDrawer=closeIoDrawer;
+
 function clearIoKeranjang(){
   ioKeranjang=[];
-  renderIoBarang(document.getElementById('searchIoBarang').value);
+  if(ioType==='pastry'){
+    renderIoPastryList(document.getElementById('searchIoBarang').value);
+  } else {
+    renderIoBarang(document.getElementById('searchIoBarang').value);
+  }
+  renderIoKeranjang();
+}
+
+/* ═══ PASTRY IO HELPERS ═══ */
+let _pastryIOList = [];
+let _pastryIOLoaded = false;
+
+async function _ensurePastryList() {
+  if (_pastryIOLoaded) return;
+  try {
+    const { data, error } = await _sb.from('pastry').select('id,nama,satuan').order('nama');
+    if (error) throw error;
+    _pastryIOList = data || [];
+    _pastryIOLoaded = true;
+  } catch(e) { showToast('error','Gagal load list pastry: '+e.message); }
+}
+
+function renderIoPastryList(q='') {
+  const list_ = document.getElementById('ioBarangList');
+  const listDrawer = document.getElementById('ioBarangListDrawer');
+  const qLow = (q||'').toLowerCase();
+  let items = _pastryIOList;
+  if (qLow) items = items.filter(p => p.nama.toLowerCase().includes(qLow));
+
+  if (!items.length) {
+    const empty = '<div class="empty-state"><div class="empty-icon">🥐</div><div class="empty-text">Tidak ada pastry</div></div>';
+    list_.innerHTML = empty; if(listDrawer) listDrawer.innerHTML = empty; return;
+  }
+
+  list_.innerHTML = items.map(p => {
+    const inKeranjang = ioKeranjang.some(it => it.barang_id === p.id);
+    return `<div class="io-barang-item${inKeranjang?' in-keranjang':''}" onclick="toggleIoPastry('${p.id}')">
+      <div style="display:flex;align-items:center;flex:1;min-width:0">
+        <div class="io-barang-dot"></div>
+        <div style="min-width:0">
+          <div style="font-size:14px;font-weight:${inKeranjang?'600':'400'};color:${inKeranjang?'var(--accent2)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nama}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">${p.satuan||''}</div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
+        ${inKeranjang
+          ? '<div style="font-family:var(--mono);font-size:12px;color:var(--accent2)">✓ Dipilih</div>'
+          : '<div style="font-family:var(--mono);font-size:12px;color:var(--muted)">+ Tambah</div>'}
+      </div>
+    </div>`;
+  }).join('');
+  if(listDrawer) listDrawer.innerHTML = list_.innerHTML;
+}
+
+function toggleIoPastry(id) {
+  const idx = ioKeranjang.findIndex(it => it.barang_id === id);
+  if (idx >= 0) {
+    ioKeranjang.splice(idx, 1);
+  } else {
+    const p = _pastryIOList.find(x => x.id === id);
+    if (!p) return;
+    ioKeranjang.push({ barang_id: p.id, nama: p.nama, satuan: p.satuan||'', qty: 1, stok: 0, tipe: 'dispose' });
+  }
+  renderIoPastryList(document.getElementById('searchIoBarang')?.value || '');
   renderIoKeranjang();
 }
 
@@ -1897,7 +2030,34 @@ async function submitIoBulk(){
   if(!ioKeranjang.length){showToast('error','Tambahkan barang dulu');return}
   const tgl=document.getElementById('ioTanggal').value||todayStr();
   const catatan=document.getElementById('ioCatatan').value.trim();
-  // Validasi keluar
+
+  // ── MODE PASTRY ──
+  if(ioType==='pastry'){
+    // Validasi semua item punya tipe
+    for(const it of ioKeranjang){
+      if(!it.tipe){showToast('error',`Pilih tipe (Dispose/Compliment) untuk: ${it.nama}`);return}
+    }
+    const btn=document.getElementById('btnSubmitIo');
+    btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+    try{
+      for(const it of ioKeranjang){
+        await _sb.from('pastry_riwayat').insert({
+          pastry_id:it.barang_id, nama_pastry:it.nama, satuan:it.satuan,
+          tipe:it.tipe, jumlah:it.qty, tanggal:tgl, keterangan:catatan||null,
+          brand_id: currentBrand?.id || null
+        });
+      }
+      const n=ioKeranjang.length;
+      showToast('success',`✓ ${n} pastry berhasil dicatat`);
+      ioKeranjang=[];
+      renderIoPastryList(document.getElementById('searchIoBarang').value);
+      renderIoKeranjang();
+    }catch(e){showToast('error','Gagal menyimpan: '+e.message)}
+    btn.innerHTML=`<span id="btnSubmitIoLabel">💾 Simpan Semua</span>`;btn.disabled=false;
+    return;
+  }
+
+  // ── MODE BARANG MASUK / KELUAR ──
   if(ioType==='out'){
     for(const it of ioKeranjang){
       if(it.qty>it.stok){showToast('error',`Stok ${it.nama} tidak cukup (${it.stok} tersedia)`);return}
@@ -2242,15 +2402,14 @@ let _rwMode='stok';
 function switchRiwayat(mode){
   _ensureDateInputs();
   _rwMode=mode;
-  document.getElementById('btnRwStok').classList.toggle('active',mode==='stok');
-  document.getElementById('btnRwTransfer').classList.toggle('active',mode==='transfer');
-  document.getElementById('btnRwAudit').classList.toggle('active',mode==='audit');
-  document.getElementById('rwPanelStok').style.display=mode==='stok'?'block':'none';
-  document.getElementById('rwPanelTransfer').style.display=mode==='transfer'?'block':'none';
-  document.getElementById('rwPanelAudit').style.display=mode==='audit'?'block':'none';
+  ['stok','transfer','audit','pastry'].forEach(m=>{
+    document.getElementById('btnRw'+m[0].toUpperCase()+m.slice(1))?.classList.toggle('active',mode===m);
+    document.getElementById('rwPanel'+m[0].toUpperCase()+m.slice(1)).style.display=mode===m?'block':'none';
+  });
   if(mode==='transfer') loadTransferHistory();
-  if(mode==='stok') loadRiwayat();
-  if(mode==='audit') loadAuditHistory();
+  if(mode==='stok')     loadRiwayat();
+  if(mode==='audit')    loadAuditHistory();
+  if(mode==='pastry')   loadRiwayatPastry();
 }
 
 function renderTransferBarangList(q=''){
@@ -3412,6 +3571,115 @@ document.addEventListener('click',function(e){
     p.classList.remove('show');
   }
 });
+
+/* ═══ RIWAYAT PASTRY ═══ */
+let _rwPastryData = [];
+let _rwPastryPage = 0;
+const _RW_PASTRY_PER = 20;
+
+async function loadRiwayatPastry() {
+  const tbody    = document.getElementById('rwPastryTbody');
+  const mobileEl = document.getElementById('rwPastryMobileList');
+  if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Memuat...</td></tr>';
+
+  try {
+    const tipe = document.getElementById('rwPastryFilterTipe')?.value || '';
+    /* date filter — reuse rwDate popup jika ada, atau fallback semua */
+    const dari  = document.getElementById('rwPastryDateFrom')?.value || '';
+    const akhir = document.getElementById('rwPastryDateTo')?.value   || '';
+
+    let q = _sb.from('pastry_riwayat')
+      .select('*')
+      .order('tanggal', {ascending:false})
+      .order('created_at', {ascending:false});
+    if (tipe)  q = q.eq('tipe', tipe);
+    if (dari)  q = q.gte('tanggal', dari);
+    if (akhir) q = q.lte('tanggal', akhir);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    _rwPastryData = data || [];
+    _rwPastryPage = 0;
+    renderRwPastryPage();
+  } catch(e) {
+    if(tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--danger)">${e.message}</td></tr>`;
+  }
+}
+
+function renderRwPastryPage() {
+  const total  = _rwPastryData.length;
+  const pages  = Math.ceil(total/_RW_PASTRY_PER)||1;
+  _rwPastryPage= Math.min(_rwPastryPage, pages-1);
+  const slice  = _rwPastryData.slice(_rwPastryPage*_RW_PASTRY_PER, (_rwPastryPage+1)*_RW_PASTRY_PER);
+
+  const tbody = document.getElementById('rwPastryTbody');
+  const info  = document.getElementById('rwPastryInfo');
+  const prev  = document.getElementById('btnRwPastryPrev');
+  const next  = document.getElementById('btnRwPastryNext');
+  const mobileEl = document.getElementById('rwPastryMobileList');
+
+  if (!slice.length) {
+    if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Belum ada data</td></tr>';
+    if(mobileEl) mobileEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Belum ada data</div>';
+    if(info) info.textContent = '0 entri';
+    if(prev) prev.disabled = true;
+    if(next) next.disabled = true;
+    return;
+  }
+
+  if(tbody) tbody.innerHTML = slice.map(r => {
+    const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const badge = r.tipe === 'dispose'
+      ? '<span style="background:#fee2e2;color:#dc2626;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px">Dispose</span>'
+      : '<span style="background:#dcfce7;color:#16a34a;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px">Compliment</span>';
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:12px">${tgl}</td>
+      <td style="font-weight:500">${r.nama_pastry||'—'}</td>
+      <td>${badge}</td>
+      <td style="text-align:right;font-family:var(--mono)">${r.jumlah}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.satuan||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${r.keterangan||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  /* Mobile cards */
+  if(mobileEl) mobileEl.innerHTML = slice.map(r => {
+    const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const badgeStyle = r.tipe==='dispose'
+      ? 'background:#fee2e2;color:#dc2626'
+      : 'background:#dcfce7;color:#16a34a';
+    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:600;font-size:14px">${r.nama_pastry||'—'}</span>
+        <span style="${badgeStyle};border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px;text-transform:uppercase">${r.tipe}</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--muted);font-family:var(--mono)">
+        <span>${tgl}</span>
+        <span>${r.jumlah} ${r.satuan||''}</span>
+        ${r.keterangan?`<span>${r.keterangan}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const from = _rwPastryPage*_RW_PASTRY_PER+1;
+  const to   = Math.min((_rwPastryPage+1)*_RW_PASTRY_PER, total);
+  if(info) info.textContent = `${from}–${to} dari ${total}`;
+  if(prev) prev.disabled = _rwPastryPage === 0;
+  if(next) next.disabled = _rwPastryPage >= pages-1;
+}
+
+function rwPastryPage(d) {
+  _rwPastryPage = Math.max(0, _rwPastryPage + d);
+  renderRwPastryPage();
+}
+
+/* hidden date inputs for pastry riwayat filter */
+(function injectPastryDateInputs(){
+  if(document.getElementById('rwPastryDateFrom')) return;
+  const f=document.createElement('input'); f.type='date'; f.id='rwPastryDateFrom'; f.style.display='none';
+  const t=document.createElement('input'); t.type='date'; t.id='rwPastryDateTo';   t.style.display='none';
+  document.body.appendChild(f); document.body.appendChild(t);
+})();
 
 </script>
 </body>
