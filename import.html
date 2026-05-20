@@ -33,6 +33,7 @@
       <button class="import-tab-btn"        id="tabBtnVendor"    onclick="switchTab('vendor')">🏢 Vendor</button>
       <button class="import-tab-btn"        id="tabBtnPembelian" onclick="switchTab('pembelian')">🛒 Pembelian</button>
       <button class="import-tab-btn"        id="tabBtnHarga"     onclick="switchTab('harga')">📈 Harga</button>
+      <button class="import-tab-btn"        id="tabBtnPastry"    onclick="switchTab('pastry')">🥐 Pastry</button>
     </div>
 
     <!-- ═══ TAB BARANG ═══ -->
@@ -241,6 +242,58 @@
       </div>
     </div>
 
+    <!-- ═══ TAB PASTRY ═══ -->
+    <div id="tabPastry" style="display:none">
+      <div class="import-card">
+        <div class="import-header">
+          <div>
+            <div class="import-title">Import Pastry</div>
+            <div class="import-desc">Upload daftar item pastry dari file Excel atau CSV</div>
+          </div>
+          <button class="btn-download" onclick="downloadTemplate('pastry')">⬇ Download Template</button>
+        </div>
+        <div class="import-body">
+
+          <!-- Schema -->
+          <div class="schema-box">
+            <div class="schema-title">Kolom yang diperlukan</div>
+            <div class="schema-row"><span class="schema-col">nama</span><span class="schema-req req-yes">Wajib</span><span class="schema-desc">Nama pastry (misal: Croissant Butter)</span></div>
+            <div class="schema-row"><span class="schema-col">satuan</span><span class="schema-req req-no">Opsional</span><span class="schema-desc">Satuan (default: pcs)</span></div>
+          </div>
+
+          <!-- Duplicate mode -->
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:12px;color:var(--muted);font-family:var(--mono);flex:1">Jika nama pastry sudah ada di sistem:</span>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupPastry" value="skip" checked style="accent-color:var(--accent)"/> Lewati (skip)
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--mono)">
+              <input type="radio" name="dupPastry" value="update" style="accent-color:var(--accent)"/> Update data
+            </label>
+          </div>
+
+          <!-- Drop zone -->
+          <div class="drop-zone" id="dropPastry" onclick="document.getElementById('filePastry').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event,'dropPastry')" ondrop="onDrop(event,'pastry')">
+            <div class="drop-icon">📂</div>
+            <div class="drop-text">Klik atau seret file ke sini</div>
+            <div class="drop-sub">Format: .xlsx, .xls, .csv — maks 5MB</div>
+          </div>
+          <input type="file" id="filePastry" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event,'pastry')"/>
+
+          <div id="previewPastry"></div>
+          <div class="result-box" id="resultPastry"></div>
+          <div id="progressPastry" style="display:none">
+            <div class="import-progress-wrap"><div class="import-progress-bar" id="pbPastry" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="pbLabelPastry">0 / 0</div>
+          </div>
+          <div id="actionPastry" style="display:none;margin-top:14px;gap:10px">
+            <button class="btn btn-primary" id="btnImportPastry" onclick="doImport('pastry')">⬆ Mulai Import</button>
+            <button class="btn btn-ghost" onclick="resetImport('pastry')">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -307,19 +360,24 @@
     window.vendorMap = {};
     window.allVendors.forEach(v => { window.vendorMap[v.nama?.toLowerCase()] = v; });
 
+    /* Load pastry map for duplicate detection */
+    const { data: pRows } = await window._sb.from('pastry').select('id, nama, satuan').order('nama');
+    window.pastryMap = {};
+    (pRows || []).forEach(p => { window.pastryMap[p.nama?.toLowerCase()] = p; });
+
     /* Check URL param */
     const type = new URLSearchParams(location.search).get('type');
-    if (type) switchTab(type);
+    if (type && ['barang','vendor','pembelian','harga','pastry'].includes(type)) switchTab(type);
   })();
 </script>
 
 <script>
   /* ══ STATE ══ */
-  const importState = { barang: null, vendor: null, pembelian: null, harga: null };
+  const importState = { barang: null, vendor: null, pembelian: null, harga: null, pastry: null };
 
   /* ══ TAB ══ */
   function switchTab(name) {
-    ['barang','vendor','pembelian','harga'].forEach(t => {
+    ['barang','vendor','pembelian','harga','pastry'].forEach(t => {
       document.getElementById('tab'+cap(t)).style.display        = t===name ? '' : 'none';
       document.getElementById('tabBtn'+cap(t)).classList.toggle('active', t===name);
     });
@@ -461,6 +519,11 @@
         if (!r.status_harga) errors.push('status_harga kosong');
         else if (!['exc','inc'].includes(r.status_harga.toLowerCase())) errors.push('status_harga harus "exc" atau "inc"');
         if (r.vendor && r.vendor !== '' && !window.vendorMap[r.vendor.toLowerCase()]) errors.push(`vendor "${r.vendor}" tidak ditemukan`);
+      } else if (type === 'pastry') {
+        if (!r.nama) errors.push('nama kosong');
+        else if (window.pastryMap && window.pastryMap[r.nama.toLowerCase()]) {
+          r._duplikat = true;
+        }
       }
       return { ...r, _idx: i + 1, _ok: errors.length === 0, _errors: errors };
     });
@@ -476,7 +539,7 @@
   }
 
   /* ── preview state per type ── */
-  const previewState = { barang: { tab: 'all', page: 1 }, vendor: { tab: 'all', page: 1 }, pembelian: { tab: 'all', page: 1 }, harga: { tab: 'all', page: 1 } };
+  const previewState = { barang: { tab: 'all', page: 1 }, vendor: { tab: 'all', page: 1 }, pembelian: { tab: 'all', page: 1 }, harga: { tab: 'all', page: 1 }, pastry: { tab: 'all', page: 1 } };
   const PAGE_SIZE = 50;
 
   function renderPreview(rows, type) {
@@ -487,6 +550,8 @@
       ? ['nama','kode','brand','kota','telp']
       : type === 'harga'
       ? ['tanggal','nama_barang','harga','status_harga','vendor','catatan']
+      : type === 'pastry'
+      ? ['nama','satuan']
       : ['tanggal','nama_barang','qty','harga_satuan','status_harga','vendor','brand','nomor_faktur'];
 
     const okCount  = rows.filter(r=>r._ok).length;
@@ -592,6 +657,7 @@
       if (type === 'barang')      { result = await importBarang(rows, updateProgress); }
       else if (type === 'vendor')  { result = await importVendor(rows, updateProgress); }
       else if (type === 'harga')   { result = await importHarga(rows, updateProgress); }
+      else if (type === 'pastry')  { result = await importPastry(rows, updateProgress); }
       else                         { result = await importPembelian(rows, updateProgress); }
 
       done   = result.done   || 0;
@@ -608,6 +674,7 @@
       localStorage.removeItem('_hargaCache');
       localStorage.removeItem('_c_barang');
       localStorage.removeItem('_c_vendors');
+      localStorage.removeItem('_c_pastry');
     } catch(e) {
       resultEl.className = 'result-box show error';
       resultEl.textContent = 'Import gagal: ' + e.message;
@@ -922,6 +989,52 @@
     return { done, failed };
   }
 
+  /* ══ IMPORT PASTRY ══ */
+  async function importPastry(rows, onProgress) {
+    let done = 0, failed = 0, skipped = 0;
+    const dupMode = document.querySelector('input[name="dupPastry"]:checked')?.value || 'skip';
+
+    /* Build pastryMap if not yet loaded */
+    if (!window.pastryMap) {
+      const { data: pr } = await window._sb.from('pastry').select('id,nama,satuan').order('nama');
+      window.pastryMap = {};
+      (pr || []).forEach(p => { window.pastryMap[p.nama?.toLowerCase()] = p; });
+    }
+
+    for (const r of rows) {
+      try {
+        const existing = window.pastryMap[r.nama.toLowerCase()];
+        const satuan   = r.satuan?.trim() || 'pcs';
+
+        if (existing && dupMode === 'skip') {
+          skipped++;
+          onProgress();
+          continue;
+        }
+
+        if (existing && dupMode === 'update') {
+          const patch = { updated_at: new Date().toISOString() };
+          if (r.satuan && r.satuan.trim() && r.satuan.trim() !== existing.satuan) patch.satuan = r.satuan.trim();
+          if (Object.keys(patch).length > 1) {
+            await window._sb.from('pastry').update(patch).eq('id', existing.id);
+          }
+          done++;
+        } else {
+          const { data: np, error } = await window._sb.from('pastry').insert({
+            nama:       r.nama,
+            satuan:     satuan,
+            updated_at: new Date().toISOString()
+          }).select().single();
+          if (error) throw error;
+          window.pastryMap[r.nama.toLowerCase()] = np;
+          done++;
+        }
+      } catch(e) { failed++; }
+      onProgress();
+    }
+    return { done, failed, skipped };
+  }
+
   /* ══ DOWNLOAD TEMPLATE ══ */
   function downloadTemplate(type) {
     const wb = XLSX.utils.book_new();
@@ -936,6 +1049,9 @@
     } else if (type === 'harga') {
       headers = ['tanggal','nama_barang','harga','status_harga','vendor','catatan'];
       example = ['2024-01-15','Kertas HVS A4','50000','exc','PT Maju Bersama','harga survey pasar'];
+    } else if (type === 'pastry') {
+      headers = ['nama','satuan'];
+      example = ['Croissant Butter','pcs'];
     } else if (type === 'pembelian') {
       headers = ['tanggal','nama_barang','qty','harga_satuan','status_harga','brand','vendor','nomor_faktur','catatan','status','diskon','ongkir'];
       example = ['2024-01-15','Kertas HVS A4','10','50000','exc','Bakeout','PT Maju Bersama','INV-001','','selesai','0','0'];
