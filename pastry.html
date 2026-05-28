@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Pastry</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="datefilter.js"></script>
@@ -29,20 +29,17 @@
 
     .export-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
     .export-bar select, .export-bar input[type=month] {
-      height:34px; padding:0 10px; border:1px solid var(--border);
+      height:36px; padding:0 10px; border:1px solid var(--border);
       border-radius:6px; font-size:13px; font-family:var(--mono);
       background:var(--surface); color:var(--text);
     }
-    .date-quick-btn {
-      background: none; border: 1px solid var(--border); border-radius: 6px;
-      color: var(--text); font-size: 11px; font-family: var(--mono);
-      padding: 5px 8px; cursor: pointer; transition: all .15s; text-align:center;
-    }
-    .date-quick-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05); }
-    .date-quick-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.1); font-weight:600; }
+    /* DateFilter v4 styles live in style.css (.df-*) — no local overrides needed */
   </style>
 </head>
 <body>
+<script>(function(){var t=localStorage.getItem('appTheme');if(t==='light')document.body.classList.add('light-mode');}());</script>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 <aside class="sidebar" id="sidebar"></aside>
 
@@ -73,7 +70,7 @@
             style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
         </div>
-        <button class="btn btn-primary" onclick="openModal()" style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <button class="btn btn-primary" onclick="openModal()" style="white-space:nowrap">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tambah Pastry
         </button>
@@ -87,7 +84,7 @@
               <tr>
                 <th onclick="sortBy('nama')">Nama Pastry <span id="sort-nama">↕</span></th>
                 <th>Satuan</th>
-                <th style="width:1%;white-space:nowrap;padding-left:16px">Aksi</th>
+                <th style="width:1%;white-space:nowrap;padding-left:8px">Aksi</th>
               </tr>
             </thead>
             <tbody id="tableBody">
@@ -119,16 +116,16 @@
         <!-- Brand filter — dropdown multi-tag style -->
         <div class="brand-filter-wrap" style="position:relative">
           <button id="rBrandFilterBtn" onclick="toggleRBrandDropdown(event)"
-            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans);height:34px"
+            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans);height:36px"
             onmouseover="this.style.borderColor='var(--accent)'"
-            onmouseout="if(!_rSelectedBrands.length)this.style.borderColor='var(--border)'">
+            onmouseout="if(!(PageState_r&&PageState_r.selectedBrands||[]).length)this.style.borderColor='var(--border)'">
             <span id="rBrandFilterLabel">🏷 Semua Brand</span>
             <span id="rBrandFilterCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
             <span style="font-size:10px;color:var(--muted)">▾</span>
           </button>
           <div id="rBrandFilterDropdown"
             style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
-            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
               <input type="checkbox" id="rChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
               <span>Semua Brand</span>
             </div>
@@ -138,22 +135,22 @@
         </div>
         <!-- hidden single-value untuk query compat -->
         <select id="rFilterBrand" style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"><option value="">Semua Brand</option></select>
-        <!-- hidden date state carriers -->
-        <input type="date" id="rDateFrom" style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"/>
-        <input type="date" id="rDateTo"   style="display:none" onchange="rCurrentPage=1;fetchRiwayat()"/>
-        <!-- Date picker — persis seperti dashboard, pakai datefilter.js -->
+        <!-- hidden date state carriers — diisi otomatis oleh DateFilter v4 -->
+        <input type="hidden" id="rDateFrom"/>
+        <input type="hidden" id="rDateTo"/>
+        <!-- Date picker v4 — HTML di-render otomatis oleh datefilter.js -->
         <div class="topbar-date-wrap" style="position:relative">
-          <button class="btn btn-ghost btn-sm" id="btnDateFilter" style="white-space:nowrap;min-width:130px">
+          <button class="btn btn-ghost" id="btnDateFilter" style="white-space:nowrap;min-width:130px;height:36px">
             📅 <span id="dateFilterLabel">Bulan Ini</span>
           </button>
           <div id="datePicker" class="date-picker-panel" style="display:none"></div>
         </div>
         <div style="flex:1"></div>
-        <button class="btn btn-ghost btn-sm" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <button class="btn btn-ghost" onclick="exportExcel()" style="height:36px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export Excel
         </button>
-        <button class="btn btn-primary admin-only" onclick="openRiwayatModal()" style="display:flex;align-items:center;gap:5px">
+        <button class="btn btn-primary admin-only" onclick="openRiwayatModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Catat Riwayat
         </button>
@@ -294,6 +291,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
+<script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
   window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
@@ -329,6 +327,7 @@
 
     await loadBrands();
     await fetchPage();
+    hideLoader();
 
     window.toggleRBrandDropdown = toggleRBrandDropdown;
     window.rToggleBrand         = rToggleBrand;
@@ -357,24 +356,14 @@
   }
 
   let _brandMap = {}; // id → nama
-  let _brandColorMap = {}; // id → color hex/var
   let _rSelectedBrands = []; // [] = semua
-
-  function _getBrandColor(id) { return _brandColorMap[id] || 'var(--accent)'; }
-  function _brandBadge(id) {
-    if (!id) return '—';
-    const name  = _brandMap[id] || id;
-    const color = _getBrandColor(id);
-    return `<span class="badge" style="color:${color};background:${color}26;border:1px solid ${color}40">${name}</span>`;
-  }
 
   async function loadBrands() {
     try {
-      const { data } = await window._sb.from('brands').select('id,nama,warna').order('nama');
+      const { data } = await window._sb.from('brands').select('id,nama').order('nama');
       const brands = data || [];
       _brandMap = {};
-      _brandColorMap = {};
-      brands.forEach(b => { _brandMap[b.id] = b.nama; if (b.warna) _brandColorMap[b.id] = b.warna; });
+      brands.forEach(b => { _brandMap[b.id] = b.nama; });
 
       /* populate modal brand select */
       const selMod = document.getElementById('rFBrand');
@@ -388,7 +377,7 @@
       const listEl = document.getElementById('rBrandOptionsList');
       if (listEl) {
         listEl.innerHTML = brands.map(b => `
-          <div onclick="rToggleBrand('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+          <div onclick="rToggleBrand('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
             <input type="checkbox" id="rChkBrand_${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
             <span>${b.nama}</span>
           </div>`).join('');
@@ -530,9 +519,9 @@
       tbody.innerHTML = data.map(p => {
         const mid = 'menu-' + p.id;
         return `<tr>
-          <td style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nama||'—'}</td>
+          <td style="font-weight:500">${p.nama||'—'}</td>
           <td><span style="font-family:var(--mono);font-size:13px">pcs</span></td>
-          <td style="white-space:nowrap;padding-left:16px">
+          <td style="white-space:nowrap;padding-left:8px">
             <div class="action-group" style="justify-content:flex-start;flex-wrap:nowrap">
               <button class="btn btn-ghost btn-sm" onclick="openModal('${p.id}')" title="Edit Pastry">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -623,13 +612,13 @@
           ? `<span class="badge-tipe badge-dispose">Dispose</span>`
           : `<span class="badge-tipe badge-compliment">Compliment</span>`;
         return `<tr>
-          <td><span class="td-mono-date">${tgl}</span></td>
+          <td style="font-family:var(--mono);font-size:12px">${tgl}</td>
           <td style="font-weight:500">${r.nama_pastry||'—'}</td>
           <td>${badge}</td>
           <td style="font-family:var(--mono)">${r.jumlah}</td>
           <td style="font-family:var(--mono);font-size:12px">${r.satuan||'—'}</td>
           <td style="color:var(--muted);font-size:12px">${r.keterangan||'—'}</td>
-          <td>${_brandBadge(r.brand_id)}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.brand_id?(_brandMap[r.brand_id]||r.brand_id):'—'}</td>
           <td class="admin-only" style="padding-left:16px;white-space:nowrap">
             ${isAdmin ? `
             <div class="action-group" style="justify-content:flex-start;flex-wrap:nowrap">
@@ -871,21 +860,28 @@
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); document.getElementById('searchInput').focus(); }
   });
 
-  /* ── Init DateFilter (datefilter.js) — setelah DOM ready ── */
+  /* ── Init DateFilter v4 (datefilter.js) ── */
   let rDf;
   (function initDf() {
     if (typeof DateFilter === 'undefined' || typeof DateFilter.create !== 'function') {
       setTimeout(initDf, 80); return;
     }
     rDf = DateFilter.create({
-      pickerEl  : 'datePicker',
-      triggerBtn: 'btnDateFilter',
-      labelEl   : 'dateFilterLabel',
-      inputFrom : 'rDateFrom',
-      inputTo   : 'rDateTo',
-      default      : 'thismonth',
-      triggerOnInit: false,
-      onChange     : () => { rCurrentPage = 1; fetchRiwayat(); },
+      pickerEl     : 'datePicker',
+      triggerBtn   : 'btnDateFilter',
+      labelEl      : 'dateFilterLabel',
+      inputFrom    : 'rDateFrom',
+      inputTo      : 'rDateTo',
+      quickPresets : [
+        { preset: 'all',       label: 'Semua Waktu' },
+        { preset: 'today',     label: 'Hari Ini'    },
+        { preset: 'thismonth', label: 'Bulan Ini'   },
+        { preset: 'lastmonth', label: 'Bulan Lalu'  },
+        { preset: 'thisyear',  label: 'Tahun Ini'   },
+        { preset: 'lastyear',  label: 'Tahun Lalu'  },
+      ],
+      default  : 'thismonth',
+      onChange : () => { rCurrentPage = 1; fetchRiwayat(); },
     });
     window.rDf = rDf;
   })();

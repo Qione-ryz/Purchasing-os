@@ -39,7 +39,15 @@ function _normalizeRow(r) {
     else if (ghostCache[vid]) { vendor_nama = ghostCache[vid]; vendor_deleted = true; }
     else                      { vendor_nama = vid; vendor_deleted = true; }
   }
-  const items      = r.riwayat_beli_items || [];
+  /* Resolve nama barang ke nama terkini dari master (Opsi A).
+     resolveNamaBarang() dari barang-helper.js — fallback ke snapshot
+     jika barang sudah dihapus dari master. */
+  const items = (r.riwayat_beli_items || []).map(item => ({
+    ...item,
+    nama: typeof window.resolveNamaBarang === 'function'
+      ? window.resolveNamaBarang(item)
+      : (item.nama || '—')
+  }));
   const tanggal_js = r.tanggal ? new Date(r.tanggal + 'T00:00:00') : new Date();
   return { ...r, items, vendor_nama, vendor_deleted, tanggal_js };
 }
@@ -223,13 +231,15 @@ function _renderRiwayatRows(slice) {
     const vendorDisplay = r.vendor_nama;
     const brandNama  = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || r.brand_id || '—';
     const brandColor = (window.allBrands || []).find(b => b.id === r.brand_id)?.warna || null;
-    const brandStyle = brandColor ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55` : '';
+    const brandStyle = brandColor
+      ? `background:${brandColor};color:${getBadgeTextColor(brandColor)};padding:3px 10px;font-size:12px;font-weight:500`
+      : `background:var(--surface2);color:var(--muted);padding:3px 10px;font-size:12px;font-weight:500`;
     return `<tr>
       <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')">▶</button></td>
       <td><span class="td-date" style="white-space:nowrap">${tgl}</span></td>
       <td style="overflow:hidden"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:12px;color:var(--accent2)" title="${r.nomor_faktur||''}">${r.nomor_faktur || '—'}</span></td>
       <td style="font-weight:500;overflow:hidden"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${vendorDisplay}">${vendorDisplay}</span></td>
-      <td style="overflow:hidden"><span class="badge badge-blue" style="${brandStyle};display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${brandNama}</span></td>
+      <td style="overflow:hidden"><span class="badge" style="${brandStyle};display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${brandNama}</span></td>
       <td><span class="td-count" style="white-space:nowrap">${nItems} item</span></td>
       <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
       <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
@@ -371,12 +381,17 @@ function openDetail(id) {
   document.getElementById('detailTitle').textContent = r.nomor_faktur || 'Detail Pembelian';
   const tgl    = r.tanggal_js.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const badgeS = { selesai: 'badge-green', pending: 'badge-orange', batal: 'badge-red' }[r.status] || 'badge-gray';
+  const _detBrand = (window.allBrands||[]).find(b => b.id === r.brand_id);
+  const _detBrandColor = _detBrand?.warna || null;
+  const _detBrandStyle = _detBrandColor
+    ? `background:${_detBrandColor};color:${getBadgeTextColor(_detBrandColor)};padding:3px 10px;font-size:12px;font-weight:500`
+    : `background:var(--surface2);color:var(--muted);padding:3px 10px;font-size:12px;font-weight:500`;
 
   document.getElementById('detailBody').innerHTML = `
     <div class="detail-kv"><span class="detail-k">Tanggal</span><span class="detail-v">${tgl}</span></div>
     <div class="detail-kv"><span class="detail-k">No. Faktur</span><span class="detail-v" style="font-family:var(--mono)">${r.nomor_faktur || '—'}</span></div>
     <div class="detail-kv"><span class="detail-k">Vendor</span><span class="detail-v">${r.vendor_nama}</span></div>
-    <div class="detail-kv"><span class="detail-k">Brand</span><span class="detail-v"><span class="badge badge-blue">${(window.allBrands||[]).find(b=>b.id===r.brand_id)?.nama || r.brand_id || '—'}</span></span></div>
+    <div class="detail-kv"><span class="detail-k">Brand</span><span class="detail-v"><span class="badge" style="${_detBrandStyle}">${_detBrand?.nama || r.brand_id || '—'}</span></span></div>
     <div class="detail-kv"><span class="detail-k">Status</span><span class="detail-v"><span class="badge ${badgeS}">${r.status || '—'}</span></span></div>
     <div class="detail-kv"><span class="detail-k">Catatan</span><span class="detail-v">${r.catatan || '—'}</span></div>
     <div class="detail-sum-header">Daftar Barang</div>
@@ -772,15 +787,21 @@ async function exportRiwayat() {
   const detailRows = [
     ['Tanggal', 'No. Faktur', 'Vendor', 'Brand', 'Nama Barang', 'SKU', 'Satuan', 'Qty', 'Harga Satuan (Exc)', 'Harga Satuan (Inc)', 'Subtotal', 'Status']
   ];
+  /* Gunakan barangNameMap untuk resolve nama terkini di export
+     (data di-fetch fresh, belum melalui _normalizeRow) */
+  const _nameMap = typeof window.getBarangNameMap === 'function'
+    ? window.getBarangNameMap()
+    : {};
   data.forEach(r => {
     const brandNama = (window.allBrands||[]).find(b=>b.id===r.brand_id)?.nama || r.brand_id || '—';
     (r.items||[]).forEach(item => {
+      const namaTampil = _nameMap[item.barang_id] || item.nama || '';
       detailRows.push([
         r.tanggal        || '',
         r.nomor_faktur   || '',
         r.vendor_nama    || '',
         brandNama,
-        item.nama        || '',
+        namaTampil,
         item.sku         || '',
         item.satuan      || '',
         item.qty         || 0,

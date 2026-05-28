@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Pengaturan</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
@@ -15,7 +15,7 @@
     .settings-nav-item { display:flex; align-items:center; gap:10px; padding:13px 16px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); border-bottom:1px solid var(--border); transition:background .15s,color .15s; }
     .settings-nav-item:last-child { border-bottom:none; }
     .settings-nav-item:hover { background:var(--surface2); color:var(--text); }
-    .settings-nav-item.active { background:rgba(79,142,247,0.1); color:var(--accent); border-left:2px solid var(--accent); }
+    .settings-nav-item.active { background:rgba(0,212,255,0.08); color:var(--accent); border-left:2px solid var(--accent); }
     .settings-nav-icon { font-size:16px; }
 
     /* PANELS */
@@ -29,7 +29,7 @@
 
     /* BRANDS */
     .brand-card { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; background:var(--bg); transition:border-color .2s; }
-    .brand-card:hover { border-color:rgba(79,142,247,0.3); }
+    .brand-card:hover { border-color:rgba(0,212,255,0.25); }
     .brand-left { display:flex; align-items:center; gap:12px; }
     .brand-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
     .brand-info-name { font-size:14px; font-weight:600; }
@@ -98,7 +98,7 @@
 
     /* SISTEM INFO */
     .sysinfo-list { display:flex; flex-direction:column; gap:10px; font-size:13px; }
-    .sysinfo-row  { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(37,40,48,.5); }
+    .sysinfo-row  { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
     .sysinfo-row:last-child { border-bottom:none; }
     .sysinfo-key  { color:var(--muted); }
     .sysinfo-val  { font-family:var(--mono); }
@@ -120,7 +120,7 @@
     .log-detail { font-size:12px; color:var(--muted); font-family:var(--mono); }
 
     /* KODE ORDER INFO — notice box */
-    .kode-notice { background:rgba(79,142,247,0.07); border:1px solid rgba(79,142,247,0.2); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--accent); font-family:var(--mono); margin-bottom:16px; }
+    .kode-notice { background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.15); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--accent); font-family:var(--mono); margin-bottom:16px; }
 
     /* INVITE LINK BOX */
     .invite-link-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; font-family:var(--mono); font-size:13px; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -136,12 +136,12 @@
     .bs-sub-tab { padding:10px 18px; font-size:13px; font-weight:600; color:var(--muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; font-family:var(--sans); }
     .bs-sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
     .bs-barang-group { padding:6px 18px 4px; font-size:10px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.7px; background:var(--surface2); border-bottom:1px solid var(--border); }
-    .bs-barang-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid rgba(21,44,51,0.4); cursor:pointer; transition:background .1s; user-select:none; }
+    .bs-barang-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .1s; user-select:none; }
     .bs-barang-row:last-child { border-bottom:none; }
     .bs-barang-row:hover { background:rgba(0,212,255,0.04); }
-    .bs-barang-row.checked { background:rgba(56,217,169,0.04); }
+    .bs-barang-row.checked { background:rgba(0,212,255,0.06); }
     .bs-cb { width:18px; height:18px; border-radius:5px; border:1.5px solid var(--border); background:transparent; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; }
-    .bs-barang-row.checked .bs-cb { background:var(--accent2); border-color:var(--accent2); color:#030709; }
+    .bs-barang-row.checked .bs-cb { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
     .bs-barang-nama { font-size:14px; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .bs-barang-meta { font-size:11px; font-family:var(--mono); color:var(--muted); flex-shrink:0; }
     .bs-grup-item { display:flex; align-items:flex-start; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); }
@@ -150,9 +150,9 @@
     .bs-grup-meta { font-size:11px; font-family:var(--mono); color:var(--muted); line-height:1.6; }
     .bs-member-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background .1s; user-select:none; }
     .bs-member-row:hover { background:var(--surface2); }
-    .bs-member-row.checked { background:rgba(56,217,169,0.06); }
+    .bs-member-row.checked { background:rgba(0,212,255,0.08); }
     .bs-member-cb { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; transition:all .15s; }
-    .bs-member-row.checked .bs-member-cb { background:var(--accent2); border-color:var(--accent2); color:#030709; }
+    .bs-member-row.checked .bs-member-cb { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
     .bs-empty { padding:40px 20px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:13px; }
     .bs-info-bar { padding:8px 18px; font-size:12px; font-family:var(--mono); color:var(--muted); background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
     /* Search — SVG icon, clear button, no overlap */
@@ -169,9 +169,18 @@
     .bs-grup-form select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:9px 12px; outline:none; }
     #bsGrupFormPanel { display:none; flex-direction:column; }
     #bsGrupFormPanel.open { display:flex; }
+
+    /* SIMPLE MODAL (Satuan & Kategori) */
+    .simple-modal-title { font-size:16px; font-weight:600; margin-bottom:16px; }
+    .simple-modal-label { display:block; font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+    .simple-modal-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:10px 13px; outline:none; transition:border-color .2s; }
+    .simple-modal-input:focus { border-color:var(--accent); }
   </style>
 </head>
 <body>
+<script>(function(){var t=localStorage.getItem('appTheme');if(t==='light')document.body.classList.add('light-mode');}());</script>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
@@ -236,7 +245,7 @@
                 <div class="card-title">Kelola Brand</div>
                 <div class="card-desc">Tambah, edit, atau nonaktifkan brand</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openBrandModal()">＋ Tambah Brand</button>
+              <button class="btn btn-primary" onclick="openBrandModal()">＋ Tambah Brand</button>
             </div>
             <div class="card-body">
               <div id="brandList">
@@ -260,7 +269,7 @@
               </div>
               <div class="field" style="margin:0;flex-shrink:0">
                 <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Lainnya</label>
-                <button class="btn btn-ghost btn-sm" onclick="bsOpenCopyModal()" style="white-space:nowrap;height:42px;padding:0 16px">📋 Salin dari Brand Lain</button>
+                <button class="btn btn-ghost btn-sm" onclick="bsOpenCopyModal()" style="white-space:nowrap">📋 Salin dari Brand Lain</button>
               </div>
             </div>
           </div>
@@ -279,7 +288,7 @@
                 <span id="bsBarangInfo" style="font-size:12px;color:var(--muted);font-family:var(--mono)">—</span>
                 <div style="display:flex;gap:6px;align-items:center">
                   <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-                    <button id="bsSortKat" onclick="bsSetSort('kategori')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--accent);color:#030709;border:none;cursor:pointer;font-weight:600">Kategori</button>
+                    <button id="bsSortKat" onclick="bsSetSort('kategori')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--accent);color:var(--bg);border:none;cursor:pointer;font-weight:600">Kategori</button>
                     <button id="bsSortAz" onclick="bsSetSort('abjad')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--bg);color:var(--muted);border:none;cursor:pointer;font-weight:600">A–Z</button>
                   </div>
                   <button class="btn btn-primary btn-sm" onclick="bsSaveBarang()">💾 Simpan</button>
@@ -292,8 +301,8 @@
                   <button class="bs-search-clear" id="bsSearchBarangClear" onclick="document.getElementById('bsSearchBarang').value='';bsRenderBarangList();this.style.display='none'">✕</button>
                 </div>
                 <div style="display:flex;gap:6px;margin-top:10px">
-                  <button class="btn btn-ghost btn-sm" onclick="bsSelectAll()" style="font-size:12px">✓ Pilih Semua</button>
-                  <button class="btn btn-ghost btn-sm" onclick="bsSelectNone()" style="font-size:12px;color:var(--muted)">✕ Hapus Semua</button>
+                  <button class="btn btn-ghost btn-sm" onclick="bsSelectAll()">✓ Pilih Semua</button>
+                  <button class="btn btn-ghost btn-sm" onclick="bsSelectNone()" style="color:var(--muted)">✕ Hapus Semua</button>
                 </div>
               </div>
               <div id="bsBarangList" style="max-height:480px;overflow-y:auto;padding-top:4px"></div>
@@ -311,7 +320,7 @@
                   </div>
                   <div id="bsGrupList" style="flex:1;overflow-y:auto;max-height:400px"></div>
                   <div style="padding:10px 14px;border-top:1px solid var(--border)">
-                    <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="bsOpenGrupForm()">＋ Tambah Grup Baru</button>
+                    <button class="btn btn-primary" style="width:100%" onclick="bsOpenGrupForm()">＋ Tambah Grup Baru</button>
                   </div>
                 </div>
 
@@ -341,7 +350,7 @@
                       <select id="bsGrupFormPrimer"></select>
                     </div>
                     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
-                      <button class="btn btn-primary btn-sm" onclick="bsSaveGrup()">💾 Simpan Grup</button>
+                      <button class="btn btn-primary" onclick="bsSaveGrup()">💾 Simpan Grup</button>
                     </div>
                   </div>
                 </div>
@@ -360,7 +369,7 @@
                 <div class="card-title">Manajemen Pengguna</div>
                 <div class="card-desc">Kelola akses dan role pengguna</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">＋ Buat Akun</button>
+              <button class="btn btn-primary" onclick="openCreateUserModal()">＋ Buat Akun</button>
             </div>
             <div style="overflow-x:auto">
               <table>
@@ -405,7 +414,7 @@
                 <div class="card-title">Kode Akses Order Internal</div>
                 <div class="card-desc">Daftarkan kode untuk setiap brand — bagikan ke tim brand</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openKodeModal()">＋ Tambah Kode</button>
+              <button class="btn btn-primary" onclick="openKodeModal()">＋ Tambah Kode</button>
             </div>
             <div class="card-body">
               <div class="kode-notice">
@@ -471,7 +480,7 @@
                 <div class="card-title">Import Data</div>
                 <div class="card-desc">Upload data massal dari file Excel atau CSV</div>
               </div>
-              <a class="btn btn-ghost btn-sm" href="import.html">Buka Halaman Import →</a>
+              <a class="btn btn-ghost" href="import.html">Buka Halaman Import →</a>
             </div>
             <div class="card-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -497,9 +506,6 @@
         </div>
 
         <!-- ═══════════════════════════════ SYSTEM ═══════════════════════════════ -->
-        <!-- TODO: Panel "Sistem" belum diimplementasi.
-             Rencana isi: toggle tema (dark/light), pengaturan PPN, bahasa, dll.
-             Nav item sudah ada di settings-nav → switchPanel('system') -->
         <!-- ═══════════════════════════════ SATUAN ═══════════════════════════════ -->
         <div class="panel" id="panel-satuan">
           <div class="card">
@@ -508,23 +514,7 @@
                 <div class="card-title">Kelola Satuan</div>
                 <div class="card-desc">Tambah, edit, atau hapus pilihan satuan barang</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openSatuanModal()">＋ Tambah Satuan</button>
-            </div>
-            <div class="card-body">
-              <div id="satuanList"><div style="text-align:center;padding:30px;color:var(--muted)">Memuat...</div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ═══ SATUAN ═══ -->
-        <div class="panel" id="panel-satuan">
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Kelola Satuan</div>
-                <div class="card-desc">Tambah, edit, atau hapus pilihan satuan barang</div>
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="openSatuanModal()">＋ Tambah Satuan</button>
+              <button class="btn btn-primary" onclick="openSatuanModal()">＋ Tambah Satuan</button>
             </div>
             <div class="card-body">
               <div id="satuanList"><div style="text-align:center;padding:30px;color:var(--muted)">Memuat...</div></div>
@@ -540,7 +530,7 @@
                 <div class="card-title">Kelola Kategori F&amp;B</div>
                 <div class="card-desc">Tambah, edit, atau hapus kategori barang</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openKategoriModal()">＋ Tambah Kategori</button>
+              <button class="btn btn-primary" onclick="openKategoriModal()">＋ Tambah Kategori</button>
             </div>
             <div class="card-body">
               <div id="kategoriSettingsList"><div style="text-align:center;padding:30px;color:var(--muted)">Memuat...</div></div>
@@ -555,7 +545,7 @@
             <div class="card-header"><div class="card-title">Tema Tampilan</div></div>
             <div class="card-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div id="themeOptDark" onclick="setTheme('dark')" class="theme-opt" style="border:2px solid var(--accent);background:rgba(79,142,247,0.06)">
+                <div id="themeOptDark" onclick="setTheme('dark')" class="theme-opt" style="border:2px solid var(--accent);background:rgba(0,212,255,0.05)">
                   <div class="theme-opt-icon">🌙</div>
                   <div class="theme-opt-label">Dark</div>
                   <div class="theme-opt-sub">Mode gelap (default)</div>
@@ -585,7 +575,7 @@
                   <input type="number" id="ppnInput" min="0" max="99" step="0.1" value="11" class="ppn-input"
                     onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
                 </div>
-                <button class="btn btn-primary" onclick="savePPN()" style="margin-top:22px;white-space:nowrap">Simpan PPN</button>
+                <button class="btn btn-primary" onclick="savePPN()" style="white-space:nowrap;align-self:flex-end">Simpan PPN</button>
               </div>
               <div class="ppn-hint">
                 ℹ Perubahan PPN disimpan di database dan berlaku untuk semua pengguna secara real-time. Tidak perlu edit kode.
@@ -1065,6 +1055,7 @@
 
     /* ── Load brands ── */
     await loadBrands();
+    hideLoader();
   })();
 
   /* BRANDS */
@@ -1600,6 +1591,7 @@
   }
 
   async function deleteBrand(id, nama) {
+    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
     /* Cek dulu berapa data yang akan terdampak */
     const [{ count: cBarang }, { count: cVendor }, { count: cBeli }] = await Promise.all([
       window._sb.from('barang_brands').select('*', { count:'exact', head:true }).eq('brand_id', id),
@@ -1701,12 +1693,12 @@
     if (!dark || !light) return;
     if (mode === 'light') {
       light.style.border = '2px solid var(--accent)';
-      light.style.background = 'rgba(79,142,247,0.06)';
+      light.style.background = 'rgba(0,212,255,0.05)';
       dark.style.border  = '1px solid var(--border)';
       dark.style.background = '';
     } else {
       dark.style.border  = '2px solid var(--accent)';
-      dark.style.background = 'rgba(79,142,247,0.06)';
+      dark.style.background = 'rgba(0,212,255,0.05)';
       light.style.border = '1px solid var(--border)';
       light.style.background = '';
     }
@@ -1782,9 +1774,9 @@
   function bsSetSort(mode) {
     bsSortMode = mode;
     document.getElementById('bsSortKat').style.background = mode==='kategori' ? 'var(--accent)' : 'var(--bg)';
-    document.getElementById('bsSortKat').style.color      = mode==='kategori' ? '#030709'       : 'var(--muted)';
+    document.getElementById('bsSortKat').style.color      = mode==='kategori' ? 'var(--bg)'    : 'var(--muted)';
     document.getElementById('bsSortAz').style.background  = mode==='abjad'    ? 'var(--accent)' : 'var(--bg)';
-    document.getElementById('bsSortAz').style.color       = mode==='abjad'    ? '#030709'       : 'var(--muted)';
+    document.getElementById('bsSortAz').style.color       = mode==='abjad'    ? 'var(--bg)'   : 'var(--muted)';
     bsRenderBarangList();
   }
 
@@ -2149,7 +2141,7 @@
 
       const AKSI_BADGE = {
         tambah: 'background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3)',
-        edit:   'background:rgba(79,142,247,0.12);color:var(--accent);border:1px solid rgba(79,142,247,0.25)',
+        edit:   'background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.22)',
         hapus:  'background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.25)'
       };
       const TIPE_LABEL = { barang:'Barang', vendor:'Vendor', pembelian:'Pembelian', harga:'Harga', brand:'Brand', user_role:'Role', stock_opname:'Stock Opname', plan:'Purchase Plan' };
@@ -2231,6 +2223,7 @@
   }
 
   async function hapusBarangByBrand() {
+    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusBarangBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2250,6 +2243,7 @@
   }
 
   async function hapusVendorByBrand() {
+    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusVendorBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2268,6 +2262,7 @@
   }
 
   async function hapusBelisByBrand() {
+    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusBelisBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2287,6 +2282,7 @@
   }
 
   async function hapusSemua(tipe) {
+    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
     const labelMap = { barang:'semua barang', vendor:'semua vendor', pembelian:'semua riwayat pembelian', harga:'semua riwayat harga', stockopname:'semua data stock opname', purchaseplan:'semua purchase plan' };
     if (!confirm(`Hapus ${labelMap[tipe]}?\n\nAksi ini TIDAK BISA dibatalkan.`)) return;
     if (!confirm(`Konfirmasi sekali lagi — hapus ${labelMap[tipe]} secara permanen?`)) return;
@@ -2331,7 +2327,7 @@
 </script>
 
 <!-- ═══ MODAL SATUAN ═══ -->
-<div id="satuanOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center">
+<div id="satuanOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:360px;max-width:95vw">
     <div class="simple-modal-title" id="satuanModalTitle">Tambah Satuan</div>
     <label class="simple-modal-label">Nama Satuan</label>

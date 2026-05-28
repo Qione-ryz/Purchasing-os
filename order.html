@@ -47,7 +47,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(0.97)}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#030709}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg)}
 .btn-primary:hover{opacity:.9}
 .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
 .btn-ghost:hover{border-color:var(--accent)}
@@ -68,16 +68,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* BADGE */
 .badge{display:inline-block;padding:3px 8px;border-radius:5px;font-size:11px;font-family:var(--mono);font-weight:500;min-width:72px;text-align:center}
 .badge-gray{background:rgba(107,114,128,0.15);color:var(--muted)}
-.badge-green{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3)}
-.badge-orange{background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3)}
-.badge-yellow{background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3)}
-.badge-blue{background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.25)}
-.badge-red{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
+.badge-green{background:rgba(56,217,169,0.12);color:var(--accent2);border:1px solid rgba(56,217,169,0.2)}
+.badge-orange{background:rgba(247,146,79,0.12);color:var(--accent3);border:1px solid rgba(247,146,79,0.2)}
+.badge-yellow{background:rgba(247,146,79,0.12);color:var(--accent3);border:1px solid rgba(247,146,79,0.2)}
+.badge-blue{background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.18)}
+.badge-red{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.2)}
+.badge-progress{background:rgba(56,189,248,0.14);color:#38bdf8;border:1px solid rgba(56,189,248,0.32)}
 
 /* ORDER ITEMS TABLE */
 .items-table{width:100%;border-collapse:collapse;font-size:13px}
 .items-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
-.items-table td{padding:11px 12px;border-bottom:1px solid rgba(37,40,48,0.5);vertical-align:middle}
+.items-table td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .items-table tr:last-child td{border-bottom:none}
 .items-table tr:hover td{background:rgba(255,255,255,0.02)}
 .items-table input{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 9px;outline:none;width:80px;transition:border-color .2s}
@@ -127,7 +128,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .toast.error{border-color:rgba(248,113,113,0.4)}
 
 /* DRAFT BANNER */
-.draft-banner{display:none;align-items:center;gap:10px;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:13px;animation:fadeIn .3s ease}
+.draft-banner{display:none;align-items:center;gap:10px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.22);border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:13px;animation:fadeIn .3s ease}
 .draft-banner.show{display:flex}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .draft-banner-icon{font-size:18px;flex-shrink:0}
@@ -135,7 +136,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .draft-banner-text strong{color:var(--accent)}
 .draft-banner-text span{color:var(--muted);font-size:12px;font-family:var(--mono);display:block;margin-top:2px}
 .draft-banner-actions{display:flex;gap:8px;flex-shrink:0}
-.draft-btn-keep{padding:5px 12px;border:1px solid rgba(79,142,247,0.4);border-radius:7px;background:rgba(79,142,247,0.12);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .2s}
+.draft-btn-keep{padding:5px 12px;border:1px solid rgba(0,212,255,0.30);border-radius:7px;background:rgba(0,212,255,0.10);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .2s}
 .draft-btn-keep:hover{opacity:.8}
 .draft-btn-discard{padding:5px 12px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .2s}
 .draft-btn-discard:hover{color:var(--danger);border-color:rgba(248,113,113,0.3)}
@@ -173,9 +174,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .autocomplete-wrap{position:relative}
 .autocomplete-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;display:none}
 .autocomplete-list.show{display:block}
-.autocomplete-item{padding:10px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid rgba(37,40,48,0.4)}
+.autocomplete-item{padding:10px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)}
 .autocomplete-item:last-child{border-bottom:none}
-.autocomplete-item:hover,.autocomplete-item.selected{background:rgba(79,142,247,0.1);color:var(--accent)}
+.autocomplete-item:hover,.autocomplete-item.selected{background:rgba(0,212,255,0.08);color:var(--accent)}
 .autocomplete-item .item-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 
 
@@ -193,7 +194,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* BARANG LIST — plain name rows */
 .barang-list-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;transition:background .1s;user-select:none}
-.barang-list-item:hover{background:rgba(79,142,247,0.06)}
+.barang-list-item:hover{background:rgba(0,212,255,0.05)}
 .barang-list-item.added{background:rgba(56,217,169,0.05)}
 .barang-list-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;transition:all .15s;background:transparent}
 .barang-list-item.added .barang-list-dot{background:var(--accent2);border-color:var(--accent2)}
@@ -223,7 +224,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .item-select-body{flex:1;overflow-y:auto;padding:14px 22px}
 .item-select-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .item-select-row{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:7px;cursor:pointer;transition:background .12s;user-select:none}
-.item-select-row:hover{background:rgba(79,142,247,0.07)}
+.item-select-row:hover{background:rgba(0,212,255,0.06)}
 .item-select-row.checked{background:rgba(56,217,169,0.08)}
 .item-select-cb{width:17px;height:17px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .12s;background:var(--bg)}
 .item-select-row.checked .item-select-cb{background:var(--accent2);border-color:var(--accent2);color:#0d0f14}
@@ -384,6 +385,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 </style>
 </head>
 <body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -443,7 +446,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
           <div class="field-hint">Kode diberikan oleh admin — hubungi admin jika belum punya kode</div>
         </div>
         <div id="errorBox" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--danger);margin-bottom:14px;display:none"></div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="masukOrder()" id="btnMasuk">
+        <button class="btn btn-primary" style="width:100%" onclick="masukOrder()" id="btnMasuk">
           <span>Masuk</span>
         </button>
       </div>
@@ -461,7 +464,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <span class="order-col-title">List All Item</span>
     <div style="display:flex;gap:6px;align-items:center">
       <button class="btn-kelola" onclick="openKelolaBrg()">⚙ Tampilan</button>
-      <button class="btn-kelola" onclick="openCustomModal()" style="border-color:rgba(79,142,247,0.3);color:var(--accent)">＋ Lainnya</button>
+      <button class="btn-kelola" onclick="openCustomModal()" style="border-color:rgba(0,212,255,0.22);color:var(--accent)">＋ Lainnya</button>
       <button onclick="closeDrawer()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px" title="Tutup">✕</button>
     </div>
   </div>
@@ -486,7 +489,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <span class="order-col-title">List All Item</span>
         <div style="display:flex;gap:6px">
           <button class="btn-kelola" onclick="openKelolaBrg()">⚙ Tampilan</button>
-          <button class="btn-kelola" onclick="openCustomModal()" style="border-color:rgba(79,142,247,0.3);color:var(--accent)">＋ Lainnya</button>
+          <button class="btn-kelola" onclick="openCustomModal()" style="border-color:rgba(0,212,255,0.22);color:var(--accent)">＋ Lainnya</button>
         </div>
       </div>
       <div class="barang-search-wrap">
@@ -564,8 +567,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
           style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px;outline:none;resize:none;height:52px;transition:border-color .2s;margin-bottom:8px"
           oninput="scheduleDraftSave()"></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn btn-ghost btn-sm" id="btnBatalEdit" onclick="batalEdit()" style="display:none;color:var(--danger);border-color:rgba(248,113,113,0.3)">✕ Batal Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="resetOrder()">Reset</button>
+          <button class="btn btn-ghost btn-sm is-destructive" id="btnBatalEdit" onclick="batalEdit()" style="display:none">✕ Batal Edit</button>
+          <button class="btn btn-ghost btn-sm is-destructive" onclick="resetOrder()">Reset</button>
           <button class="btn btn-primary btn-sm" onclick="submitOrder()" id="btnSubmit"><span>Kirim Order</span></button>
         </div>
       </div>
@@ -616,7 +619,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <button class="modal-close" onclick="closeModal('modalCustom')">✕</button>
     </div>
     <div class="modal-body">
-      <div style="background:rgba(79,142,247,0.07);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      <div style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.16);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
         Barang hanya ditambahkan ke daftar orderan ini — tidak mengubah database barang.
       </div>
       <div class="field">
@@ -704,13 +707,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script>
 // ═══════════════════════════════════════════════
 // CONFIG — ganti dengan credential Supabase kamu
 // ═══════════════════════════════════════════════
-// CONFIG — Supabase (sama dengan PurchaseOS)
-const SUPA_URL  = 'https://jpfqysbaygcvlkxcecdo.supabase.co';
-const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZnF5c2JheWdjdmxreGNlY2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTAwNDAsImV4cCI6MjA5MjI2NjA0MH0.O0q-qhiSxfxQY0iZLHAdnga4GIMF2H0VbIhnzC-kKvg';
+// CONFIG — dari config.js
 /*
   ── SQL Migration (jalankan 1x di Supabase SQL Editor) ──────────────────
   CREATE TABLE IF NOT EXISTS pemesan_config (
@@ -754,7 +756,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 // options.headers di-spread SETELAH milik kita — jika ada key yang sama,
 // milik Supabase yang menang. Ini mencegah error "No API key found in request"
 // yang terjadi jika urutan spread-nya terbalik.
-const _sb = supabase.createClient(SUPA_URL, SUPA_ANON, {
+const _sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey, {
   global: {
     fetch: (url, options = {}) => {
       // options.headers dari Supabase bisa berupa objek Headers (bukan plain object).
@@ -862,6 +864,7 @@ async function init() {
     currentBrand = saved.brand;
     showApp();
   }
+  hideLoader();
 }
 
 // ── IndexedDB helpers (persist di file:// protocol) ──
@@ -1238,7 +1241,7 @@ function highlight(text, q) {
   const idx = text.toLowerCase().indexOf(q);
   if (idx < 0) return text;
   return text.slice(0, idx) +
-    `<mark style="background:rgba(79,142,247,0.25);color:var(--accent);border-radius:2px;padding:0 1px">${text.slice(idx, idx+q.length)}</mark>` +
+    `<mark style="background:rgba(0,212,255,0.20);color:var(--accent);border-radius:2px;padding:0 1px">${text.slice(idx, idx+q.length)}</mark>` +
     text.slice(idx + q.length);
 }
 
@@ -2275,7 +2278,7 @@ function buildOrderItems(items, catatan) {
   const mobileCards = items.map(it => {
     const d = makeItemData(it);
     return `
-      <div style="padding:12px 14px;border-bottom:1px solid rgba(37,40,48,0.5);${d.isCancelled?'opacity:0.45':''}">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);${d.isCancelled?'opacity:0.45':''}">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">
           <div style="font-weight:600;font-size:13px;flex:1;word-break:break-word">${it.nama_barang}${it.is_custom?'<span class="custom-tag">lainnya</span>':''}</div>
           <div style="flex-shrink:0">${d.badge}</div>
@@ -2287,7 +2290,7 @@ function buildOrderItems(items, catatan) {
   }).join('');
 
   const catatanBlock = catatan
-    ? `<div style="margin:12px 16px 14px;padding:10px 14px;background:rgba(79,142,247,0.07);border:1px solid rgba(79,142,247,0.18);border-radius:8px;display:flex;align-items:flex-start;gap:8px">
+    ? `<div style="margin:12px 16px 14px;padding:10px 14px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;display:flex;align-items:flex-start;gap:8px">
         <span style="font-size:13px;flex-shrink:0;margin-top:1px">📝</span>
         <div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Catatan Order</div>

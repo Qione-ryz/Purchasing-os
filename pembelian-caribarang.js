@@ -137,15 +137,23 @@ async function cbFetch() {
       barangMap['nama:' + (b.nama || '').toLowerCase()] = b.kategori || '';
     });
 
+    /* Resolve nama terkini dari master (Opsi A) */
+    const _nameMap = typeof window.getBarangNameMap === 'function'
+      ? window.getBarangNameMap()
+      : {};
+
     const map = {};
     valid.forEach(r => {
-      const key = `${(r.nama||'').toLowerCase()}|${r.sku||''}|${r.satuan||''}|${r.brand_id||''}`;
+      /* Gunakan nama terkini untuk key agar grouping tetap konsisten
+         meski snapshot lama berbeda ejaan */
+      const namaTerkini = (r.barang_id && _nameMap[r.barang_id]) || r.nama || '—';
+      const key = `${namaTerkini.toLowerCase()}|${r.sku||''}|${r.satuan||''}|${r.brand_id||''}`;
       if (!map[key]) {
         const kat = barangMap['sku:' + (r.sku||'').toLowerCase()]
                  || barangMap['nama:' + (r.nama||'').toLowerCase()]
                  || '';
         map[key] = {
-          nama:      r.nama || '—',
+          nama:      namaTerkini,
           sku:       r.sku  || '',
           satuan:    r.satuan || '',
           brand_id:  r.brand_id || '',
@@ -228,7 +236,7 @@ function cbRenderFlat(tbody, total) {
     const brandNama  = brandObj?.nama || '—';
     const brandColor = brandObj?.warna || null;
     const brandStyle = brandColor
-      ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55`
+      ? `background:${brandColor};color:${(window.getBadgeTextColor||((h)=>'#ffffff'))(brandColor)};padding:3px 10px;font-size:12px;font-weight:500`
       : '';
     return `<tr>
       <td style="font-weight:500">${r.nama}</td>

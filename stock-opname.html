@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Stock Opname</title>
   <!-- Font: harus konsisten dengan style.css -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -16,6 +16,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 <script>
   /* ── Theme init — baca dari localStorage sebelum render ── */
   if (localStorage.getItem('appTheme') === 'light') {
@@ -41,7 +43,7 @@
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn btn-ghost so-export-btn" onclick="exportExcel()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+      <button class="btn btn-ghost so-export-btn" onclick="exportExcel()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
       </button>
@@ -79,7 +81,7 @@
       </div>
       <div id="pickerMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
       <div style="margin-top:12px;text-align:right;">
-        <button class="btn btn-ghost btn-sm" onclick="closeMonthPicker()" style="display:inline-flex;align-items:center;gap:5px">
+        <button class="btn btn-ghost btn-sm" onclick="closeMonthPicker()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Tutup
         </button>
@@ -109,7 +111,7 @@
           <button class="grpby-btn active" data-mode="brand" onclick="setGroupBy('brand')">Brand</button>
           <button class="grpby-btn" data-mode="kategori" onclick="setGroupBy('kategori')">Kategori</button>
         </div>
-        <button class="btn btn-ghost btn-sm" id="btnHideEmpty" onclick="toggleHideEmpty()" title="Sembunyikan baris yang belum diisi" style="display:flex;align-items:center;gap:5px">
+        <button class="btn btn-ghost btn-sm" id="btnHideEmpty" onclick="toggleHideEmpty()" title="Sembunyikan baris yang belum diisi">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           Tampilkan semua
         </button>
@@ -139,11 +141,11 @@
       </div>
       <div class="save-bar admin-only" id="opnameSaveBar" style="display:none">
         <span class="unsaved-label">⚠ Ada perubahan yang belum disimpan</span>
-        <button class="btn btn-primary" onclick="saveOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-primary" onclick="saveOpname()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Stock Opname
         </button>
-        <button class="btn btn-ghost" onclick="discardOpname()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-ghost" onclick="discardOpname()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Batal
         </button>
@@ -205,7 +207,7 @@
             oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
           <span class="so-formula-hint">% buffer dari rata-rata pakai</span>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="generatePlan()" style="display:inline-flex;align-items:center;gap:5px">
+        <button class="btn btn-primary btn-sm" onclick="generatePlan()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Generate
         </button>
@@ -251,11 +253,11 @@
       </div>
       <div class="save-bar admin-only" id="planSaveBar" style="display:none">
         <span class="unsaved-label">⚡ Draft plan belum disimpan</span>
-        <button class="btn btn-primary" onclick="savePlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-primary" onclick="savePlan()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Purchase Plan
         </button>
-        <button class="btn btn-ghost" onclick="discardPlan()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-ghost" onclick="discardPlan()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           Buang Draft
         </button>
@@ -320,11 +322,11 @@
           <span class="search-icon">🔍</span>
           <input class="search-input" id="itemSelectSearch" type="text" placeholder="Cari barang..." oninput="renderItemSelectList()"/>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="itemSelectAll()" style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="itemSelectAll()" style="white-space:nowrap">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Pilih Semua
         </button>
-        <button class="btn btn-ghost btn-sm" onclick="itemSelectNone()" style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="itemSelectNone()" style="white-space:nowrap">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Hapus Semua
         </button>
@@ -335,11 +337,11 @@
     <div class="item-select-footer">
       <span id="itemSelectSelected" class="so-select-count"></span>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeItemSelectModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-ghost" onclick="closeItemSelectModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Batal
         </button>
-        <button class="btn btn-primary" onclick="saveItemSelection()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">
+        <button class="btn btn-primary" onclick="saveItemSelection()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Simpan Pilihan
         </button>
@@ -391,7 +393,7 @@
     </div>
     <div class="item-select-footer">
       <span style="font-size:12px;color:var(--muted)" id="groupModalInfo"></span>
-      <button class="btn btn-ghost" onclick="closeGroupModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px">Tutup</button>
+      <button class="btn btn-ghost" onclick="closeGroupModal()">Tutup</button>
     </div>
   </div>
 </div>
@@ -773,6 +775,7 @@
     updateMonthLabel();
     await loadAllData();
     renderTab();
+    hideLoader();
   })();
 
   /* ── MASTER DATA ── */

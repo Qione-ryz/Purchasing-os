@@ -4,13 +4,15 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Vendor</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
   <!-- Semua style halaman ini ada di style.css bagian "Vendor page" -->
 </head>
 <body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
@@ -31,7 +33,7 @@
         <button class="view-btn" id="btnViewCard"  onclick="setView('card')"  title="Tampilan kartu">⊞</button>
       </div>
       <div class="action-more-wrap" id="exportWrap">
-        <button class="btn btn-ghost" onclick="toggleExportMenu(event)" title="Export data" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+        <button class="btn btn-ghost" onclick="toggleExportMenu(event)" title="Export data" style="border-color:rgba(56,217,169,0.3);color:var(--accent2)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
@@ -40,7 +42,7 @@
           <button class="action-more-item" onclick="closeExportMenu();exportVendorPDF()">🖨 Export PDF / Print</button>
         </div>
       </div>
-      <button class="btn btn-primary admin-only" onclick="openModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-primary admin-only" onclick="openModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Tambah Vendor
       </button>
@@ -56,15 +58,15 @@
         <div class="mini-stat-label">Total Vendor</div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-val" id="statAktif" style="color:var(--accent2)">—</div>
+        <div class="mini-stat-val" id="statAktif">—</div>
         <div class="mini-stat-label">Vendor Aktif</div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-val" id="statNonAktif" style="color:var(--danger)">—</div>
+        <div class="mini-stat-val" id="statNonAktif">—</div>
         <div class="mini-stat-label">Non-Aktif</div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-val" id="statKota" style="color:var(--accent3)">—</div>
+        <div class="mini-stat-val" id="statKota">—</div>
         <div class="mini-stat-label">Kota</div>
       </div>
     </div>
@@ -249,11 +251,11 @@
       <input type="hidden" id="fId"/>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost" onclick="closeModal()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Batal
       </button>
-      <button class="btn btn-primary" id="btnSave" onclick="saveVendor()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-primary" id="btnSave" onclick="saveVendor()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         Simpan
       </button>
@@ -270,11 +272,15 @@
     </div>
     <div class="modal-body" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0" id="detailBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeDetail()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost" onclick="closeDetail()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Tutup
       </button>
-      <button class="btn btn-primary admin-only" id="btnDetailEdit" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost" id="btnDetailLihatPembelian" title="Lihat semua pembelian dari vendor ini">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Lihat Pembelian
+      </button>
+      <button class="btn btn-primary admin-only" id="btnDetailEdit">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit Vendor
       </button>
@@ -303,7 +309,7 @@
       </button>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeConfirm()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost" onclick="closeConfirm()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Batal
       </button>
@@ -383,6 +389,7 @@
     }));
 
     buildBrandCheckboxes([]);
+    hideLoader();
     if (new URLSearchParams(location.search).get('new')) openModal();
   })();
 
@@ -566,24 +573,17 @@
           <td><span class="badge ${aktif?'badge-green':'badge-red'}">${aktif?'Aktif':'Non-Aktif'}</span></td>
           <td>
             <div class="action-group">
-              <button class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px" onclick="openDetail('${v.id}')">
+              <button class="btn btn-ghost btn-sm" onclick="openDetail('${v.id}')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 Detail
               </button>
               ${window._userRole==='admin'?`
-              <div class="action-more-wrap">
-                <button class="action-more-btn" onclick="toggleActionMenu(event,'${menuId}')" title="Aksi lain">⋯</button>
-                <div class="action-more-menu" id="${menuId}">
-                  <button class="action-more-item" onclick="closeAllMenus();openModal('${v.id}')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit Vendor
-                  </button>
-                  <button class="action-more-item danger" onclick="closeAllMenus();openConfirm('${v.id}','${safeNama}')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                    Hapus
-                  </button>
-                </div>
-              </div>
+              <button class="btn btn-ghost btn-icon admin-only" onclick="openModal('${v.id}')" title="Edit vendor">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-ghost btn-icon is-destructive admin-only" onclick="openConfirm('${v.id}','${safeNama}')" title="Hapus vendor">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
               `:''}
             </div>
           </td>
@@ -650,13 +650,13 @@
             ${!v.kota&&!v.pic&&!v.telp&&!v.email&&!v.termin?'<div style="font-size:11px;color:var(--border);font-family:var(--mono);padding:2px 0">Belum ada info kontak</div>':''}
           </div>
           <div class="vc-footer">
-            <button class="btn btn-ghost btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openDetail('${v.id}')">
+            <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openDetail('${v.id}')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               Detail
             </button>
             ${window._userRole==='admin'?`
             <div class="action-more-wrap">
-              <button class="action-more-btn" onclick="toggleActionMenu(event,'${menuId}-card')" title="Aksi lain" style="width:auto;padding:0 10px;flex-shrink:0">⋯</button>
+              <button class="action-more-btn" onclick="toggleActionMenu(event,'${menuId}-card')" title="Aksi lain" style="width:auto;flex-shrink:0">⋯</button>
               <div class="action-more-menu" id="${menuId}-card">
                 <button class="action-more-item" onclick="closeAllMenus();openModal('${v.id}')">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -874,7 +874,7 @@
     const brandIds = Array.isArray(v.brand_ids) ? v.brand_ids : v.brand_id ? [v.brand_id] : [];
 
     /* Buka modal dengan loading state sementara fetch berlangsung */
-    document.getElementById('detailTitle').textContent = v.nama;
+    document.getElementById('detailTitle').innerHTML = `${v.nama} <span class="badge ${aktif?'badge-green':'badge-red'}" style="margin-left:8px;font-size:10px;vertical-align:middle">${aktif?'Aktif':'Non-Aktif'}</span>`;
     document.getElementById('detailBody').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;padding:48px 0;gap:10px;color:var(--muted);font-family:var(--mono);font-size:13px">
         <span class="spinner" style="width:16px;height:16px;border-width:2px"></span>
@@ -918,22 +918,31 @@
       (Array.isArray(b.vendor_ids) && b.vendor_ids.includes(id))
     );
 
+    /* Filter rows — selalu tampilkan field penting (Brand, PIC, Telepon, Termin) meskipun kosong.
+       Hide field kosong yang opsional (Kode, Kategori, Email, Website, Kota, Alamat, NPWP, Catatan) */
+    const rows = [];
+    if (v.kode)      rows.push(['Kode',           `<span style="font-family:var(--mono)">${v.kode}</span>`]);
+    rows.push(['Brand', renderBrandTags(Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])]);
+    if (v.kategori)  rows.push(['Kategori Produk', v.kategori]);
+    rows.push(['PIC / Kontak', v.pic || '<span style="color:var(--muted)">Belum diisi</span>']);
+    rows.push(['Telepon', (v.telp||v.telepon)
+      ? `<a href="${toWaLink(v.telp||v.telepon)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:14px">💬</span>${v.telp||v.telepon}</a>`
+      : '<span style="color:var(--muted)">Belum diisi</span>']);
+    if (Array.isArray(v.kontak) && v.kontak.length) {
+      rows.push(['Kontak Lain', v.kontak.filter(k=>k.telp).map(k=>`<div style="margin-bottom:4px">${k.nama?`<span style="font-weight:500">${k.nama}</span>${k.jabatan?` <em style="color:var(--muted);font-size:11px">(${k.jabatan})</em>`:''} — `:''}<a href="${toWaLink(k.telp)}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--accent2);display:inline-flex;align-items:center;gap:4px"><span>💬</span>${k.telp}</a></div>`).join('')]);
+    }
+    if (v.email)     rows.push(['Email',   `<a href="mailto:${v.email}">${v.email}</a>`]);
+    if (v.website)   rows.push(['Website', `<a href="${v.website}" target="_blank">${v.website}</a>`]);
+    const kotaStr = [v.kota,v.provinsi].filter(Boolean).join(', ');
+    if (kotaStr)     rows.push(['Kota',    kotaStr]);
+    if (v.alamat)    rows.push(['Alamat',  v.alamat]);
+    if (v.npwp)      rows.push(['NPWP',    `<span style="font-family:var(--mono)">${v.npwp}</span>`]);
+    rows.push(['Termin Bayar', termin]);
+    if (v.catatan)   rows.push(['Catatan', v.catatan]);
+
     document.getElementById('detailBody').innerHTML = `
       <div class="vd-section">
-        <div class="vd-row"><span class="vd-key">Kode</span><span class="vd-val" style="font-family:var(--mono)">${v.kode||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Brand</span><span class="vd-val">${renderBrandTags(Array.isArray(v.brand_ids)?v.brand_ids:v.brand_id?[v.brand_id]:[])}</span></div>
-        <div class="vd-row"><span class="vd-key">Kategori Produk</span><span class="vd-val">${v.kategori||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Status</span><span class="vd-val"><span class="badge ${aktif?'badge-green':'badge-red'}">${aktif?'Aktif':'Non-Aktif'}</span></span></div>
-        <div class="vd-row"><span class="vd-key">PIC / Kontak</span><span class="vd-val">${v.pic||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Telepon</span><span class="vd-val">${(v.telp||v.telepon)?`<a href="${toWaLink(v.telp||v.telepon)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:14px">💬</span>${v.telp||v.telepon}</a>`:'—'}</span></div>
-        ${(Array.isArray(v.kontak)&&v.kontak.length)?`<div class="vd-row"><span class="vd-key">Kontak Lain</span><span class="vd-val">${v.kontak.filter(k=>k.telp).map(k=>`<div style="margin-bottom:4px">${k.nama?`<span style="font-weight:500">${k.nama}</span>${k.jabatan?` <em style="color:var(--muted);font-size:11px">(${k.jabatan})</em>`:''} — `:''}<a href="${toWaLink(k.telp)}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--accent2);display:inline-flex;align-items:center;gap:4px"><span>💬</span>${k.telp}</a></div>`).join('')}</span></div>`:''}
-        <div class="vd-row"><span class="vd-key">Email</span><span class="vd-val">${v.email?`<a href="mailto:${v.email}">${v.email}</a>`:'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Website</span><span class="vd-val">${v.website?`<a href="${v.website}" target="_blank">${v.website}</a>`:'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Kota</span><span class="vd-val">${[v.kota,v.provinsi].filter(Boolean).join(', ')||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Alamat</span><span class="vd-val">${v.alamat||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">NPWP</span><span class="vd-val" style="font-family:var(--mono)">${v.npwp||'—'}</span></div>
-        <div class="vd-row"><span class="vd-key">Termin Bayar</span><span class="vd-val">${termin}</span></div>
-        <div class="vd-row"><span class="vd-key">Catatan</span><span class="vd-val">${v.catatan||'—'}</span></div>
+        ${rows.map(([k,val]) => `<div class="vd-row"><span class="vd-key">${k}</span><span class="vd-val">${val}</span></div>`).join('')}
       </div>
 
       <!-- BARANG YANG PERNAH DIBELI DARI VENDOR INI -->
@@ -979,6 +988,7 @@
       </div>`;
 
     document.getElementById('btnDetailEdit').onclick = () => { closeDetail(); openModal(id); };
+    document.getElementById('btnDetailLihatPembelian').onclick = () => { window.location.href = `pembelian.html?tab=riwayat&vendor=${encodeURIComponent(id)}`; };
     document.getElementById('detailBody').scrollTop = 0;
     if (window._userRole) applyRoleUI(window._userRole);
   }
@@ -1063,17 +1073,32 @@
     if (!area) return;
     area.innerHTML = (window.allBrands||[]).map(b => {
       const chk = selected.includes(b.id);
-      return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:5px 12px;background:${chk?'rgba(79,142,247,0.12)':'var(--surface)'};border:1px solid ${chk?'var(--accent)':'var(--border)'};border-radius:6px;font-size:12px;user-select:none;transition:all .15s" onclick="toggleBrandCheck(this,'${b.id}')">
+      const marker = chk
+        ? `<span style="width:14px;height:14px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:#001f2e;font-size:10px;font-weight:700;flex-shrink:0">✓</span>`
+        : '';
+      return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:5px 12px;background:${chk?'rgba(0,212,255,0.28)':'var(--surface)'};border:1px solid ${chk?'var(--accent)':'var(--border)'};border-radius:6px;font-size:12px;font-weight:${chk?'600':'500'};color:${chk?'var(--accent)':'var(--text)'};user-select:none;transition:all .15s" onclick="toggleBrandCheck(this,'${b.id}')">
         <input type="checkbox" ${chk?'checked':''} data-brand="${b.id}" style="display:none"/>
-        ${b.nama}
+        ${marker}${b.nama}
       </label>`;
     }).join('');
   }
   function toggleBrandCheck(lbl, brandId) {
     const chk = lbl.querySelector('input');
     chk.checked = !chk.checked;
-    lbl.style.background  = chk.checked ? 'rgba(79,142,247,0.12)' : 'var(--surface)';
+    lbl.style.background  = chk.checked ? 'rgba(0,212,255,0.28)' : 'var(--surface)';
     lbl.style.borderColor = chk.checked ? 'var(--accent)' : 'var(--border)';
+    lbl.style.fontWeight  = chk.checked ? '600' : '500';
+    lbl.style.color       = chk.checked ? 'var(--accent)' : 'var(--text)';
+    /* Toggle ✓ marker */
+    const existing = lbl.querySelector('span');
+    if (chk.checked && !existing) {
+      const m = document.createElement('span');
+      m.style.cssText = 'width:14px;height:14px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:#001f2e;font-size:10px;font-weight:700;flex-shrink:0';
+      m.textContent = '✓';
+      lbl.insertBefore(m, lbl.childNodes[1]);
+    } else if (!chk.checked && existing) {
+      existing.remove();
+    }
   }
   function getCheckedBrands() {
     return [...document.querySelectorAll('#brandCheckboxArea input[type=checkbox]:checked')].map(el=>el.dataset.brand);
@@ -1086,6 +1111,16 @@
   function getBrandWarna(id) {
     return (window.allBrands||[]).find(b=>b.id===id)?.warna || null;
   }
+  function getBadgeTextColor(hex) {
+    if (!hex || !hex.startsWith('#')) return '#ffffff';
+    try {
+      const r = parseInt(hex.slice(1,3),16)/255;
+      const g = parseInt(hex.slice(3,5),16)/255;
+      const b = parseInt(hex.slice(5,7),16)/255;
+      const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+      return lum > 0.4 ? '#1a1a1a' : '#ffffff';
+    } catch(e) { return '#ffffff'; }
+  }
   function renderBrandTags(ids) {
     const arr = Array.isArray(ids) ? ids : (ids ? [ids] : []);
     if (!arr.length) return '—';
@@ -1095,10 +1130,10 @@
     let html = shown.map(id => {
       const nama  = getBrandName(id);
       const color = getBrandWarna(id);
-      const style = color ? `background:${color}22;color:${color};border:1px solid ${color}55` : '';
+      const style = color ? `background:${color};color:${getBadgeTextColor(color)};padding:3px 10px;font-size:12px;font-weight:500` : '';
       // Singkat nama: ambil tiap kata pertama max 8 char, atau potong di 10
       const short = nama.length > 10 ? nama.split(' ').map(w => w.slice(0,4)).join(' ') : nama;
-      return `<span class='badge badge-blue' style='margin:1px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;${style}' title='${nama}'>${short}</span>`;
+      return `<span class='badge' style='margin:1px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;${style}' title='${nama}'>${short}</span>`;
     }).join('');
     if (rest > 0) html += `<span class='badge' style='margin:1px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)'>+${rest}</span>`;
     return html;

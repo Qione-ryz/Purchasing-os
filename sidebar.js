@@ -4,17 +4,19 @@
    ═══════════════════════════════════════════ */
 
 const _SIDEBAR_NAV = [
-  { href: 'dashboard.html',    icon: '🏠', label: 'Dashboard',      section: 'Backoffice' },
+  { href: 'dashboard.html',    icon: '🏠', label: 'Dashboard',       section: 'Pembelian' },
   { href: 'barang.html',       icon: '📋', label: 'Barang' },
   { href: 'vendor.html',       icon: '🏢', label: 'Vendor' },
   { href: 'pembelian.html',    icon: '🛒', label: 'Pembelian' },
   { href: 'harga.html',        icon: '📈', label: 'Riwayat Harga' },
   { href: 'stock-opname.html', icon: '📦', label: 'Stock Opname' },
-  { href: 'ordermasuk.html',   icon: '📥', label: 'Order Masuk',    section: 'Order Barang' },
-  { href: 'inventory.html',    icon: '🗂️', label: 'Inventory Track', section: 'Operational', newTab: true },
+  { href: 'ordermasuk.html',   icon: '📥', label: 'Order Masuk',     section: 'Order' },
   { href: 'order.html',        icon: '📝', label: 'Order Internal',  newTab: true },
-  { href: 'pastry.html',       icon: '🥐', label: 'Pastry',           newTab: true },
-  { href: 'settings.html',     icon: '⚙️', label: 'Pengaturan',    section: 'Pengaturan' },
+  { href: 'inventory.html',    icon: '📊', label: 'Inventory Track', section: 'Operasional', newTab: true },
+  { href: 'pastry.html',       icon: '🥐', label: 'Pastry' },
+  { href: 'invoice-drafts.html', icon: '📄', label: 'Invoice Drafts', section: 'Finance' },
+  { href: 'finance.html',        icon: '💳', label: 'Pembayaran' },
+  { href: 'settings.html',       icon: '⚙️', label: 'Pengaturan',     section: 'Pengaturan' },
 ];
 
 /**
@@ -51,9 +53,13 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
             animation:badgePulse 2s infinite;
           ">0</span>`
       : '';
+    const newTabIndicator = item.newTab
+      ? `<span style="font-size:9px;color:var(--muted);opacity:.7;flex-shrink:0;line-height:1">↗</span>`
+      : '';
     html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}"${item.newTab ? ' target="_blank"' : ''} style="display:flex;align-items:center;gap:10px">
       <span class="nav-icon">${item.icon}</span>
       <span style="flex:1">${item.label}</span>
+      ${newTabIndicator}
       ${badgeHTML}
     </a>`;
     return html;
@@ -100,7 +106,13 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
           <div class="user-name" id="userName">Memuat...</div>
           <div class="user-role" id="userRole">—</div>
         </div>
-        <button class="btn-logout" onclick="doLogout()" title="Keluar">⏻</button>
+        <button class="btn-logout" onclick="doLogout()" title="Keluar" aria-label="Logout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
       </div>
     </div>
   `;

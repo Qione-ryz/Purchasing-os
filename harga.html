@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Riwayat Harga</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -32,9 +32,12 @@
       transition: opacity .12s ease;
     }
     .pct-tip { cursor: default; }
+    th [id^="ts-"] { color: var(--text); opacity: 0.5; }
   </style>
 </head>
 <body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 <script>
   /* ── Custom tooltip untuk .pct-tip[data-tip] ── */
   document.addEventListener('DOMContentLoaded', function() {
@@ -472,6 +475,7 @@
     await loadMaster();
     hargaDf.setQuick('thismonth'); // Default periode: Bulan Ini
     await loadDariPembelian();
+    hideLoader();
   })();
 
   async function loadMaster() {
@@ -1422,6 +1426,7 @@
           plugins: {
             legend: { labels: { color: t.legendColor, font: { family: "'DM Mono', monospace", size: 11 } } },
             tooltip: {
+              position: 'nearest',
               backgroundColor: t.tooltipBg,
               borderColor: t.tooltipBorder,
               borderWidth: 1,
@@ -1457,7 +1462,7 @@
             },
             y: {
               grid: { color: 'transparent' },
-              ticks: { color: t.tickColor, font: { family: "'DM Sans', sans-serif", size: 11 } }
+              ticks: { color: t.tickColor, font: { family: "'Poppins', sans-serif", size: 11 } }
             }
           }
         },
@@ -1560,6 +1565,7 @@
             }
           },
           tooltip: {
+            position: 'nearest',
             backgroundColor:t.tooltipBg, borderColor:t.tooltipBorder, borderWidth:1,
             titleColor:t.tooltipTitle, bodyColor:t.tooltipBody,
             titleFont:{ family:'DM Mono', size:12 },
@@ -2108,7 +2114,7 @@
           <td style="text-align:right">${trendEl}</td>
           <td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)">${tgl}</td>
           <td style="text-align:center">
-            <button onclick="drillDownBarang('${b.id}','${b.nama.replace(/'/g,"\\'")}'); " class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:5px;font-size:11px" title="Lihat semua transaksi">
+            <button onclick="drillDownBarang('${b.id}','${b.nama.replace(/'/g,"\\'")}'); " class="btn btn-ghost btn-sm" style="font-size:11px" title="Lihat semua transaksi">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               Detail
             </button>
@@ -2237,9 +2243,12 @@
         }
         const isSurvey = r.sumber === 'survey';
         const brandName = window.brandMap?.[r.brand_id] || r.brand_id || '—';
+        const _bObj2246 = (window._allBrandsData||[]).find(b=>b.id===r.brand_id);
+        const _bColor2246 = _bObj2246?._color || null;
+        const _bStyle2246 = _bColor2246 ? `background:${_bColor2246};color:${getBadgeTextColor(_bColor2246)};padding:3px 10px;font-size:12px;font-weight:500` : '';
         const brandCell = (isSurvey && (!r.brand_id || brandName === '—'))
           ? `<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">—</span>`
-          : `<span class="badge badge-blue">${brandName}</span>`;
+          : `<span class="badge" style="${_bStyle2246}">${brandName}</span>`;
         const surveyBadge = isSurvey ? `<span style="font-size:9px;font-family:var(--mono);background:rgba(168,139,250,0.15);color:#a78bfa;border:1px solid rgba(168,139,250,0.3);border-radius:3px;padding:2px 7px">survey</span>` : '';
         const hargaDisplay = `${formatRp(getHarga(r))}<span style="font-size:9px;font-family:var(--mono);background:rgba(56,217,169,0.12);color:var(--accent2);padding:1px 5px;border-radius:3px;margin-left:4px">inc</span>`;
         const keteranganCell = isSurvey
@@ -2332,6 +2341,16 @@
   /* ══════════════════════════════════════════
      HELPERS
   ══════════════════════════════════════════ */
+  function getBadgeTextColor(hex) {
+    if (!hex || !hex.startsWith('#')) return '#ffffff';
+    try {
+      const r = parseInt(hex.slice(1,3),16)/255;
+      const g = parseInt(hex.slice(3,5),16)/255;
+      const b = parseInt(hex.slice(5,7),16)/255;
+      const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+      return lum > 0.4 ? '#1a1a1a' : '#ffffff';
+    } catch(e) { return '#ffffff'; }
+  }
   function formatRp(n) {
     if(!n&&n!==0) return '—';
     return 'Rp '+Math.round(n).toLocaleString('id-ID');
@@ -2689,9 +2708,14 @@
           : '';
         const hargaDisplay = `${formatRp(getHarga(r))}<span style="font-size:9px;font-family:var(--mono);background:rgba(56,217,169,0.12);color:var(--accent2);padding:1px 5px;border-radius:3px;margin-left:4px">inc</span>`;
         /* Brand dari master data barang_brands, bukan dari transaksi */
-        const masterBrands = getBarangMasterBrands(r.barang_id);
-        const brandCell = masterBrands.length > 0
-          ? masterBrands.map(n=>`<span class="badge badge-blue" style="margin:1px 2px 1px 0">${n}</span>`).join('')
+        const _masterBrandIds = window._barangBrandsMap?.[r.barang_id] || [];
+        const brandCell = _masterBrandIds.length > 0
+          ? _masterBrandIds.map(bid => {
+              const _bn = (window._allBrandsData||[]).find(b=>b.id===bid);
+              const _bc = _bn?._color || null;
+              const _bs = _bc ? `background:${_bc};color:${getBadgeTextColor(_bc)};padding:3px 10px;font-size:12px;font-weight:500;margin:1px 2px 1px 0` : 'margin:1px 2px 1px 0';
+              return `<span class="badge" style="${_bs}">${window.brandMap?.[bid]||bid}</span>`;
+            }).join('')
           : `<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">—</span>`;
         const keteranganCell = isSurvey
           ? surveyBadge + (r.nomor_faktur ? ` <span style="font-size:10px;color:var(--muted)">${r.nomor_faktur}</span>` : '')
@@ -2957,11 +2981,11 @@
       namaEl.textContent = b.nama || namaFallback || 'Detail Barang';
 
       const brandTags = brandIds.map(bid => {
-        const color = window.brandMap?.[bid] ? '#4f8ef7' : '#6b7280';
-        const nama  = window.brandMap?.[bid] ? (Object.entries(window.brandMap).find(([k])=>k===bid)?.[1]||bid) : bid;
-        /* fallback — brandMap di harga.html menyimpan nama langsung */
+        const _bdObj = (window._allBrandsData||[]).find(b=>b.id===bid);
+        const _bdColor = _bdObj?._color || null;
+        const _bdStyle = _bdColor ? `background:${_bdColor};color:${getBadgeTextColor(_bdColor)};padding:3px 10px;font-size:12px;font-weight:500;margin:2px` : 'margin:2px';
         const brandNama = window.brandMap?.[bid] || bid;
-        return `<span class="badge badge-blue" style="margin:2px">${brandNama}</span>`;
+        return `<span class="badge" style="${_bdStyle}">${brandNama}</span>`;
       }).join('') || '<span style="color:var(--muted)">—</span>';
 
       /* Fetch riwayat harga */
@@ -2986,7 +3010,7 @@
           hargaInc:  Math.round(item.harga_inc_ppn || (item.ppn_included ? item.harga_satuan : toIncPPN(item.harga_satuan))),
           hargaExc:  Math.round(item.harga_exc_ppn || (item.ppn_included ? toExcPPN(item.harga_satuan) : item.harga_satuan)),
           vendorNama: window.vendorMap?.[tx.vendor_id] || '—',
-          brandCell: `<span class="badge badge-blue" style="font-size:10px">${window.brandMap?.[tx.brand_id] || '—'}</span>`,
+          brandCell: (()=>{ const _bo=(window._allBrandsData||[]).find(b=>b.id===tx.brand_id); const _bc=_bo?._color||null; const _bs=_bc?`background:${_bc};color:${getBadgeTextColor(_bc)};padding:2px 8px;font-size:10px;font-weight:500`:'font-size:10px'; return `<span class="badge" style="${_bs}">${window.brandMap?.[tx.brand_id]||'—'}</span>`; })(),
           qty:       item.qty || '—',
           ket:       tx.nomor_faktur || '—',
           isSurvey:  false

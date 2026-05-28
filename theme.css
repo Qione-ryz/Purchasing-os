@@ -12,26 +12,31 @@
    WindPulse: near-black bg, deep teal surfaces, neon #00FF7B
    ───────────────────────────────────────────────────────── */
 :root {
-  /* Layout — WindPulse near-black */
-  --bg:       #030709;   /* WindPulse deepest black                       */
-  --surface:  #0a1a1f;   /* Deep teal-black card                          */
-  --surface2: #0f2429;   /* Elevated teal surface                         */
-  --border:   #152c33;   /* Subtle teal border                            */
+  /* Layout — Refined Cyan / neutral blue-black */
+  --bg:       #050a0f;   /* Deep neutral blue-black                       */
+  --surface:  #0d1b26;   /* Dark blue-navy card                           */
+  --surface2: #132435;   /* Elevated surface                              */
+  --border:   #1e3345;   /* Subtle blue border                            */
 
-  /* Accent — Cyan palette */
+  /* Accent — Cyan + semantic green/amber */
   --accent:   #00d4ff;   /* Cyan — primary CTA                            */
-  --accent2:  #00b8e0;   /* Slightly muted cyan — hover/active            */
-  --accent3:  #00c2b3;   /* Teal-cyan — secondary accent                  */
-  --danger:   #ff4d6a;   /* Coral red — error / hapus                     */
+  --accent2:  #00e096;   /* Green — success/positive                      */
+  --accent3:  #ffb020;   /* Amber — warning/secondary                     */
+  --danger:   #ff4757;   /* Red — error / hapus                           */
 
   /* Typography */
-  --text:     #f0f6f4;   /* Soft white                                    */
-  --muted:    #4a6e78;   /* Muted teal-gray — secondary text              */
+  --text:     #e8f0f5;   /* Soft blue-white                               */
+  --muted:    #567085;   /* Muted blue-gray — secondary text              */
 
   /* Font & shape */
   --mono:     'DM Mono', monospace;
   --sans:     'Poppins', sans-serif;
-  --radius:   14px;
+  --radius-xs: 6px;      /* input, badge, tombol kecil   */
+  --radius-sm: 8px;      /* card interior, toggle        */
+  --radius:   14px;      /* card utama, modal            */
+
+  /* Teks/icon di atas background --accent (cyan) */
+  --on-accent: #001f2e;
 
   /* Cyan glow system */
   --glow-accent:  0 0 20px rgba(0,212,255,0.2);
@@ -50,26 +55,30 @@
    inspired by WindPulse but inverted
    ───────────────────────────────────────────────────────── */
 body.light-mode {
-  /* Layout */
-  --bg:       #f0f7f5;   /* Soft green-tinted white                       */
-  --surface:  #ffffff;
-  --surface2: #e8f4f1;   /* Teal-tinted surface                           */
-  --border:   #c5ddd8;   /* Teal-green border                             */
+  /* Layout — neutral light, correct elevation order */
+  --bg:       #f5f5f5;   /* Pure neutral light gray                       */
+  --surface:  #ffffff;   /* Pure white card                               */
+  --surface2: #f0f0f0;   /* Neutral elevated surface                      */
+  --border:   #e0e0e0;   /* Neutral light border                          */
 
-  /* Accent — cyan darker for readability on light bg */
-  --accent:   #0099bb;   /* Dark cyan — readable on light                 */
-  --accent2:  #007a99;
-  --accent3:  #0097a7;   /* Teal                                          */
-  --danger:   #e5173e;
+  /* Accent — darkened for readability on light bg */
+  --accent:   #0088cc;   /* Dark cyan — 5.7:1 on white, passes AA         */
+  --accent2:  #00a86b;   /* Green — success                               */
+  --accent3:  #e08800;   /* Amber — warning                               */
+  --danger:   #d92b3a;   /* Red                                           */
 
   /* Typography */
-  --text:     #0a1a1f;   /* Very dark teal — instead of pure black        */
-  --muted:    #4a7a72;
+  --text:     #1a1a1a;   /* Dark neutral — no blue tint                   */
+  --muted:    #6b7280;   /* Neutral medium gray                           */
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,50,30,0.08);
-  --shadow-md:  0 4px 16px rgba(0,50,30,0.10);
-  --shadow-lg:  0 8px 32px rgba(0,50,30,0.14);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.14);
+
+  /* Glows — muted, no neon in light mode */
+  --glow-accent:  0 0 12px rgba(0,136,204,0.15);
+  --glow-strong:  0 0 24px rgba(0,136,204,0.20);
 
   color-scheme: light;
 }
@@ -85,11 +94,18 @@ body.light-mode {
 /* ── TOPBAR ── */
 body.light-mode .topbar,
 body.light-mode #mainTopbar {
-  background: rgba(248,249,252,0.96) !important;
+  background: rgba(250,250,250,0.98) !important;
   border-bottom: 1px solid var(--border) !important;
-  backdrop-filter: blur(12px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
   box-shadow: 0 1px 0 var(--border), var(--shadow-sm) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* ::before carries the dark frosted bg in dark mode — must zero it out in light */
+body.light-mode .topbar::before,
+body.light-mode #mainTopbar::before {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 body.light-mode .page-title  { color: var(--text) !important; }
 body.light-mode .page-sub    { color: var(--muted) !important; }
@@ -97,7 +113,7 @@ body.light-mode .menu-toggle {
   color: var(--text) !important;
   background: none;
   border: none;
-  border-radius: calc(var(--radius) - 4px);
+  border-radius: 8px;
   transition: background 0.15s ease;
 }
 body.light-mode .menu-toggle:hover { background: var(--surface2); }
@@ -123,24 +139,24 @@ body.light-mode .user-name     { color: var(--text); font-weight: 600; }
 body.light-mode .user-role     { color: var(--muted); }
 body.light-mode .btn-logout    { color: var(--muted); transition: color 0.15s; }
 body.light-mode .btn-logout:hover { color: var(--danger); }
-body.light-mode .nav-section   { color: #94a3b8; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
+body.light-mode .nav-section   { color: #9e9e9e; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
 body.light-mode .nav-item      {
-  color: #475569;
-  border-radius: calc(var(--radius) - 2px);
+  color: #555555;
+  border-radius: 8px;
   transition: background 0.15s ease, color 0.15s ease;
 }
 body.light-mode .nav-item:hover  { background: var(--surface2); color: var(--text); }
 body.light-mode .nav-item.active {
-  background: rgba(0,212,255,0.08;
+  background: rgba(0,212,255,0.08);
   color: var(--accent);
   font-weight: 600;
 }
-body.light-mode .brand-selector label  { color: #94a3b8; }
+body.light-mode .brand-selector label  { color: #9e9e9e; }
 body.light-mode .brand-selector select {
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: calc(var(--radius) - 4px);
+  border-radius: 8px;
   padding: 6px 10px;
 }
 body.light-mode .brand-name { color: var(--text); font-weight: 600; }
@@ -168,7 +184,7 @@ body.light-mode .vendor-card:hover {
 }
 body.light-mode .card-header      {
   border-bottom: 1px solid var(--border);
-  background: #f8f9fc;
+  background: #f8f8f8;
   border-radius: var(--radius) var(--radius) 0 0;
 }
 body.light-mode .card-title       { color: var(--text); font-weight: 600; }
@@ -193,7 +209,7 @@ body.light-mode td             {
   vertical-align: middle;
 }
 body.light-mode tbody tr       { transition: background 0.12s ease; }
-body.light-mode tbody tr:hover td { background: rgba(0,212,255,0.04; }
+body.light-mode tbody tr:hover td { background: rgba(0,212,255,0.04) }
 
 /* ── INPUTS ── */
 body.light-mode input,
@@ -205,7 +221,7 @@ body.light-mode .filter-select {
   background: #ffffff;
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: 8px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 body.light-mode input:focus,
@@ -215,39 +231,39 @@ body.light-mode .input:focus,
 body.light-mode .search-input:focus,
 body.light-mode .filter-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0,212,255,0.12;
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.12);
   outline: none;
 }
 body.light-mode input::placeholder,
-body.light-mode textarea::placeholder { color: #a8b3c4; }
+body.light-mode textarea::placeholder { color: #aaaaaa; }
 body.light-mode select option    { background: #ffffff; color: var(--text); }
 body.light-mode .search-wrap    {
   background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: 8px;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 body.light-mode .search-wrap:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0,212,255,0.10;
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.10);
 }
-body.light-mode .search-icon    { color: #a8b3c4; }
+body.light-mode .search-icon    { color: #aaaaaa; }
 
 /* ── BUTTONS ── */
 body.light-mode .btn-ghost {
   background: #ffffff;
   border: 1px solid var(--border);
-  color: #475569;
-  border-radius: calc(var(--radius) - 2px);
+  color: #555555;
+  border-radius: 8px;
   transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   box-shadow: var(--shadow-sm);
 }
 body.light-mode .btn-ghost:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(0,212,255,0.04;
-  box-shadow: 0 0 0 3px rgba(0,212,255,0.08;
+  background: rgba(0,212,255,0.04);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
 }
 
 /* ── BADGES ── */
@@ -255,11 +271,12 @@ body.light-mode .badge-gray   { background: #e2e8f0; color: #334155; border: 1px
 body.light-mode .badge-green  { background: rgba(5,150,105,0.10);  color: #065f46; border: 1px solid rgba(5,150,105,0.22); }
 body.light-mode .badge-orange { background: rgba(217,119,6,0.10);  color: #92400e; border: 1px solid rgba(217,119,6,0.22); }
 body.light-mode .badge-red    { background: rgba(220,38,38,0.08);  color: #991b1b; border: 1px solid rgba(220,38,38,0.18); }
-body.light-mode .badge-blue   { background: rgba(0,212,255,0.08;  color: var(--accent); border: 1px solid rgba(0,212,255,0.18; }
+body.light-mode .badge-blue     { background: rgba(0,153,187,0.10);  color: #006080;  border: 1px solid rgba(0,153,187,0.28); }
+body.light-mode .badge-progress { background: rgba(2,132,199,0.08);  color: #0369a1;  border: 1px solid rgba(2,132,199,0.22); }
 
 /* ── MODAL ── */
 body.light-mode .modal-overlay {
-  background: rgba(15,23,42,0.50);
+  background: rgba(0,0,0,0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -271,12 +288,12 @@ body.light-mode .modal {
 }
 body.light-mode .modal-header  {
   border-bottom: 1px solid var(--border);
-  background: #f8f9fc;
+  background: #f8f8f8;
   border-radius: var(--radius) var(--radius) 0 0;
 }
 body.light-mode .modal-footer  {
   border-top: 1px solid var(--border);
-  background: #f8f9fc;
+  background: #f8f8f8;
   border-radius: 0 0 var(--radius) var(--radius);
 }
 body.light-mode .modal-title   { color: var(--text); font-weight: 600; }
@@ -290,7 +307,7 @@ body.light-mode .pagination    {
 body.light-mode .page-btn      {
   background: var(--surface2);
   border: 1px solid var(--border);
-  color: #475569;
+  color: #555555;
   border-radius: 8px;
   transition: all 0.15s ease;
 }
@@ -298,31 +315,31 @@ body.light-mode .page-btn.active {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0,212,255,0.25;
+  box-shadow: 0 2px 8px rgba(0,212,255,0.25);
 }
 body.light-mode .page-btn:hover:not(.active) {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(0,212,255,0.05;
+  background: rgba(0,212,255,0.05);
 }
 
 /* ── TABS ── */
 body.light-mode .tab-bar       {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: 10px;
   padding: 3px;
 }
 body.light-mode .tab-btn       {
   color: var(--muted);
-  border-radius: calc(var(--radius) - 4px);
+  border-radius: 8px;
   transition: background 0.15s, color 0.15s;
 }
 body.light-mode .tab-btn.active {
-  background: #ffffff;
-  color: var(--text);
+  background: rgba(0,153,187,0.10);
+  color: var(--accent);
+  border-color: rgba(0,153,187,0.30);
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
 }
 
 /* ── DROPDOWNS ── */
@@ -335,7 +352,7 @@ body.light-mode #datePicker {
   box-shadow: var(--shadow-lg);
 }
 body.light-mode .item-option:hover,
-body.light-mode .survey-option:hover { background: rgba(0,212,255,0.04; }
+body.light-mode .survey-option:hover { background: rgba(0,212,255,0.04) }
 body.light-mode .item-option         { border-bottom: 1px solid var(--border); }
 
 /* ── ITEM ROWS (pembelian) ── */
@@ -354,18 +371,24 @@ body.light-mode .item-sub   { color: var(--muted); }
 
 /* ── SETTINGS ── */
 body.light-mode .settings-nav-item {
-  color: #475569;
+  color: #555555;
   border-bottom: 1px solid var(--border);
   transition: background 0.15s, color 0.15s;
 }
 body.light-mode .settings-nav-item:hover  { background: var(--surface2); }
 body.light-mode .settings-nav-item.active {
-  background: rgba(0,212,255,0.07;
+  background: rgba(0,212,255,0.07);
   color: var(--accent);
   font-weight: 600;
 }
 body.light-mode .brand-card     { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); }
 body.light-mode .toggle-row     { border-bottom: 1px solid var(--border); }
+
+/* Barang Store rows — light mode */
+body.light-mode .bs-barang-row:hover   { background: rgba(0,136,204,0.05); }
+body.light-mode .bs-barang-row.checked { background: rgba(0,136,204,0.08); }
+body.light-mode .bs-member-row.checked { background: rgba(0,136,204,0.10); }
+body.light-mode .bs-search-input       { background: var(--bg); }
 
 /* Toggle track: off-state */
 body.light-mode .toggle-track   {
@@ -385,7 +408,7 @@ body.light-mode .toggle-thumb   {
 }
 
 /* ── MISC ── */
-body.light-mode .overlay         { background: rgba(15,23,42,0.28); backdrop-filter: blur(2px); }
+body.light-mode .overlay         { background: rgba(0,0,0,0.25); backdrop-filter: blur(2px); }
 body.light-mode .detail-kv       { border-bottom: 1px solid var(--border); }
 body.light-mode .detail-k        { color: var(--muted); font-size: 0.8rem; }
 body.light-mode .summary-row     { border-bottom: 1px solid var(--border); }
@@ -393,7 +416,7 @@ body.light-mode .summary-divider { background: var(--border); height: 2px; }
 body.light-mode .view-toggle     {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: 8px;
   padding: 3px;
 }
 body.light-mode .view-btn.active {
@@ -408,17 +431,25 @@ body.light-mode .multisel-panel  {
   box-shadow: var(--shadow-lg);
 }
 body.light-mode .multisel-item         { border-bottom: 1px solid var(--border); transition: background 0.12s; }
-body.light-mode .multisel-item:hover   { background: rgba(0,212,255,0.04; }
-body.light-mode .multisel-footer       { background: #f8f9fc; border-top: 1px solid var(--border); }
+body.light-mode .multisel-item:hover   { background: rgba(0,212,255,0.04) }
+body.light-mode .multisel-footer       { background: #f8f8f8; border-top: 1px solid var(--border); }
 body.light-mode .date-quick-btn        {
   background: var(--surface2);
   border: 1px solid var(--border);
-  color: #475569;
-  border-radius: 8px;
+  color: #555555;
+  border-radius: 7px;
   transition: all 0.15s;
 }
-body.light-mode .date-quick-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05; }
+body.light-mode .date-quick-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(0,136,204,0.06) }
 body.light-mode .date-quick-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+body.light-mode .date-reset-btn        {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 7px;
+  transition: all 0.15s;
+}
+body.light-mode .date-reset-btn:hover  { border-color: var(--danger); color: var(--danger); background: rgba(217,43,58,0.05); }
 body.light-mode .qa-btn   {
   background: #f8f9fc;
   border: 1px solid var(--border);
@@ -426,37 +457,41 @@ body.light-mode .qa-btn   {
   border-radius: var(--radius);
   transition: all 0.15s;
 }
-body.light-mode .qa-btn:hover      { border-color: var(--accent); background: rgba(0,212,255,0.05; color: var(--accent); }
-body.light-mode .qa-icon           { background: #eef2fb; border-radius: 8px; }
+body.light-mode .qa-btn:hover      { border-color: var(--accent); background: rgba(0,212,255,0.05); color: var(--accent); }
+body.light-mode .qa-icon           { background: #f0f0f0; border-radius: 8px; }
 body.light-mode .activity-item     { border-bottom: 1px solid var(--border); }
 body.light-mode .bar-label         { color: var(--muted); }
-body.light-mode .barang-item:hover   { background: rgba(0,212,255,0.04; }
-body.light-mode .barang-item.selected { background: rgba(0,212,255,0.08; color: var(--accent); }
+body.light-mode .barang-item:hover   { background: rgba(0,212,255,0.04) }
+body.light-mode .barang-item.selected { background: rgba(0,212,255,0.08); color: var(--accent); }
 
 /* ── CHART.JS ── */
 body.light-mode .chartjs-render-monitor { background: transparent !important; }
 
-/* ── FOCUS RING — aksesibilitas ── */
-body.light-mode *:focus-visible {
+/* ── FOCUS RING — aksesibilitas (global, dark + light) ── */
+*:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
 }
+/* Hilangkan outline default non-keyboard (mouse click) di browser yang mendukung */
+:focus:not(:focus-visible) { outline: none; }
 
 /* ── SELECTION ── */
 body.light-mode ::selection {
-  background: rgba(0,212,255,0.15;
+  background: rgba(0,212,255,0.15);
   color: var(--text);
 }
 
 /* ── SCROLLBAR ── */
+body.light-mode * { scrollbar-color: #cccccc transparent; }
 body.light-mode ::-webkit-scrollbar       { width: 7px; height: 7px; }
-body.light-mode ::-webkit-scrollbar-track { background: #f1f3f8; }
+body.light-mode ::-webkit-scrollbar-track { background: #f0f0f0; }
 body.light-mode ::-webkit-scrollbar-thumb {
-  background: #c2cad8;
+  background: #cccccc;
   border-radius: 10px;
-  border: 2px solid #f1f3f8;
+  border: 2px solid #f0f0f0;
 }
-body.light-mode ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+body.light-mode ::-webkit-scrollbar-thumb:hover { background: #aaaaaa; }
 
 /* ── LINK ── */
 body.light-mode a:not([class]) {
@@ -477,15 +512,124 @@ body.light-mode .empty-state {
   border-radius: var(--radius);
 }
 
-/* ── BRAND BADGE — warna inline dari DB terlalu vivid di light mode ──
-   mix-blend-mode: multiply meredam warna vivid dari inline style     */
-body.light-mode .badge[style] {
-  mix-blend-mode: multiply;
-}
+/* ── BRAND BADGE — solid background with computed contrast text ──
+   getBadgeTextColor() returns #1a1a1a or #ffffff based on luminance.
+   No filter needed — color is pre-computed and consistent across modes. */
 
 /* ── DETAIL MODAL TABLE — border hardcode dari dark mode ── */
 body.light-mode .modal-overlay td,
 body.light-mode #detailOverlay td,
 body.light-mode #editOverlay td {
+  border-bottom-color: var(--border) !important;
+}
+
+/* ── AVATAR VENDOR — gradient terlalu neon di light mode ── */
+body.light-mode .av-blue   { background: linear-gradient(135deg, #0099cc, #006699); }
+body.light-mode .av-green  { background: linear-gradient(135deg, #059669, #047857); }
+body.light-mode .av-orange { background: linear-gradient(135deg, #d97706, #b45309); }
+body.light-mode .av-purple { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+body.light-mode .av-pink   { background: linear-gradient(135deg, #db2777, #be185d); }
+
+/* ── PROGRESS BARS — warna status ── */
+body.light-mode .prog-bar.zero    { background: #dc2626; }
+body.light-mode .prog-bar.low     { background: #ea580c; }
+body.light-mode .prog-bar.mid     { background: #ca8a04; }
+body.light-mode .prog-bar.done    { background: #16a34a; }
+body.light-mode .prog-bar.partial { background: #2563eb; }
+
+/* ── BUTTON DANGER — light mode ── */
+body.light-mode .btn-danger {
+  background: rgba(220,38,38,0.08);
+  border: 1px solid rgba(220,38,38,0.25);
+  color: #dc2626;
+}
+body.light-mode .btn-danger:hover {
+  background: rgba(220,38,38,0.14);
+  border-color: rgba(220,38,38,0.40);
+}
+
+/* ── BUTTON GHOST: btn-primary override (untuk hover tidak dark) ── */
+body.light-mode .btn-ghost:active { background: rgba(0,212,255,0.10); }
+
+/* ── SPINNER ── */
+body.light-mode .spinner { border-top-color: var(--accent); }
+
+/* ── ACTIVITY ITEM — border gelap dari dark mode ── */
+body.light-mode .activity-item {
+  border-bottom-color: var(--border);
+}
+
+/* ── BADGE STATUS LENGKAP ── */
+body.light-mode .badge-purple { background: rgba(124,58,237,0.08); color: #6d28d9; border: 1px solid rgba(124,58,237,0.20); }
+body.light-mode .badge-survey { background: rgba(124,58,237,0.10); color: #6d28d9; border: 1px solid rgba(124,58,237,0.22); }
+body.light-mode .badge-ok     { background: rgba(5,150,105,0.10);  color: #065f46; border: 1px solid rgba(5,150,105,0.22); }
+body.light-mode .badge-over   { background: rgba(220,38,38,0.08);  color: #991b1b; border: 1px solid rgba(220,38,38,0.18); }
+body.light-mode .badge-under  { background: rgba(217,119,6,0.10);  color: #92400e; border: 1px solid rgba(217,119,6,0.22); }
+body.light-mode .badge-draft  { background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; }
+
+/* ── NOTICE BOX ── */
+body.light-mode .notice-box.success {
+  background: rgba(5,150,105,0.08);
+  border-color: rgba(5,150,105,0.22);
+  color: #065f46;
+}
+body.light-mode .notice-box.error {
+  background: rgba(220,38,38,0.06);
+  border-color: rgba(220,38,38,0.20);
+  color: #991b1b;
+}
+
+/* ── VENDOR WA BUTTON ── */
+body.light-mode .vendor-group-wa {
+  background: rgba(22,163,74,0.08);
+  color: #15803d;
+  border-color: rgba(22,163,74,0.20);
+}
+
+/* ── STRIP CARD / STAT CARD ACCENT ── */
+body.light-mode .stat-card.purple::before  { background: #7c3aed; }
+body.light-mode .strip-card.purple::before { background: #7c3aed; }
+body.light-mode .strip-val.purple          { color: #7c3aed; }
+body.light-mode .stat-value.purple         { color: #7c3aed; }
+
+/* ── TABLE ROWS dengan border rgba(37,40,48) dark-only ── */
+body.light-mode .detail-kv,
+body.light-mode .summary-row,
+body.light-mode .toggle-row,
+body.light-mode .item-row {
+  border-color: var(--border);
+}
+
+/* ── DROPDOWN / ITEM OPTION border ── */
+body.light-mode .item-option { border-bottom-color: var(--border); }
+
+/* ── CHART BAR (dashboard) — override inline style ── */
+body.light-mode .bar         { background: rgba(0,153,187,0.35) !important; }
+body.light-mode .bar:hover   { background: rgba(0,153,187,0.60) !important; }
+body.light-mode .bar.current { background: var(--accent) !important; box-shadow: 0 0 12px rgba(0,153,187,0.35) !important; }
+
+/* ── QA BTN HOVER (dashboard quick actions) ── */
+body.light-mode .qa-btn:hover { background: rgba(0,212,255,0.05) !important; }
+
+/* ── TAB NAV — inventory.html & pages dengan sticky tab-nav gelap ── */
+body.light-mode .tab-nav {
+  background: var(--surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* ── AUDIT FOOTER — inventory.html sticky bottom bar ── */
+body.light-mode .audit-footer {
+  background: rgba(250,250,250,0.98) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-top-color: var(--accent) !important;
+  box-shadow: 0 -4px 24px rgba(0,153,187,0.10) !important;
+}
+
+/* ── IO TYPE BAR — inventory.html sticky type selector ── */
+body.light-mode .io-type-bar {
+  background: var(--surface2) !important;
   border-bottom-color: var(--border) !important;
 }

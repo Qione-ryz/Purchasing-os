@@ -72,6 +72,7 @@
   .topbar-right .btn {
     font-size: 11px !important;
     padding: 5px 8px !important;
+    height: auto !important;
     flex: 1 !important;
     min-width: 0 !important;
     text-align: center !important;

@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Pembelian</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
@@ -11,6 +12,8 @@
   
 </head>
 <body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
@@ -26,7 +29,7 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button id="btnRefreshData" class="btn btn-ghost" onclick="refreshMasterData()"
-        style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px"
+        style="padding:0 14px;height:36px"
         title="Paksa reload data barang & vendor dari server">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
         Refresh Data
@@ -68,7 +71,7 @@
                     Vendor *
                     <button type="button" class="admin-only" onclick="openQuickAddVendor('form')"
                       title="Tambah vendor baru"
-                      style="font-size:11px;padding:2px 8px;height:22px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
+                      style="font-size:11px;padding:2px 8px;height:22px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.22);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
                       ＋ Vendor baru
                     </button>
                   </label>
@@ -229,11 +232,11 @@
                 <div class="diskon-toggle-btn active" id="dBtnRp" onclick="setDiskonMode('rp')">Rp</div>
                 <div class="diskon-toggle-btn" id="dBtnPct" onclick="setDiskonMode('pct')">%</div>
               </div>
-              <input type="text" inputmode="decimal" id="fDiskon" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fDiskon" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
             </div>
             <div class="field" style="margin-bottom:14px">
               <label>Ongkos Kirim (Rp)</label>
-              <input type="text" inputmode="decimal" id="fOngkir" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fOngkir" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
             </div>
 
             <div class="summary-divider"></div>
@@ -268,7 +271,7 @@
             </div>
             <div class="summary-divider"></div>
 
-            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:15px;margin-top:8px;gap:9px" id="btnSimpan" onclick="simpanPembelian()">
+            <button class="btn btn-primary" style="width:100%;font-size:15px;margin-top:8px" id="btnSimpan" onclick="simpanPembelian()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Simpan Pembelian
             </button>
@@ -276,7 +279,7 @@
               Harga akan otomatis tersimpan ke riwayat harga
             </div>
 
-            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;gap:7px" onclick="resetForm()">
+            <button class="btn btn-ghost is-destructive" style="width:100%;margin-top:8px" onclick="resetForm()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
               Reset Form
             </button>
@@ -317,7 +320,7 @@
           </button>
           <div id="rBrandFilterDropdown"
             style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
-            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+            <div onclick="rSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
               <input type="checkbox" id="rChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
               <span>Semua Brand</span>
             </div>
@@ -342,7 +345,7 @@
           <div id="datePicker" class="date-picker-panel" style="display:none"></div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="rDf.clear()" style="display:none" id="btnClearDate">✕</button>
-        <button class="btn btn-ghost btn-sm" onclick="exportRiwayat()" style="margin-left:auto;display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+        <button class="btn btn-ghost btn-sm" onclick="exportRiwayat()" style="margin-left:auto;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export Excel
         </button>
@@ -404,7 +407,7 @@
           </button>
           <div id="cbBrandFilterDropdown"
             style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
-            <div onclick="cbSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+            <div onclick="cbSelectAllBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
               <input type="checkbox" id="cbChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
               <span>Semua Brand</span>
             </div>
@@ -432,7 +435,7 @@
         <!-- Group by toggle -->
 
 
-        <button class="btn btn-ghost btn-sm" onclick="cbExport()" style="margin-left:auto;display:flex;align-items:center;gap:7px;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
+        <button class="btn btn-ghost btn-sm" onclick="cbExport()" style="margin-left:auto;border-color:rgba(56,217,169,0.3);color:var(--accent2)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export Excel
         </button>
@@ -485,17 +488,16 @@
     </div>
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-footer" style="justify-content:space-between">
-      <button class="btn btn-danger btn-sm admin-only" id="btnDetailDel"
-        style="display:flex;align-items:center;gap:7px;background:none;border-color:rgba(248,113,113,0.3);color:var(--danger);font-size:12px">
+      <button class="btn btn-danger btn-sm admin-only" id="btnDetailDel">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         Hapus
       </button>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeDetail()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-ghost" onclick="closeDetail()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Tutup
         </button>
-        <button class="btn btn-primary btn-sm admin-only" id="btnDetailEdit" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+        <button class="btn btn-primary admin-only" id="btnDetailEdit">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>
@@ -535,7 +537,7 @@
             Vendor
             <button type="button" class="admin-only" onclick="openQuickAddVendor('edit')"
               title="Tambah vendor baru"
-              style="font-size:11px;padding:2px 8px;height:22px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
+              style="font-size:11px;padding:2px 8px;height:22px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.22);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
               ＋ Vendor baru
             </button>
           </label>
@@ -570,18 +572,18 @@
         </div>
         <div class="field">
           <label>Tanggal</label>
-          <input type="date" id="eFTanggal" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;padding:10px 13px;outline:none"/>
+          <input type="date" id="eFTanggal" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:10px 13px;outline:none"/>
         </div>
       </div>
 
       <div class="field-row" style="margin-bottom:14px">
         <div class="field">
           <label>No. Faktur</label>
-          <input type="text" id="eFaktur" placeholder="cth: INV-2024-001" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none"/>
+          <input type="text" id="eFaktur" placeholder="cth: INV-2024-001" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none"/>
         </div>
         <div class="field">
           <label>Status</label>
-          <select id="eStatus" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none">
+          <select id="eStatus" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none">
             <option value="selesai">✓ Selesai</option>
             <option value="pending">⏳ Pending</option>
             <option value="batal">✕ Batal</option>
@@ -591,7 +593,7 @@
 
       <div class="field" style="margin-bottom:14px">
         <label>Catatan</label>
-        <textarea id="eCatatan" rows="2" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:10px 13px;outline:none;resize:vertical" placeholder="Catatan tambahan..."></textarea>
+        <textarea id="eCatatan" rows="2" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--sans);padding:10px 13px;outline:none;resize:vertical" placeholder="Catatan tambahan..."></textarea>
       </div>
 
       <!-- Edit PPN toggle + item list -->
@@ -608,11 +610,11 @@
       <div class="field-row">
         <div class="field">
           <label>Diskon (Rp)</label>
-          <input type="text" inputmode="decimal" id="eDiskon" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
+          <input type="text" inputmode="decimal" id="eDiskon" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);outline:none;text-align:right"/>
         </div>
         <div class="field">
           <label>Ongkos Kirim (Rp)</label>
-          <input type="text" inputmode="decimal" id="eOngkir" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;text-align:right"/>
+          <input type="text" inputmode="decimal" id="eOngkir" value="0" oninput="this.value=this.value.replace(',','.');updateEditSummary()" onblur="this.value=parseFloat(this.value)||0" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);outline:none;text-align:right"/>
         </div>
       </div>
       <div style="text-align:right;margin-top:8px;font-family:var(--mono);font-size:14px">
@@ -621,11 +623,11 @@
       <input type="hidden" id="eRiwayatId"/>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEdit()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-ghost" onclick="closeEdit()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Batal
       </button>
-      <button class="btn btn-primary" id="btnSaveEdit" onclick="saveEdit()" style="display:flex;align-items:center;gap:7px;padding:0 14px;height:36px;font-size:13px">
+      <button class="btn btn-primary" id="btnSaveEdit" onclick="saveEdit()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Simpan Perubahan
       </button>
@@ -645,6 +647,7 @@
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script src="scan-invoice.js"></script>
+<script src="barang-helper.js"></script>
 <script>
   /* ── SUPABASE INIT ── */
   window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
@@ -836,6 +839,7 @@
     }
 
     await loadRiwayat();
+    hideLoader();
 
     /* Auto-invalidate jika baru balik dari halaman barang/vendor */
     const fromPage = sessionStorage.getItem('_fromPage');
@@ -910,6 +914,11 @@
       _saveCache('barang', barang);
     }
     window.allBarang = barang;
+
+    /* Build map nama barang terkini — untuk resolveNamaBarang() di riwayat/export */
+    if (typeof window.buildBarangNameMap === 'function') {
+      await window.buildBarangNameMap();
+    }
 
     /* Satuan */
     let satuanList = _loadCache('satuan');
@@ -1082,7 +1091,7 @@
       return;
     }
     dd.innerHTML = list.map(v =>
-      `<div class="item-option" style="${v.id===curId?'background:rgba(79,142,247,0.1);color:var(--accent)':''}"
+      `<div class="item-option" style="${v.id===curId?'background:rgba(0,212,255,0.08);color:var(--accent)':''}"
         onmousedown="selectVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
         <div class="item-option-name">${v.nama}${v.id===curId?' ✓':''}</div>
         <div class="item-option-sub">${v.kode||''}${v.kota?' · '+v.kota:''}</div>
@@ -1183,7 +1192,7 @@
       return;
     }
     dd.innerHTML = list.map(v =>
-      `<div class="item-option" style="${v.id===curId?'background:rgba(79,142,247,0.1);color:var(--accent)':''}"
+      `<div class="item-option" style="${v.id===curId?'background:rgba(0,212,255,0.08);color:var(--accent)':''}"
         onmousedown="selectEditVendor('${v.id}','${v.nama.replace(/'/g,"\\'")}')">
         <div class="item-option-name">${v.nama}${v.id===curId?' ✓':''}</div>
         <div class="item-option-sub">${v.kode||''}${v.kota?' · '+v.kota:''}</div>
@@ -1242,7 +1251,7 @@
     list.innerHTML = brands.map(b =>
       `<div data-rbrand="${b.id}" onclick="toggleRBrand(event,'${b.id}')"
         style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
-        onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+        onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
         <input type="checkbox" class="rChkBrand" data-id="${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
         <div style="width:8px;height:8px;border-radius:50%;background:${b.color};flex-shrink:0"></div>
         <span>${b.nama}</span>
@@ -1303,7 +1312,7 @@
     document.querySelectorAll('.rChkBrand').forEach(c => {
       c.checked = !isAll && sel.includes(c.dataset.id);
       const row = c.closest('[data-rbrand]');
-      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(79,142,247,0.12)' : '';
+      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(0,212,255,0.10)' : '';
     });
     const lbl   = document.getElementById('rBrandFilterLabel');
     const count = document.getElementById('rBrandFilterCount');
@@ -1369,7 +1378,7 @@
     list.innerHTML = brands.map(b =>
       `<div data-cbbrand="${b.id}" onclick="toggleCbBrand(event,'${b.id}')"
         style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
-        onmouseover="this.style.background='rgba(79,142,247,0.08)'" onmouseout="this.style.background=''">
+        onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
         <input type="checkbox" class="cbChkBrand" data-id="${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
         <div style="width:8px;height:8px;border-radius:50%;background:${b.color};flex-shrink:0"></div>
         <span>${b.nama}</span>
@@ -1430,7 +1439,7 @@
     document.querySelectorAll('.cbChkBrand').forEach(c => {
       c.checked = !isAll && sel.includes(c.dataset.id);
       const row = c.closest('[data-cbbrand]');
-      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(79,142,247,0.12)' : '';
+      if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(0,212,255,0.10)' : '';
     });
     const lbl   = document.getElementById('cbBrandFilterLabel');
     const count = document.getElementById('cbBrandFilterCount');
@@ -1798,7 +1807,7 @@
       const adminBtn = window._userRole === 'admin'
         ? `<div onmousedown="openQuickAddBarang('${q2.replace(/'/g,"\\'")}'); event.preventDefault()"
             style="padding:8px 14px;font-size:12px;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);transition:background .15s"
-            onmouseover="this.style.background='rgba(79,142,247,0.08)'"
+            onmouseover="this.style.background='rgba(0,212,255,0.07)'"
             onmouseout="this.style.background=''">
             <span style="font-size:14px">＋</span> Tambah barang baru${q2 ? ` "<b>${q2}</b>"` : ''}
           </div>`
@@ -2003,6 +2012,12 @@
     multiSelChecked.clear();
     document.getElementById('multiSelPanel').style.display = 'none';
     renderItems(); updateSummary();
+    requestAnimationFrame(() => {
+      const il = document.getElementById('itemList');
+      if (il) il.scrollTop = il.scrollHeight;
+      const searchEl = document.getElementById('itemSearch');
+      if (searchEl) searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
     showToast(`✓ ${added} barang ditambahkan`, 'success');
   }
 
@@ -2039,6 +2054,12 @@
     closeItemDropdown();
     renderItems();
     updateSummary();
+    requestAnimationFrame(() => {
+      const il = document.getElementById('itemList');
+      if (il) il.scrollTop = il.scrollHeight;
+      const searchEl = document.getElementById('itemSearch');
+      if (searchEl) searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   /* Dipanggil saat vendor berubah — update semua harga item di list + auto-fill diskon */
@@ -2093,26 +2114,28 @@
   }
 
   function positionItemDropdown() {
-    const input = document.getElementById('itemSearch');
-    const dd    = document.getElementById('itemDropdown');
-    if (!input || !dd) return;
-    const rect       = input.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom - 8;
-    const spaceAbove = rect.top - 8;
-    const maxH       = Math.max(160, Math.min(360, spaceBelow));
+    requestAnimationFrame(() => {
+      const input = document.getElementById('itemSearch');
+      const dd    = document.getElementById('itemDropdown');
+      if (!input || !dd) return;
+      const rect       = input.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      const maxH       = Math.max(160, Math.min(360, spaceBelow));
 
-    if (spaceBelow >= 160 || spaceBelow >= spaceAbove) {
-      // Tampilkan ke bawah
-      dd.style.top       = (rect.bottom + 4) + 'px';
-      dd.style.maxHeight = maxH + 'px';
-    } else {
-      // Tidak cukup ruang bawah — flip ke atas
-      const maxHUp = Math.min(360, spaceAbove);
-      dd.style.top       = (rect.top - Math.min(maxHUp, dd.scrollHeight || 320) - 4) + 'px';
-      dd.style.maxHeight = maxHUp + 'px';
-    }
-    dd.style.left  = rect.left + 'px';
-    dd.style.width = rect.width + 'px';
+      if (spaceBelow >= 160 || spaceBelow >= spaceAbove) {
+        // Tampilkan ke bawah
+        dd.style.top       = (rect.bottom + 4) + 'px';
+        dd.style.maxHeight = maxH + 'px';
+      } else {
+        // Tidak cukup ruang bawah — flip ke atas
+        const maxHUp = Math.min(360, spaceAbove);
+        dd.style.top       = (rect.top - Math.min(maxHUp, dd.scrollHeight || 320) - 4) + 'px';
+        dd.style.maxHeight = maxHUp + 'px';
+      }
+      dd.style.left  = rect.left + 'px';
+      dd.style.width = rect.width + 'px';
+    });
   }
 
   function closeItemDropdown() {
@@ -2611,13 +2634,13 @@
       const vendorDisplay = r.vendor_nama;
       const brandNama  = (window.allBrands || []).find(b => b.id === r.brand_id)?.nama || r.brand_id || '—';
       const brandColor = (window.allBrands || []).find(b => b.id === r.brand_id)?.warna || null;
-      const brandStyle = brandColor ? `background:${brandColor}22;color:${brandColor};border:1px solid ${brandColor}55` : '';
+      const brandStyle = brandColor ? `background:${brandColor};color:${getBadgeTextColor(brandColor)};padding:3px 10px;font-size:12px;font-weight:500` : '';
       return `<tr>
         <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')">▶</button></td>
         <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
         <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${r.nomor_faktur || '—'}</span></td>
         <td style="font-weight:500">${vendorDisplay}</td>
-        <td><span class="badge badge-blue" style="${brandStyle}">${brandNama}</span></td>
+        <td><span class="badge" style="${brandStyle}">${brandNama}</span></td>
         <td><span style="font-family:var(--mono);font-size:12px">${nItems} item</span></td>
         <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
         <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
@@ -2652,7 +2675,7 @@
                   ? (item.harga_inc_ppn || item.harga_satuan || 0)
                   : (item.harga_exc_ppn || item.harga_satuan || 0);
                 const ppnLabel = isInc
-                  ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(79,142,247,0.12);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
+                  ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(0,212,255,0.10);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
                   : '<span style="font-size:9px;font-family:var(--mono);background:rgba(107,114,128,0.12);color:var(--muted);border-radius:3px;padding:1px 4px;margin-left:4px">exc PPN</span>';
                 return `<tr>
                 <td style="font-weight:500">${item.nama || '—'}</td>
@@ -2750,12 +2773,15 @@
     document.getElementById('detailTitle').textContent = r.nomor_faktur || 'Detail Pembelian';
     const tgl    = r.tanggal_js.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const badgeS = { selesai: 'badge-green', pending: 'badge-orange', batal: 'badge-red' }[r.status] || 'badge-gray';
+    const brandDetColor = (window.allBrands||[]).find(b=>b.id===r.brand_id)?.warna || null;
+    const brandDetNama  = (window.allBrands||[]).find(b=>b.id===r.brand_id)?.nama || r.brand_id || '—';
+    const brandDetStyle = brandDetColor ? `background:${brandDetColor};color:${getBadgeTextColor(brandDetColor)};padding:3px 10px;font-size:12px;font-weight:500` : '';
 
     document.getElementById('detailBody').innerHTML = `
       <div class="detail-kv"><span class="detail-k">Tanggal</span><span class="detail-v">${tgl}</span></div>
       <div class="detail-kv"><span class="detail-k">No. Faktur</span><span class="detail-v" style="font-family:var(--mono)">${r.nomor_faktur || '—'}</span></div>
       <div class="detail-kv"><span class="detail-k">Vendor</span><span class="detail-v">${r.vendor_nama}</span></div>
-      <div class="detail-kv"><span class="detail-k">Brand</span><span class="detail-v"><span class="badge badge-blue">${(window.allBrands||[]).find(b=>b.id===r.brand_id)?.nama || r.brand_id || '—'}</span></span></div>
+      <div class="detail-kv"><span class="detail-k">Brand</span><span class="detail-v"><span class="badge" style="${brandDetStyle}">${brandDetNama}</span></span></div>
       <div class="detail-kv"><span class="detail-k">Status</span><span class="detail-v"><span class="badge ${badgeS}">${r.status || '—'}</span></span></div>
       <div class="detail-kv"><span class="detail-k">Catatan</span><span class="detail-v">${r.catatan || '—'}</span></div>
       <div style="margin:16px 0 8px;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Daftar Barang</div>
@@ -2775,16 +2801,16 @@
             ? (i.harga_inc_ppn || i.harga_satuan || 0)
             : (i.harga_exc_ppn || i.harga_satuan || 0);
           const ppnLabel = isInc
-            ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(79,142,247,0.12);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
+            ? '<span style="font-size:9px;font-family:var(--mono);background:rgba(0,212,255,0.10);color:var(--accent);border-radius:3px;padding:1px 4px;margin-left:4px">inc PPN</span>'
             : '<span style="font-size:9px;font-family:var(--mono);background:rgba(107,114,128,0.12);color:var(--muted);border-radius:3px;padding:1px 4px;margin-left:4px">exc PPN</span>';
           /* Subtotal selalu exc PPN */
           const hargaExc = i.harga_exc_ppn || (isInc ? Math.round(hargaTampil / (1 + ppnRate)) : hargaTampil);
           const subtotalExcItem = i.qty * hargaExc;
           return `<tr>
-          <td style="padding:8px;border-bottom:1px solid rgba(37,40,48,0.4)">${i.nama}</td>
-          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${i.qty} <span style="color:var(--muted);font-size:10px">${i.satuan}</span></td>
-          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(hargaTampil)}${ppnLabel}</td>
-          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid rgba(37,40,48,0.4)">${formatRp(subtotalExcItem)}</td>
+          <td style="padding:8px;border-bottom:1px solid var(--border)">${i.nama}</td>
+          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid var(--border)">${i.qty} <span style="color:var(--muted);font-size:10px">${i.satuan}</span></td>
+          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid var(--border)">${formatRp(hargaTampil)}${ppnLabel}</td>
+          <td style="padding:8px;text-align:right;font-family:var(--mono);border-bottom:1px solid var(--border)">${formatRp(subtotalExcItem)}</td>
         </tr>`;}).join('')}</tbody>
       </table>
       <div style="margin-top:14px;display:flex;justify-content:flex-end">
@@ -3109,6 +3135,18 @@
   /* ══════════════════════════════════════════
      HELPERS
   ══════════════════════════════════════════ */
+  function getBadgeTextColor(hex) {
+    if (!hex || !hex.startsWith('#')) return '#ffffff';
+    try {
+      const r = parseInt(hex.slice(1,3),16)/255;
+      const g = parseInt(hex.slice(3,5),16)/255;
+      const b = parseInt(hex.slice(5,7),16)/255;
+      const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+      return lum > 0.4 ? '#1a1a1a' : '#ffffff';
+    } catch(e) { return '#ffffff'; }
+  }
+  window.getBadgeTextColor = getBadgeTextColor;
+
   function formatRp(n) {
     if (!n) return 'Rp 0';
     return 'Rp ' + Math.round(n).toLocaleString('id-ID');
@@ -3494,7 +3532,7 @@
       <div class="field">
         <label>Satuan <span style="color:var(--danger)">*</span></label>
         <select id="qaBarangSatuan" onchange="onQaBarangSatuanChange()"
-          style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;cursor:pointer">
+          style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:14px;font-family:var(--sans);outline:none;cursor:pointer">
           <option value="">— Pilih Satuan —</option>
         </select>
         <div id="qaBarangSatuanManualWrap" style="display:none;margin-top:8px">

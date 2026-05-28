@@ -73,7 +73,7 @@ self.addEventListener('notificationclick', (event) => {
 
 // ── HANDLE PUSH SUBSCRIPTION CHANGE ─────────────────────────────────────────
 // Dipanggil browser otomatis jika subscription expired / berubah
-const VAPID_PUBLIC_KEY = 'BEvXzS-b9Jh7SJPq5DVMVn_fuum11A83y2DFygDzOB2n5_kynxhnnuJNtYb0e_BwE-7DggHm6CVX58mqEQQ6ww4';
+const VAPID_PUBLIC_KEY = 'BIzL3WzWtzfagaWlaI4jphJ0HO_HE6We7dqbfEM0vSCqGDEP6ucbDRV21Y8O9R9Eal0vbIOxrHZdSCLlNFlO0YU';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);

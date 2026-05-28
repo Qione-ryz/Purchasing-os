@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PurchaseOS — Pembayaran</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="sidebar.js"></script>
+  <script src="datefilter.js"></script>
+</head>
+<body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <div class="topbar" id="mainTopbar" style="z-index:200">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Pembayaran</div>
+      <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="position:relative">
+        <button class="btn btn-ghost" id="btnDateFilter">
+          📅 <span id="dateFilterLabel">Semua Waktu</span>
+        </button>
+        <div id="datePickerEl" style="display:none;position:absolute;right:0;top:100%;z-index:300;margin-top:4px"></div>
+        <input type="hidden" id="fDateFrom"/>
+        <input type="hidden" id="fDateTo"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Summary bar -->
+    <div id="summaryBar" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="stat-card" style="flex:1;min-width:180px">
+        <div class="stat-label">Total Outstanding</div>
+        <div class="stat-value" id="statOutstanding" style="color:var(--accent)">—</div>
+      </div>
+      <div class="stat-card" style="flex:1;min-width:180px">
+        <div class="stat-label">Perlu Bayar</div>
+        <div class="stat-value" id="statNeedsPay" style="color:var(--danger)">—</div>
+      </div>
+      <div class="stat-card" style="flex:1;min-width:180px">
+        <div class="stat-label">Lunas Bulan Ini</div>
+        <div class="stat-value" id="statPaidMonth" style="color:var(--accent3)">—</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="search-wrap" style="flex:1;min-width:180px">
+        <span class="search-icon">🔍</span>
+        <input id="searchVendor" class="search-input" placeholder="Cari vendor..." oninput="applyFilter()"/>
+      </div>
+      <select id="filterStatus" class="filter-select" onchange="applyFilter()">
+        <option value="pending">Belum Lunas</option>
+        <option value="paid">Lunas</option>
+        <option value="">Semua Status</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="white-space:nowrap">Tgl Bayar</th>
+              <th style="white-space:nowrap">No. Invoice</th>
+              <th>Vendor</th>
+              <th>Keterangan</th>
+              <th style="text-align:right;white-space:nowrap">Jumlah</th>
+              <th style="white-space:nowrap">Transfer Ke</th>
+              <th style="text-align:center;white-space:nowrap">Xero</th>
+              <th style="text-align:center;white-space:nowrap">Bukti</th>
+              <th style="text-align:center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="financeTableBody">
+            <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tableInfo" style="padding:10px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Mark paid modal -->
+<div class="modal-overlay" id="markPaidModal" style="display:none" onclick="if(event.target===this)closeMarkPaidModal()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Tandai Lunas</div>
+      <button class="modal-close" onclick="closeMarkPaidModal()">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+      <div id="markPaidInfo" style="font-size:13px;color:var(--muted);line-height:1.5"></div>
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px">Tanggal Pembayaran *</label>
+        <input type="date" id="markPaidDate" class="search-input" style="width:100%;box-sizing:border-box"/>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px">Catatan (opsional)</label>
+        <input type="text" id="markPaidCatatan" class="search-input" style="width:100%;box-sizing:border-box" placeholder="Catatan pembayaran..."/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeMarkPaidModal()">Batal</button>
+      <button class="btn-primary" onclick="doMarkPaid()">Konfirmasi Lunas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for upload -->
+<input type="file" id="uploadInput" accept="image/*,.pdf" style="display:none" onchange="onUploadFile(this)"/>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);</script>
+<script src="auth.js"></script>
+<script src="ppn.js"></script>
+<script src="finance.js"></script>
+</body>
+</html>
