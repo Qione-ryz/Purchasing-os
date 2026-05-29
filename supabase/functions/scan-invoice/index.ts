@@ -91,8 +91,8 @@ Aturan penting:
     // Model fallback — dicoba berurutan jika model sebelumnya 503/429/unavailable
     const MODELS = [
       "gemini-3.1-flash-lite-preview",  // Utama: 500 RPD free
-      "gemini-2.5-flash",               // Fallback 1: lebih stabil, 20 RPD
-      "gemini-flash-lite-latest",       // Fallback 2: alias model lite terbaru
+      "gemini-2.5-flash",               // Fallback 1: 20 RPD
+      "gemini-2.0-flash-lite",          // Fallback 2: stable
     ];
 
     const requestBody = JSON.stringify({
@@ -214,7 +214,7 @@ Aturan penting:
       qty:          toNum(it.qty) || 1,
       satuan:       String(it.satuan || "").trim(),
       harga_satuan: toNum(it.harga_satuan),
-    })).filter((it: { nama: string; harga_satuan: number }) => it.nama && it.harga_satuan > 0);
+    })).filter((it: { nama: string }) => it.nama.trim().length > 0);
 
     return new Response(
       JSON.stringify({ success: true, data: extracted }),

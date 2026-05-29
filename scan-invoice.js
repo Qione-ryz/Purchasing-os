@@ -263,7 +263,8 @@ function findLearnedVendor(namaVendorInvoice) {
     .scan-progress-step {
       flex:1; font-size:10px; font-family:var(--mono); color:var(--muted);
       text-align:center; padding:4px 2px; border-radius:4px;
-      border:1px solid var(--border); transition:all .3s;
+      border:1px solid transparent; transition:all .3s;
+      pointer-events:none; cursor:default; user-select:none;
     }
     .scan-progress-step.active {
       color:var(--accent); border-color:rgba(79,142,247,0.4);
@@ -562,6 +563,16 @@ function triggerScanInvoice() {
   document.getElementById("scanInvoiceInput").click();
 }
 
+// Re-scan file yang sudah di-upload sebelumnya (tanpa buka file picker lagi)
+function rescanFile() {
+  if (window._scanFile) {
+    handleInvoiceFileRaw(window._scanFile);
+  } else {
+    triggerScanInvoice();
+  }
+}
+window.rescanFile = rescanFile;
+
 // Entry point tunggal — dipanggil dari file picker, drag & drop, maupun paste
 function processScannedFile(file) {
   if (!file) return;
@@ -653,6 +664,12 @@ async function handleInvoiceFileRaw(file) {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${SCAN_SUPABASE_URL}/functions/v1/scan-invoice`);
 
+      const _anonKey = (typeof APP_CONFIG !== "undefined" && APP_CONFIG.supabaseKey) ? APP_CONFIG.supabaseKey : "";
+      if (_anonKey) {
+        xhr.setRequestHeader("apikey", _anonKey);
+        xhr.setRequestHeader("Authorization", `Bearer ${_anonKey}`);
+      }
+
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
           const pct = Math.round((e.loaded / e.total) * 30) + 10;
@@ -739,17 +756,37 @@ async function handleInvoiceFileRaw(file) {
     fillFormFromScan(uploadResult.data);
 
     const n = uploadResult.data.items?.length || 0;
-    statusEl.innerHTML = `
-      <span class="scan-result-badge ok">✓ Berhasil — ${n} item ditemukan</span>
-      <button class="btn-review-ulang" style="margin-left:8px" onclick="reviewUlangScan()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
-        Review Ulang
-      </button>`;
-    if (typeof showToast === "function") showToast(`✓ Invoice berhasil di-scan: ${n} item`, "success");
+    if (n === 0) {
+      statusEl.innerHTML = `
+        <span class="scan-result-badge err">⚠ Selesai — 0 item terdeteksi</span>
+        <button class="btn-review-ulang" style="margin-left:8px" onclick="rescanFile()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          Scan Ulang
+        </button>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted);font-family:var(--mono)">
+          Tidak ada item terdeteksi. Coba scan ulang atau isi barang secara manual.
+        </div>`;
+      const fill = document.getElementById("scanProgFill");
+      if (fill) fill.style.background = "rgba(247,146,79,0.7)";
+      if (typeof showToast === "function") showToast("Scan selesai — 0 item terdeteksi", "error");
+    } else {
+      statusEl.innerHTML = `
+        <span class="scan-result-badge ok">✓ ${n} item ditemukan</span>
+        <button class="btn-review-ulang" style="margin-left:8px" onclick="reviewUlangScan()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          Review Ulang
+        </button>`;
+      if (typeof showToast === "function") showToast(`✓ ${n} item berhasil di-scan`, "success");
+    }
 
   } catch (err) {
     console.error("[scan-invoice]", err);
-    statusEl.innerHTML = `<span class="scan-result-badge err">✕ ${err.message}</span>`;
+    statusEl.innerHTML = `
+      <span class="scan-result-badge err">✕ ${err.message}</span>
+      <button class="btn-review-ulang" style="margin-left:8px" onclick="rescanFile()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+        Scan Ulang
+      </button>`;
     if (typeof showToast === "function") showToast("Gagal scan invoice: " + err.message, "error");
 
   } finally {

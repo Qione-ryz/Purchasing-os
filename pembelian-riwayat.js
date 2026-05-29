@@ -244,8 +244,11 @@ function _renderRiwayatRows(slice) {
       <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
       <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
       <td>
-        <div style="display:flex;gap:4px;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="openDetail('${r.id}')">Detail</button>
+        <div class="action-group">
+          <button class="btn btn-ghost btn-sm" onclick="openDetail('${r.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Detail
+          </button>
           ${window._userRole==='admin'?`
           <div class="action-more-wrap">
             <button class="action-more-btn" onclick="toggleActionMenu(event,'rmenu-${r.id}')" title="Aksi lain">⋯</button>
@@ -485,9 +488,54 @@ async function hapusRiwayat(id, label) {
     confirmLabel: 'Hapus',
     onConfirm: async () => {
       try {
+        // 1. Ambil order_item_id yang ter-link ke beli ini sebelum cascade delete
+        //    agar bisa reset qty_terpenuhi-nya — kalau tidak, stale FIFO bisa
+        //    bikin order_item tampil 'Selesai' meski pembelian sudah hilang.
+        const { data: linkedRows } = await window._sb
+          .from('riwayat_beli_items')
+          .select('order_item_id, barang_id')
+          .eq('beli_id', id);
+
+        const linkedItemIds = [...new Set(
+          (linkedRows || []).map(r => r.order_item_id).filter(Boolean)
+        )];
+        const affectedBarangIds = [...new Set(
+          (linkedRows || []).map(r => r.barang_id).filter(Boolean)
+        )];
+
+        // 2. Hapus child rows dulu (FK riwayat_beli_items_beli_id_fkey tanpa CASCADE),
+        //    lalu riwayat_harga + riwayat_beli header.
+        await window._sb.from('riwayat_beli_items').delete().eq('beli_id', id);
         await window._sb.from('riwayat_harga').delete().eq('beli_id', id);
         const { error } = await window._sb.from('riwayat_beli').delete().eq('id', id);
         if (error) throw error;
+
+        // 3. Reset qty_terpenuhi pada order_items terdampak agar FIFO recompute dari nol:
+        //    a) item yang MANUALLY linked → linkedItemIds (langsung)
+        //    b) item yang FIFO-auto-filled untuk barang yang sama (order_item_id=null)
+        //       → reset semua order_items.barang_id IN affectedBarangIds yang BUKAN status selesai.
+        //    Biarkan status_item='selesai' utuh (manual selesai user, jangan diganggu).
+        if (affectedBarangIds.length > 0) {
+          await window._sb
+            .from('order_items')
+            .update({ qty_terpenuhi: 0, status_item: 'pending' })
+            .in('barang_id', affectedBarangIds)
+            .neq('status_item', 'selesai');
+        }
+        if (linkedItemIds.length > 0) {
+          // Item custom (barang_id null) yang manual-linked — tetap di-reset.
+          await window._sb
+            .from('order_items')
+            .update({ qty_terpenuhi: 0, status_item: 'pending' })
+            .in('id', linkedItemIds)
+            .neq('status_item', 'selesai');
+        }
+
+        // 4. Invalidate FIFO cache agar item lain (yang FIFO-allocated) dihitung ulang
+        if (typeof window._invalidateFifoCache === 'function') {
+          window._invalidateFifoCache(affectedBarangIds.length ? affectedBarangIds : undefined);
+        }
+
         showToast('Transaksi dihapus · riwayat harga ikut dihapus', 'success');
         logActivity('hapus', 'pembelian', label);
         await window.loadRiwayat();

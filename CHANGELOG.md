@@ -1,5 +1,71 @@
 # Changelog — purchasing-db
 
+## 2026-05-29 — Analisis Harga UI/UX Overhaul + Pembelian Detail Fix
+
+### harga.html
+
+- **Filter Vendor & Barang jadi searchable combo** — sebelumnya `<select>` native (susah cari di antara 200+ vendor / 1000+ barang, harus tekan huruf-per-huruf). Diganti custom dropdown dengan search box real-time. Portal pattern: panel di-append ke `document.body` saat open (`position:fixed`) supaya lepas dari parent transform/overflow yang sebelumnya membuat panel tertutup card lain. Scroll listener reposisi panel; resize listener tutup panel
+- **Disable filter target diperbaiki** — saat tab Banding, `fVendorEl` (hidden input) yang di-disable; sekarang `hVendorBtn` (visual button) yang di-set opacity .4 + pointer-events none agar disable terlihat
+- **Stat card "Kenaikan Tertinggi" & "Total Transaksi" jadi clickable** — sebelumnya "Naik" & "Turun" clickable ke tab Tren, 2 lainnya statis (inkonsisten). Sekarang Kenaikan Tertinggi → tab Tabel sort `naik-desc`, Total Transaksi → tab Tabel view Detail sort `tanggal-desc`. Tambah `goToTopNaik()` & `goToAllTransaksi()`
+- **Subtext "jenis barang" → "item"** — `statVendorTerbaruSub` pakai "X jenis barang terpantau", 3 stat lainnya pakai "item". Diseragamkan ke "item"
+- **Ctrl+K aktif di tab Tren** — sebelumnya hanya tab Tabel. Sekarang Ctrl+K → focus `barangSearch` di tab Tren, `tSearch` di tab Tabel. Placeholder `barangSearch` ditambah "(Ctrl+K)"
+- **Filter "Hanya yang berubah harga"** — checkbox baru di toolbar Tabel Ringkasan. Saat aktif, filter `agg.filter(b => b.trendPct !== null && Math.abs(b.trendPct) >= 1)` — sembunyikan barang dengan harga stabil (terutama relevan untuk periode "Bulan Ini" yang sebagian besar barang cuma sekali beli). Auto-hide di view Detail
+- **Chart Top Kenaikan legend bug** — legend "Naik (Rp)" + "Turun (Rp)" selalu tampil meski salah satu dataset kosong, menyesatkan. Fix: drop dataset kosong dari `chartData.datasets`, `legend.display` hanya true jika ≥2 dataset. Awalnya filter cek `v < 0` tapi `turun` array isi `Math.abs(b.naik)` (positif) → bug logic, diperbaiki jadi `v !== null && v > 0`
+- **Mode "Per Vendor" subtitle dinamis** — tampilkan count actual: `${ranked.length} barang yang dibeli ≥2× dari vendor sama dengan harga berbeda · hover bar untuk detail`. Awalnya coba tambah fallback cross-vendor agar Top 25/50 terisi, tapi membuat mode Per Vendor identik dengan Semua Vendor → revert ke strict same-vendor (sesuai semantik mode)
+- **Banding card "selisih Rp 0" diganti** — vendor termurah harga terbaru: badge ★ Termurah; lainnya: `+Rp X (+X%)` warna danger. Sebelumnya semua tampil "selisih ${spread}" (spread per-vendor, sering Rp 0 = noise untuk vendor single-transaksi). Badge "✓ Termurah" diubah jadi "✓ Termurah 6bln" agar konteks (6 bulan vs current latest) jelas
+- **Banding card "per 23 Mei" → "Harga terbaru · 23 Mei 2026"** — context lebih jelas
+- **Tooltip pada `→ Stabil` & `—`** — `data-tip="Harga stabil — perubahan < 1%"` / `"Belum ada data perubahan harga"`. Sebelumnya muted text tanpa explanation
+- **Quick action 🔍 di Daftar Barang Tab Tren** — tombol detail muncul on-hover row (opacity 0 → 1), klik buka modal `openBarangDetail` tanpa nav. `event.stopPropagation()` agar tidak trigger `selectBarang`
+- **Warna harga vs trend ketabrak** — `.barang-price-val` (Rp 95.000) hijau `--accent2`, `trend-down` (↓ Rp 1.800) juga hijau → susah bedakan. Ganti harga ke `var(--text)` bold. Sama di Tabel Ringkasan kolom Rata-rata: `--accent2` → `--text`, note `+14% vs rata-rata` tetap merah (semantic: bayar lebih mahal)
+- **Bug X search `display:'flex'`** — `drillDownBarang` set `clr.style.display='flex'` inkonsisten dengan `toggleTSearchClear` yang pakai 'block'. Diseragamkan ke 'block'
+- **Resort dataset kosong skipped** — `naikHasData = naik.some(v => v !== null && v > 0)`, dataset turun di-filter sejenis. Tanpa fix ini, Top 25/50 menampilkan label tapi 15+ row kosong (semua merah tanpa bar hijau untuk yang turun)
+
+### pembelian-riwayat.js
+
+- **Tombol Detail tanpa icon** — render aktif di `pembelian-riwayat.js` line 248, BUKAN di `pembelian.html` line 2645 (sebelumnya 3 attempt edit ke html dead code). Render aktif tambah SVG search icon (12x12, `flex-shrink:0`) + `action-group` class agar konsisten dengan barang.html & vendor.html
+
+### pembelian.html
+
+- **Label "Vendor *" `*` melayang ke tengah** — flex `justify-content:space-between` treat "Vendor", "*", dan tombol `+Vendor baru` sebagai 3 item terpisah → `*` di tengah. Fix wrap "Vendor *" dalam satu `<span>` agar jadi 1 flex item
+- **Kolom Aksi tabel Riwayat** — `width:120px` terlalu sempit untuk Detail + ⋯, button Detail jadi mengkompres icon. Lebarkan ke 140px
+
+### pembelian-caribarang.js
+
+- **Klik baris Cari Barang tidak bawa filter** — sebelumnya cuma `switchTab('riwayat')` + set `rSearch` value, tidak bawa filter brand/tanggal yang aktif di Cari Barang. Tambah `cbGoToRiwayat(nama)`:
+  - Copy `cbSelectedBrands` → `rSelectedBrands` + panggil `updateRBrandUI()` & `_syncRFilterBrand()`
+  - Copy date range via `rDf.setCustom(from, to)` — trigger fetch otomatis
+  - Switch tab + set search + `onRSearch()`
+- Expose `updateRBrandUI` & `_syncRFilterBrand` di window dari `pembelian.html` agar bisa dipanggil dari `pembelian-caribarang.js`
+
+### style.css
+
+- **`.barang-item-detail-btn`** — class baru untuk tombol detail quick action di Daftar Barang harga.html. 26x26, border `--border`, opacity 0 default → 1 pada `.barang-item:hover`. Hover state: color & border accent
+- **`.harga-combo-btn`, `.harga-combo-item`, `.harga-combo-empty`** — class baru untuk searchable dropdown harga.html (vendor & barang filter)
+
+## 2026-05-29 — Scan Invoice Fix & UX Improvements
+
+### scan-invoice.js
+
+- **Fix auth header** — XHR ke `/functions/v1/scan-invoice` tidak mengirim `apikey` dan `Authorization: Bearer` header → Supabase Edge Function mengembalikan 401. Sekarang kedua header diambil dari `APP_CONFIG.supabaseKey` dan di-set sebelum `xhr.send()`
+- **Fix tombol "Scan Ulang"** — saat scan gagal (network error / server error), tombol scan ulang tidak muncul di error state. Sekarang catch block menampilkan tombol "Scan Ulang"
+- **Fix tombol "Scan Ulang" saat 0 item** — tombol memanggil `reviewUlangScan()` yang langsung error karena `data.items.length === 0`. Diubah memanggil `rescanFile()` (re-process file yang sama)
+- **Tambah `rescanFile()`** — function baru yang re-process `window._scanFile` tanpa buka file picker lagi. Fallback ke `triggerScanInvoice()` jika `_scanFile` tidak ada
+
+### supabase/functions/scan-invoice/index.ts
+
+- **Fix item filter** — filter `.filter((it) => it.nama && it.harga_satuan > 0)` membuang semua item dari Surat Jalan / Delivery Order yang tidak punya kolom harga. Sekarang filter hanya cek `it.nama.trim().length > 0` — item tanpa harga tetap muncul di modal review, user isi harga manual
+- **Fix model fallback list** — model ketiga `"gemini-flash-lite-latest"` bukan nama API valid. Diganti `"gemini-2.0-flash-lite"` (stable, tersedia luas). Model utama `"gemini-3.1-flash-lite-preview"` (500 RPD) dan fallback 1 `"gemini-2.5-flash"` (20 RPD) tidak berubah
+
+### style.css
+
+- **Brand field height fix** — `.field select` tidak punya `min-height` eksplisit → tampak lebih pendek dari custom vendor dropdown (yang pakai `min-height: 38px` inline). Tambah `min-height: 38px` ke `.field select`
+
+### pembelian.html
+
+- **Required field indicator** — asterisk `*` di label Brand, Vendor, Tanggal Pembelian sebelumnya plain text, tidak ada visual cue bahwa field itu wajib. Diubah ke `<span style="color:var(--danger)">*</span>` (merah) di ketiga label
+
+---
+
 ## 2026-05-29 — Migrasi Supabase Project (jpfqysbaygcvlkxcecdo → lzycxgibjfyokgibbycx)
 
 Pindah project Supabase ke instance baru karena project lama akan di-decommission. Database shared dengan app lain (POS, attendance, dll) — RLS di-aktifkan selektif hanya untuk tabel purchasing-db.

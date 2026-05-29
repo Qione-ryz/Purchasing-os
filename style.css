@@ -426,7 +426,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .field { margin-bottom: var(--sp-lg); }
 .field label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
 .field input, .field select, .field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 8px 12px; outline: none; transition: border-color 0.2s; }
-.field select { padding-right: 36px; }
+.field select { padding-right: 36px; min-height: 38px; }
 .field input:focus,
 .field select:focus,
 .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.08); }
@@ -789,6 +789,30 @@ select {
    Barang page — komponen spesifik halaman
    ============================================================ */
 
+/* ── SATUAN ORDER TOOLTIP ── */
+.satuan-tip-wrap { display: inline-block; margin-left: 6px; vertical-align: middle; position: relative; }
+.satuan-tip {
+  display: none;
+  position: absolute;
+  left: 50%; bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  width: 300px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+  line-height: 1.6;
+  font-weight: 400;
+  white-space: normal;
+  z-index: 200;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+}
+.satuan-tip-wrap:hover .satuan-tip { display: block; }
+
 /* ── MULTI-BRAND CHECKBOXES ── */
 .brand-checkbox-grid {
   display: flex;
@@ -875,7 +899,7 @@ select {
 /* ── ACTION DROPDOWN MENU ── */
 .action-more-wrap { position: relative; display: inline-block; }
 .action-more-btn {
-  width: 30px; height: 30px;
+  width: 36px; height: 36px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1220,7 +1244,16 @@ input[type="date"] { color-scheme: dark; }
 .barang-item-name  { font-size:13px; font-weight:500; }
 .barang-item-sub   { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
 .barang-item-price { text-align:right; }
-.barang-price-val  { font-family:var(--mono); font-size:13px; color:var(--accent2); }
+.barang-item-detail-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; margin-left: 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--muted);
+  cursor: pointer; opacity: 0; transition: all .15s; flex-shrink: 0;
+}
+.barang-item:hover .barang-item-detail-btn { opacity: 1; }
+.barang-item-detail-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.06); }
+.barang-price-val  { font-family:var(--mono); font-size:13px; color:var(--text); font-weight:600; }
 .barang-price-trend { font-size:11px; margin-top:2px; font-family:var(--mono); }
 .trend-up   { color:var(--danger); }
 .trend-down { color:var(--accent2); }
@@ -1854,7 +1887,7 @@ td[style*="font-family: var(--mono)"] { font-size: 13px; }
 /* ACTION MORE MENU */
 .action-more-wrap { position:relative; display:inline-block; }
 .action-more-btn {
-  width:30px; height:30px; border-radius:6px; border:1px solid var(--border);
+  width:36px; height:36px; border-radius:6px; border:1px solid var(--border);
   background:var(--surface); color:var(--muted); cursor:pointer;
   display:flex; align-items:center; justify-content:center; font-size:16px;
   transition:all .15s; line-height:1;

@@ -86,7 +86,7 @@ async function _runFifoSync(barangIds, opts) {
   // 1. Ambil semua competing order_items
   let _competingRaw = await _inBatch(
     'order_items',
-    'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom',
+    'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom, block_fifo',
     'barang_id', barangIds
   );
   if (!_competingRaw.length) {
@@ -98,7 +98,9 @@ async function _runFifoSync(barangIds, opts) {
   }
 
   const _competingFiltered = (_competingRaw || []).filter(ci =>
-    !ci.is_custom && (ci.status_item || 'pending') !== 'cancelled'
+    !ci.is_custom
+    && (ci.status_item || 'pending') !== 'cancelled'
+    && ci.block_fifo !== true
   );
 
   const uniqueOrderIds = [...new Set((_competingFiltered || []).map(ci => ci.order_id).filter(Boolean))];

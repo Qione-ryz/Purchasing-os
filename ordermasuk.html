@@ -2041,14 +2041,23 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     const aksiDisabled = isDone || isCancelled;
     _itemNamaMap[it.id] = it.nama_barang || '';
 
-    // Tombol "Batalkan Selesai" — hanya untuk admin, hanya pada item yang status_item='selesai'
+    // Tombol "Batalkan Selesai":
+    //  - Manual selesai (status_item='selesai')                        → batalkanSelesaiItem
+    //  - FIFO-filled  (progress 100% via FIFO, status_item != selesai) → tolakFifoItem (set block_fifo=true)
     const isManualDone = statusItem === 'selesai';
-    const batalSelesaiBtn = (!_isReadOnly() && isManualDone)
-      ? `<button class="btn btn-sm"
+    const isFifoDone   = !isManualDone && !isCancelled && pct >= 100;
+    let batalSelesaiBtn = '';
+    if (!_isReadOnly() && isManualDone) {
+      batalSelesaiBtn = `<button class="btn btn-sm"
            onclick="event.stopPropagation();batalkanSelesaiItem('${it.id}','${o.id}')"
            style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
-           title="Batalkan status selesai — kembalikan ke pending">↩</button>`
-      : '';
+           title="Batalkan status selesai — kembalikan ke pending">↩</button>`;
+    } else if (!_isReadOnly() && isFifoDone) {
+      batalSelesaiBtn = `<button class="btn btn-sm"
+           onclick="event.stopPropagation();tolakFifoItem('${it.id}','${o.id}')"
+           style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
+           title="Lepas item ini dari FIFO — pembelian dikembalikan ke pool, item ke Pending">↩</button>`;
+    }
 
     const aksiCell = _isReadOnly() ? '<span style="color:var(--muted);font-size:11px">—</span>' : `
       <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap;align-items:center">
@@ -2665,6 +2674,58 @@ async function batalkanSelesaiItem(itemId, orderId) {
   );
 }
 window.batalkanSelesaiItem = batalkanSelesaiItem;
+
+// Lepas item dari FIFO: set block_fifo=true, reset qty_terpenuhi=0,
+// unlink riwayat_beli_items agar pembelian kembali ke pool.
+async function tolakFifoItem(itemId, orderId) {
+  const nama = _itemNamaMap[itemId] || itemId;
+  showConfirm(
+    'Lepas Item dari FIFO?',
+    `<strong>${nama}</strong> akan dikembalikan ke <strong>Pending</strong>.<br><br>
+     <span style="font-size:12px;color:var(--muted);font-family:var(--mono);line-height:1.5">
+       • qty_terpenuhi direset ke 0<br>
+       • Pembelian yang nge-fill (FIFO) di-unlink, kembali ke pool<br>
+       • Item ini tidak akan menerima alokasi FIFO lagi sampai flag dibuka manual
+     </span>`,
+    async () => {
+      try {
+        const { data: { session: sess } } = await _sb.auth.getSession();
+        if (!sess) throw new Error('Tidak ada sesi login — silakan login ulang');
+
+        const { data: updData, error: updErr } = await _sb
+          .from('order_items')
+          .update({ qty_terpenuhi: 0, status_item: 'pending', block_fifo: true })
+          .eq('id', itemId)
+          .select();
+
+        if (updErr) throw updErr;
+        if (!updData || updData.length === 0) {
+          throw new Error('Update ditolak DB (0 rows) — cek RLS policy.');
+        }
+
+        // Unlink riwayat_beli_items yang sempat ter-link manual (jika ada)
+        await _sb
+          .from('riwayat_beli_items')
+          .update({ order_item_id: null })
+          .eq('order_item_id', itemId);
+
+        await _recalcOrderStatus(orderId, {
+          [itemId]: { qty_terpenuhi: 0, status_item: 'pending' }
+        });
+
+        showToast('success', `↩ ${nama} dilepas dari FIFO`);
+        if (typeof _invalidateFifoCache === 'function') _invalidateFifoCache();
+        await loadAll();
+        await _refreshDetailBody(orderId);
+      } catch(e) {
+        showToast('error', '✕ ' + e.message);
+        console.error('[tolakFifoItem]', e);
+      }
+    }
+  );
+}
+window.tolakFifoItem       = tolakFifoItem;
+
 window.openBeliModal       = openBeliModal;
 window.submitBeli          = submitBeli;
 

@@ -194,12 +194,10 @@
       <div class="field">
         <label>
           Satuan Order <span class="optional-tag">— opsi satuan yang bisa dipilih saat order</span>
-          <details style="display:inline-block;margin-left:6px;vertical-align:middle">
-            <summary style="cursor:pointer;color:var(--accent);font-size:11px;font-family:var(--mono);list-style:none;outline:none">ⓘ Cara kerja</summary>
-            <div style="margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.5;font-weight:400">
-              Satuan dasar (<span id="satuanDasarLabel" style="color:var(--accent3)">—</span>) jadi basis konversi dan <strong>tidak muncul</strong> di form order. Contoh: dasar <em>pcs</em>, tambah <em>dus</em> faktor 12 → 1 dus = 12 pcs.
-            </div>
-          </details>
+          <span style="display:inline-block;margin-left:6px;vertical-align:middle;position:relative" class="satuan-tip-wrap">
+            <span style="cursor:default;color:var(--accent);font-size:11px;font-family:var(--mono)">ⓘ Cara kerja</span>
+            <span class="satuan-tip">Satuan dasar (<span id="satuanDasarLabel" style="color:var(--accent3)">—</span>) jadi basis konversi dan <strong>tidak muncul</strong> di form order.<br>Contoh: dasar <em>pcs</em>, tambah <em>dus</em> faktor 12 → 1 dus = 12 pcs.</span>
+          </span>
         </label>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
           <div id="satuanOrderList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
@@ -227,11 +225,11 @@
       <!-- Info dasar -->
       <div id="detailInfoSection"></div>
       <!-- Riwayat harga -->
-      <div style="margin-top:20px;display:flex;flex-direction:column;flex:1;min-height:0">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="margin-top:20px;display:flex;flex-direction:column">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
           Riwayat Harga &amp; Vendor
         </div>
-        <div id="detailPriceSection" style="overflow-y:auto;max-height:340px">
+        <div id="detailPriceSection" style="max-height:340px;overflow-y:auto">
           <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Memuat riwayat harga...</div>
         </div>
       </div>
@@ -864,7 +862,10 @@
           <td>${hargaDisplay}</td>
           <td>
             <div class="action-group">
-              <button class="btn btn-ghost btn-sm" onclick="openDetailModal('${b.id}')">Detail</button>
+              <button class="btn btn-ghost btn-sm" onclick="openDetailModal('${b.id}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Detail
+              </button>
               ${window._userRole==='admin'?`
               <div class="action-more-wrap">
                 <button class="action-more-btn" onclick="toggleActionMenu(event,'${menuId}')" title="Aksi lain">⋯</button>
@@ -900,19 +901,6 @@
     for(let p=Math.max(1,currentPage-2);p<=Math.min(pages,currentPage+2);p++) addBtn(p,p,false,p===currentPage);
     addBtn('›',currentPage+1,currentPage===pages,false);
     addBtn('»»',pages,currentPage===pages,false);
-    /* Jump-to-page input — only show if >5 pages */
-    if (pages > 5) {
-      const jump = document.createElement('div');
-      jump.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-family:var(--mono);font-size:11px;color:var(--muted)';
-      jump.innerHTML = `Lompat ke <input type="number" min="1" max="${pages}" placeholder="hal" style="width:54px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 6px;outline:none;text-align:center" id="jumpPageInput"/> / ${pages}`;
-      pb.appendChild(jump);
-      const input = jump.querySelector('input');
-      input.onkeydown = (e) => {
-        if (e.key !== 'Enter') return;
-        const v = parseInt(input.value, 10);
-        if (v >= 1 && v <= pages) { currentPage = v; fetchBarangPage(); }
-      };
-    }
     if (window._userRole) applyRoleUI(window._userRole);
   }
 
@@ -1601,6 +1589,7 @@
     });
 
     setTimeout(() => document.addEventListener('click', _closeMenuHandler), 0);
+    window.addEventListener('scroll', closeAllMenus, { once: true, passive: true, capture: true });
   }
 
   function _closeMenuHandler(e) {

@@ -238,13 +238,16 @@ function cbRenderFlat(tbody, total) {
     const brandStyle = brandColor
       ? `background:${brandColor};color:${(window.getBadgeTextColor||((h)=>'#ffffff'))(brandColor)};padding:3px 10px;font-size:12px;font-weight:500`
       : '';
-    return `<tr>
-      <td style="font-weight:500">${r.nama}</td>
-      <td class="td-cb-sku">${r.sku || '—'}</td>
-      <td class="td-cb-satuan">${r.satuan || '—'}</td>
+    const safeNama = r.nama.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+    return `<tr style="cursor:pointer" title="Lihat riwayat pembelian ${r.nama}"
+      onclick="cbGoToRiwayat('${safeNama}')">
+      <td style="font-weight:500">
+        ${r.nama}
+        ${r.sku ? `<div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px">${r.sku}</div>` : ''}
+      </td>
       <td><span class="badge" style="${brandStyle}">${brandNama}</span></td>
       <td class="td-cb-kat">${r.kategori || '—'}</td>
-      <td style="text-align:right;font-family:var(--mono);font-weight:600">${_cbFmtQty(r.totalQty)}</td>
+      <td style="text-align:left;font-family:var(--mono);font-weight:600">${_cbFmtQty(r.totalQty)}<span style="font-size:10px;color:var(--muted);margin-left:4px">${r.satuan || ''}</span></td>
       <td style="text-align:right;font-family:var(--mono);color:var(--accent3)">${_cbFmt(r.totalInc)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--muted)">${r.transaksi}x</td>
     </tr>`;
@@ -315,6 +318,28 @@ async function cbExport() {
 }
 
 
+/* ── Pindah ke Riwayat sambil bawa filter brand + tanggal dari CB ── */
+function cbGoToRiwayat(nama) {
+  /* 1. Sync brand */
+  PageState.rSelectedBrands = [...(PageState.cbSelectedBrands || [])];
+  if (typeof window.updateRBrandUI    === 'function') window.updateRBrandUI();
+  if (typeof window._syncRFilterBrand === 'function') window._syncRFilterBrand();
+
+  /* 2. Sync tanggal via rDf (triggers rDateFrom/rDateTo inputs + display) */
+  const from = document.getElementById('cbDateFrom')?.value || '';
+  const to   = document.getElementById('cbDateTo')?.value   || '';
+  if (window.rDf && from && to) {
+    window.rDf.setCustom(from, to);
+  }
+
+  /* 3. Pindah tab + set search */
+  switchTab('riwayat');
+  const el = document.getElementById('rSearch');
+  if (el) { el.value = nama; }
+  if (typeof window.toggleRSearchClear === 'function') window.toggleRSearchClear();
+  if (typeof window.onRSearch          === 'function') window.onRSearch();
+}
+
 /* ── Expose ke window (dipanggil dari atribut HTML) ── */
 window.cbInit         = cbInit;
 window.cbFetch        = cbFetch;
@@ -325,3 +350,4 @@ window.cbApplySearch  = cbApplySearch;
 window.cbSortBy       = cbSortBy;
 window.cbGoPage       = cbGoPage;
 window.cbExport       = cbExport;
+window.cbGoToRiwayat  = cbGoToRiwayat;

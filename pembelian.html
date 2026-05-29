@@ -63,12 +63,12 @@
             <div class="card-body">
               <div class="field-row">
                 <div class="field">
-                  <label>Brand *</label>
+                  <label>Brand <span style="color:var(--danger)">*</span></label>
                   <select id="fBrand" onchange="onFormBrandChange()"><option value="">— Pilih Brand —</option></select>
                 </div>
                 <div class="field">
                   <label style="display:flex;align-items:center;justify-content:space-between">
-                    Vendor *
+                    <span>Vendor <span style="color:var(--danger)">*</span></span>
                     <button type="button" class="admin-only" onclick="openQuickAddVendor('form')"
                       title="Tambah vendor baru"
                       style="font-size:11px;padding:2px 8px;height:22px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.22);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
@@ -107,7 +107,7 @@
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label>Tanggal Pembelian *</label>
+                  <label>Tanggal Pembelian <span style="color:var(--danger)">*</span></label>
                   <input type="date" id="fTanggal"/>
                 </div>
                 <div class="field">
@@ -121,7 +121,7 @@
               </div>
               <div class="field">
                 <label>Catatan</label>
-                <textarea id="fCatatan" placeholder="Catatan tambahan untuk pembelian ini..."></textarea>
+                <textarea id="fCatatan" placeholder="Catatan tambahan untuk pembelian ini..." rows="2"></textarea>
               </div>
               <div class="field">
                 <label>Status Harga Input</label>
@@ -168,7 +168,7 @@
                     <button id="itemSearchClear" onclick="clearItemSearch()" title="Hapus"
                       style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px">✕</button>
                   </div>
-                  <button class="btn btn-ghost btn-sm" onclick="toggleMultiSel()" title="Pilih banyak sekaligus" id="btnMultiSel" style="white-space:nowrap">☰ Multi</button>
+                  <button class="btn btn-ghost" onclick="toggleMultiSel()" title="Pilih banyak sekaligus" id="btnMultiSel" style="white-space:nowrap">☰ Multi</button>
                 </div>
                 <!-- Panel multi-select -->
                 <div class="multisel-panel" id="multiSelPanel">
@@ -272,8 +272,7 @@
             <div class="summary-divider"></div>
 
             <button class="btn btn-primary" style="width:100%;font-size:15px;margin-top:8px" id="btnSimpan" onclick="simpanPembelian()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Simpan Pembelian
+              💾 Simpan Pembelian
             </button>
             <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;font-family:var(--mono)">
               Harga akan otomatis tersimpan ke riwayat harga
@@ -365,7 +364,7 @@
                 <th style="width:60px">Items</th>
                 <th style="width:140px" onclick="rSortBy('total')">Total <span id="rsort-total">↕</span> <span style="font-size:9px;font-family:var(--mono);color:var(--muted);font-weight:400">(inc PPN)</span></th>
                 <th style="width:85px" onclick="rSortBy('status')">Status <span id="rsort-status">↕</span></th>
-                <th style="width:120px">Aksi</th>
+                <th style="width:140px">Aksi</th>
               </tr>
             </thead>
             <tbody id="rTableBody">
@@ -452,8 +451,6 @@
               <tr>
                 <th id="cbThExpand" style="width:32px;display:none"></th>
                 <th onclick="cbSortBy('nama')">Nama Barang <span id="cbsort-nama">↕</span></th>
-                <th onclick="cbSortBy('sku')">SKU <span id="cbsort-sku">↕</span></th>
-                <th>Satuan</th>
                 <th onclick="cbSortBy('brand')">Brand <span id="cbsort-brand">↕</span></th>
                 <th onclick="cbSortBy('kategori')" id="cbThKategori">Kategori <span id="cbsort-kategori">↕</span></th>
                 <th onclick="cbSortBy('totalQty')" style="text-align:right">Total Qty <span id="cbsort-totalQty">↕</span></th>
@@ -462,7 +459,7 @@
               </tr>
             </thead>
             <tbody id="cbTableBody">
-              <tr><td colspan="9"><div class="empty-state">
+              <tr><td colspan="7"><div class="empty-state">
                 <div class="empty-icon">🔍</div>
                 <div class="empty-text">Memuat data...</div>
               </div></td></tr>
@@ -1495,6 +1492,8 @@
   window.toggleRBrandDropdown  = toggleRBrandDropdown;
   window.toggleRBrand          = toggleRBrand;
   window.rSelectAllBrands      = rSelectAllBrands;
+  window.updateRBrandUI        = updateRBrandUI;
+  window._syncRFilterBrand     = _syncRFilterBrand;
   window.toggleCbBrandDropdown = toggleCbBrandDropdown;
   window.toggleCbBrand         = toggleCbBrand;
   window.cbSelectAllBrands     = cbSelectAllBrands;
@@ -1876,9 +1875,8 @@
   }
 
   function onItemFocus() {
-    const vendorId = document.getElementById('fVendor').value;
     const q = document.getElementById('itemSearch').value;
-    if (!q) onItemSearch(); /* tampilkan saat focus tanpa keyword, apapun vendor-nya */
+    if (q) onItemSearch();
   }
 
   /* ── MULTI-SELECT ── */
@@ -2190,9 +2188,9 @@
             title="Harga satuan (Rp, per ${item.satuan})"/>
           <button type="button" title="Konversi harga (bagi dengan jumlah)"
             onclick="openKonversiHarga(${i})"
-            style="flex-shrink:0;width:26px;height:28px;border-radius:5px;border:1px solid var(--border);
-                   background:var(--bg);color:var(--muted);cursor:pointer;font-size:14px;
-                   display:flex;align-items:center;justify-content:center;transition:all .15s"
+            style="flex-shrink:0;width:32px;height:28px;border-radius:5px;border:1px solid var(--border);
+                   background:var(--bg);color:var(--muted);cursor:pointer;font-size:17px;font-weight:700;
+                   display:flex;align-items:center;justify-content:center;transition:all .15s;letter-spacing:0"
             onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
             onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">÷</button>
         </div>
@@ -2636,17 +2634,21 @@
       const brandColor = (window.allBrands || []).find(b => b.id === r.brand_id)?.warna || null;
       const brandStyle = brandColor ? `background:${brandColor};color:${getBadgeTextColor(brandColor)};padding:3px 10px;font-size:12px;font-weight:500` : '';
       return `<tr>
-        <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')">▶</button></td>
+        <td><button class="expand-btn" id="expbtn-${r.id}" onclick="toggleExpand('${r.id}')" title="Lihat item pembelian">▶</button></td>
         <td><span style="font-family:var(--mono);font-size:12px">${tgl}</span></td>
-        <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${r.nomor_faktur || '—'}</span></td>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent2)" title="${r.nomor_faktur || ''}">${r.nomor_faktur || '—'}</span></td>
         <td style="font-weight:500">${vendorDisplay}</td>
         <td><span class="badge" style="${brandStyle}">${brandNama}</span></td>
         <td><span style="font-family:var(--mono);font-size:12px">${nItems} item</span></td>
         <td style="white-space:nowrap"><span style="font-family:var(--mono);font-weight:600">${formatRp(r.total || 0)}</span></td>
         <td><span class="badge ${badgeS}">${r.status || '—'}</span></td>
         <td>
-          <div style="display:flex;gap:4px;align-items:center">
-            <button class="btn btn-ghost btn-sm" onclick="openDetail('${r.id}')">Detail</button>
+          <div class="action-group">
+            <button class="btn btn-ghost btn-sm" onclick="openDetail('${r.id}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Detail
+            </button>
+
             ${window._userRole==='admin'?`
             <div class="action-more-wrap">
               <button class="action-more-btn" onclick="toggleActionMenu(event,'rmenu-${r.id}')" title="Aksi lain">⋯</button>
