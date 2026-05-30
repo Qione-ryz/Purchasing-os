@@ -26,7 +26,9 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
 
-  const hideBrandSelector = options.hideBrandSelector || activePage === 'dashboard.html';
+  // Brand selector di sidebar di-hide global. Tiap page yg butuh filter brand pakai widget inline-nya sendiri.
+  // Select tetep ada di DOM (hidden) supaya existing logic yg baca `document.getElementById('brandSelect').value` tetep jalan.
+  const hideBrandSelector = true;
 
   const navHTML = _SIDEBAR_NAV.map(item => {
     let html = '';
@@ -121,8 +123,45 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
     applyRoleUI(window._lastKnownRole);
   }
 
+  /* Auto-populate user info (name + avatar) — single source utk semua page */
+  _populateSidebarUser();
+
   /* Mulai polling notifikasi order pending setelah sidebar dirender */
   _startOrderNotifPolling();
+}
+
+/* Logout — single source supaya semua page (bukan cuma yg punya inline) berfungsi.
+   Page lama yg sudah punya `doLogout` lokal akan overwrite (no harm — same behavior). */
+if (typeof window.doLogout !== 'function') {
+  window.doLogout = async function () {
+    if (!confirm('Yakin ingin keluar?')) return;
+    try {
+      if (window._sb) await window._sb.auth.signOut();
+      sessionStorage.removeItem('userRole');
+    } catch (e) { console.error('[sidebar] logout gagal:', e); }
+    window.location.href = 'index.html';
+  };
+}
+
+async function _populateSidebarUser() {
+  try {
+    if (!window._sb) return;
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (!session) return;
+    const user = session.user;
+    const name = user.user_metadata?.full_name || (user.email || '').split('@')[0] || 'User';
+    const nameEl = document.getElementById('userName');
+    const avEl   = document.getElementById('userAvatar');
+    if (nameEl) nameEl.textContent = name;
+    if (avEl)   avEl.textContent   = (name[0] || '?').toUpperCase();
+    /* Populate role — applyRoleUI mungkin sudah dipanggil sebelum sidebar render,
+       jadi #userRole belum exist. Re-apply di sini. */
+    let role = window._userRole || sessionStorage.getItem('userRole');
+    if (!role && typeof getUserRole === 'function') role = await getUserRole();
+    if (role && typeof applyRoleUI === 'function') applyRoleUI(role);
+  } catch (e) {
+    console.error('[sidebar] populate user gagal:', e);
+  }
 }
 
 /* ═══════════════════════════════════════════

@@ -49,37 +49,49 @@ function hideLoader() {
 // ── Brand ─────────────────────────────────────────────────────────
 async function loadBrands() {
   const { data } = await window._sb.from('brands').select('*').order('nama');
-  const sel = document.getElementById('brandSelect');
-  if (!sel) return;
+  const inlineSel = document.getElementById('filterBrand');
+  const sidebarSel = document.getElementById('brandSelect');
   (data || []).forEach(b => {
-    const opt = document.createElement('option');
-    opt.value = b.id; opt.textContent = b.nama;
-    sel.appendChild(opt);
+    if (inlineSel) {
+      const o = document.createElement('option');
+      o.value = b.id; o.textContent = b.nama;
+      inlineSel.appendChild(o);
+    }
+    if (sidebarSel) {
+      const o = document.createElement('option');
+      o.value = b.id; o.textContent = b.nama;
+      sidebarSel.appendChild(o);
+    }
   });
-  const saved = localStorage.getItem('activeBrand');
-  if (saved) sel.value = saved;
+  // Default 'all' — abaikan localStorage.activeBrand di page ini
+  if (inlineSel) inlineSel.value = 'all';
+  if (sidebarSel) sidebarSel.value = 'all';
   _updateBrandLabel();
 }
 
 function _updateBrandLabel() {
-  const sel = document.getElementById('brandSelect');
+  const sel = document.getElementById('filterBrand');
   const lbl = document.getElementById('activeBrandLabel');
   if (!sel || !lbl) return;
   const opt = sel.options[sel.selectedIndex];
-  lbl.textContent = opt?.value ? opt.textContent : 'Semua Brand';
+  lbl.textContent = (!opt?.value || opt.value === 'all') ? 'Semua Brand' : opt.textContent;
 }
 
-function onBrandChange() {
-  const sel = document.getElementById('brandSelect');
-  if (sel?.value) localStorage.setItem('activeBrand', sel.value);
+function onFilterBrandChange() {
+  const sel = document.getElementById('filterBrand');
+  const sidebarSel = document.getElementById('brandSelect');
+  if (sidebarSel && sel) sidebarSel.value = sel.value;
   _updateBrandLabel();
   loadPayments();
 }
 
+// Backward-compat
+function onBrandChange() { onFilterBrandChange(); }
+
 // ── Load data ─────────────────────────────────────────────────────
 async function loadPayments() {
   const sb     = window._sb;
-  const brand  = document.getElementById('brandSelect')?.value  || '';
+  const brand  = document.getElementById('filterBrand')?.value || 'all';
   const tbody  = document.getElementById('financeTableBody');
   tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Memuat...</td></tr>`;
 
@@ -130,9 +142,23 @@ function updateSummary() {
   const totalOutstanding = pending.reduce((s, r) => s + (r.amount || 0), 0);
   const totalPaidMonth   = paidMonth.reduce((s, r) => s + (r.amount || 0), 0);
 
-  document.getElementById('statOutstanding').textContent = formatRp(totalOutstanding);
-  document.getElementById('statNeedsPay').textContent    = `${pending.length} item`;
-  document.getElementById('statPaidMonth').textContent   = formatRp(totalPaidMonth);
+  const setStat = (id, txt, isZero, activeColor) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.style.color = isZero ? 'var(--muted)' : activeColor;
+    el.style.opacity = isZero ? '.55' : '1';
+  };
+  setStat('statOutstanding', formatRp(totalOutstanding), totalOutstanding === 0, 'var(--accent)');
+  setStat('statNeedsPay',    `${pending.length} item`,    pending.length === 0,    'var(--danger)');
+  setStat('statPaidMonth',   formatRp(totalPaidMonth),    totalPaidMonth === 0,    'var(--accent3)');
+  // Count chip topbar
+  const chip = document.getElementById('payCountChip');
+  if (chip) {
+    const n = FinState.allRows.length;
+    if (n > 0) { chip.textContent = `${n} invoice`; chip.style.display = 'inline-block'; }
+    else { chip.style.display = 'none'; }
+  }
 }
 
 // ── Filter & render ───────────────────────────────────────────────
@@ -149,19 +175,91 @@ function applyFilter() {
   renderTable();
 }
 
+window.setPayStatus = function(s) {
+  document.querySelectorAll('.pay-chip').forEach(c => c.classList.toggle('active', c.dataset.status === s));
+  const sel = document.getElementById('filterStatus');
+  if (sel) sel.value = s;
+  applyFilter();
+};
+
+// Sort state
+window._paySort = { col: null, dir: 1 };
+window.setPaySort = function(col) {
+  if (window._paySort.col === col) window._paySort.dir = -window._paySort.dir;
+  else { window._paySort.col = col; window._paySort.dir = 1; }
+  renderTable();
+};
+
+function _sortRows(rows) {
+  const { col, dir } = window._paySort;
+  if (!col) return rows;
+  const get = {
+    tgl:    r => r.payment_date || r._tglInvoice || '',
+    jumlah: r => r.amount || 0,
+    vendor: r => (r._vendorNama || '').toLowerCase(),
+  }[col] || (() => 0);
+  return [...rows].sort((a, b) => {
+    const va = get(a), vb = get(b);
+    if (va < vb) return -1 * dir;
+    if (va > vb) return  1 * dir;
+    return 0;
+  });
+}
+
+function _renderMobileCard(r) {
+  const isPaid = r.status_payment === 'paid';
+  const stClass = isPaid ? 'paid' : 'pending';
+  const stBadge = isPaid
+    ? `<span class="badge-green" style="font-size:10px">Lunas</span>`
+    : `<span class="badge-orange" style="font-size:10px">Pending</span>`;
+  const action = isPaid
+    ? `<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">Lunas ${formatDate(r.payment_date)}</span>`
+    : `<button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="openMarkPaid('${r.id}')">✓ Tandai Lunas</button>`;
+  const attach = r.attachment_url
+    ? `<a href="${escHtml(r.attachment_url)}" target="_blank" class="btn-ghost" style="font-size:11px;padding:4px 9px">📎</a>`
+    : `<button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="triggerUpload('${r.id}')">↑</button>`;
+  return `<div class="pay-card ${stClass}">
+    <div class="pay-card-r1">
+      <div class="pay-card-vendor">${escHtml(r._vendorNama || '—')}</div>
+      <div class="pay-card-amount">${formatRp(r.amount)}</div>
+    </div>
+    <div class="pay-card-meta">
+      <span>${escHtml(r._faktur || '—')}</span>
+      <span>${r.payment_date ? formatDate(r.payment_date) : '—'}</span>
+    </div>
+    <div class="pay-card-meta">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r._description)}">${escHtml(r._bankLabel || '—')}</span>
+      ${stBadge}
+    </div>
+    <div class="pay-card-action">${attach}${action}</div>
+  </div>`;
+}
+
 function renderTable() {
   const tbody = document.getElementById('financeTableBody');
-  const rows  = FinState.filteredRows;
+  const mobileEl = document.getElementById('payMobileList');
   const info  = document.getElementById('tableInfo');
+  const rows  = _sortRows(FinState.filteredRows);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Tidak ada data</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px;opacity:.6">📭</div><div style="font-size:14px">Tidak ada pembayaran</div><div style="font-size:11px;margin-top:4px;font-family:var(--mono);opacity:.7">Ubah filter atau rentang tanggal</div></div></td></tr>`;
+    if (mobileEl) mobileEl.innerHTML = `<div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px;opacity:.6">📭</div><div style="font-size:14px">Tidak ada pembayaran</div></div>`;
     if (info) info.textContent = '';
     return;
   }
 
   tbody.innerHTML = rows.map(r => renderRow(r)).join('');
+  if (mobileEl) mobileEl.innerHTML = rows.map(r => _renderMobileCard(r)).join('');
   if (info) info.textContent = `Menampilkan ${rows.length} dari ${FinState.allRows.length} data`;
+
+  // Mark sorted header
+  document.querySelectorAll('.th-sort').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === window._paySort.col);
+    const ind = th.querySelector('.sort-ind');
+    if (ind) ind.textContent = (th.dataset.col === window._paySort.col)
+      ? (window._paySort.dir > 0 ? '▲' : '▼')
+      : '↕';
+  });
 }
 
 function renderRow(r) {
@@ -306,16 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) { window.location.href = 'index.html'; return; }
 
   const role = await getUserRole();
-  if (role !== 'admin' && role !== 'finance') {
-    document.querySelector('.content').innerHTML = `
-      <div style="padding:60px;text-align:center;color:var(--muted)">
-        <div style="font-size:48px;margin-bottom:16px">⛔</div>
-        <div>Akses ditolak. Halaman ini hanya untuk Finance.</div>
-      </div>`;
-    hideLoader();
-    return;
-  }
-
   applyRoleUI(role);
   renderSidebar('finance.html', 'Pilih Brand', 'onBrandChange()');
   await loadBrands();

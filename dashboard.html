@@ -292,7 +292,7 @@
     document.getElementById('userAvatar').textContent = name[0].toUpperCase();
 
     const role = await getUserRole(); applyRoleUI(role);
-    if (role !== 'admin') {
+    if (!isAdminLevel(role)) {
       const setEl = (id, prop, val) => { const el = document.getElementById(id); if (el) el[prop] = val; };
       document.getElementById('qa-pembelian').href = 'pembelian.html';
       setEl('qa-pembelian-icon',  'textContent', '🛒');

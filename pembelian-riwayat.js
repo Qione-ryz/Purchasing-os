@@ -249,7 +249,7 @@ function _renderRiwayatRows(slice) {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Detail
           </button>
-          ${window._userRole==='admin'?`
+          ${window._isAdmin?`
           <div class="action-more-wrap">
             <button class="action-more-btn" onclick="toggleActionMenu(event,'rmenu-${r.id}')" title="Aksi lain">⋯</button>
             <div class="action-more-menu" id="rmenu-${r.id}">

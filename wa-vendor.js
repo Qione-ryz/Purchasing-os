@@ -5,6 +5,13 @@ function openWAModeSelector() {
   if (!_waOrderId) return;
   const o = allOrders.find(x => x.id === _waOrderId);
   if (!o) return;
+  // Saat Grup Vendor OFF, mode "byGroup" tidak relevan (cuma satu grup "Semua Barang").
+  // Skip mode selector — langsung manual.
+  const groupByVendor = (typeof buildDetailModal !== 'undefined') && buildDetailModal._groupByVendor;
+  if (!groupByVendor) {
+    if (typeof openWAModal === 'function') openWAModal('byManual');
+    return;
+  }
   document.getElementById('waModeOrderMeta').textContent =
     `Order ${_waOrderId.substring(0,8).toUpperCase()} · ${brands[o.brand_id]||'—'}`;
   document.getElementById('modalWAMode').classList.add('show');
@@ -253,6 +260,40 @@ function onWAKontakChange(selectId, valId, btnOpenId) {
 // _waKontakCheckMap: { kontakTelp: Set(itemIdx) } — state checklist per kontak
 // Inisialisasi saat vendor dipilih: tiap kontak default checklist = semua item
 
+// ── PREFERENSI KONTAK PER BARANG ──
+// Simpan mapping { barang_id: kontak_telp } per vendor di localStorage.
+// Sistem belajar dari toggle user — kontak terakhir yang "pakai" item = pemilik default.
+function _waKontakPrefKey(vendorId) { return `waKontakPref:${vendorId}`; }
+function _loadWAKontakPref(vendorId) {
+  try {
+    const raw = localStorage.getItem(_waKontakPrefKey(vendorId));
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+function _saveWAKontakPref(vendorId, pref) {
+  try { localStorage.setItem(_waKontakPrefKey(vendorId), JSON.stringify(pref)); } catch(e) {}
+}
+// Build default Set per-kontak berdasarkan preferensi tersimpan.
+// Item dengan barang_id yang ke-pref ke kontak X → masuk Set kontak X saja.
+// Item tanpa pref (atau pref ke kontak yang sudah dihapus) → default ke kontak[0].
+function _buildKontakCheckMapFromPref(vendorId, kontakList, items) {
+  const pref = _loadWAKontakPref(vendorId);
+  const validTelps = new Set(kontakList.map(k => k.telp));
+  const map = {};
+  kontakList.forEach(k => { map[k.telp] = new Set(); });
+  const defaultTelp = kontakList[0]?.telp;
+  items.forEach((it, i) => {
+    const bid = it.barang_id;
+    const owned = bid && pref[bid];
+    if (owned && validTelps.has(owned)) {
+      map[owned].add(i);
+    } else if (defaultTelp) {
+      map[defaultTelp].add(i);
+    }
+  });
+  return map;
+}
+
 function _renderWAItemKontakList() {
   const listEl = document.getElementById('waItemKontakList');
   if (!listEl) return;
@@ -296,10 +337,34 @@ function onWAGroupItemToggle() {
   if (!window._waKontakCheckMap) window._waKontakCheckMap = {};
   if (!window._waKontakCheckMap[selectedTelp]) window._waKontakCheckMap[selectedTelp] = new Set();
 
+  const vendorItemsMap   = sel._vendorItemsMap || {};
+  const assignedItems    = vendorItemsMap[vendorId];
+  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
+
   const checkboxes = document.querySelectorAll('#waItemKontakList input[type=checkbox]');
   const newSet = new Set();
   checkboxes.forEach(cb => { if (cb.checked) newSet.add(parseInt(cb.dataset.itemIdx)); });
   window._waKontakCheckMap[selectedTelp] = newSet;
+
+  // Persist preferensi: tiap item yang baru di-check ke kontak X → assign owner = X.telp.
+  // Tiap item yang di-uncheck dari kontak X dan sebelumnya owned X → clear assignment.
+  const pref = _loadWAKontakPref(vendorId);
+  itemsUntukVendor.forEach((it, i) => {
+    const bid = it.barang_id;
+    if (!bid) return;
+    if (newSet.has(i)) {
+      pref[bid] = selectedTelp;
+    } else if (pref[bid] === selectedTelp) {
+      delete pref[bid];
+    }
+  });
+  _saveWAKontakPref(vendorId, pref);
+
+  // Refresh checklist semua kontak agar reflektif (item yang dipindah owner-nya hilang dari kontak lain)
+  const newMap = _buildKontakCheckMapFromPref(vendorId, kontakList, itemsUntukVendor);
+  // Pertahankan kontak yang baru saja di-toggle agar UI tidak loncat
+  newMap[selectedTelp] = newSet;
+  window._waKontakCheckMap = newMap;
 
   _renderWAGroupPreview();
 }
@@ -393,11 +458,11 @@ function onWAVendorChange() {
   const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
   const hasHist          = !!(assignedItems && assignedItems.length > 0);
 
+  // Build default checklist per-kontak dari preferensi localStorage.
+  // Item yang sebelumnya di-toggle ke kontak X otomatis masuk ke kontak X saja.
   window._waKontakCheckMap = {};
   if (isMulti) {
-    kontakList.forEach(k => {
-      window._waKontakCheckMap[k.telp] = new Set(itemsUntukVendor.map((_, i) => i));
-    });
+    window._waKontakCheckMap = _buildKontakCheckMapFromPref(vendorId, kontakList, itemsUntukVendor);
   }
 
   // Tampilkan/sembunyikan checklist section

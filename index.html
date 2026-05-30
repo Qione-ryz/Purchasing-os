@@ -498,7 +498,7 @@
       const { error } = await window._sb.auth.signUp({
         email,
         password: pass,
-        options: { data: { full_name: name } }
+        options: { data: { full_name: name, app: 'purchasing' } }
       });
       if (error) throw error;
       showSuccess('✓ Akun dibuat! Cek email untuk konfirmasi, lalu login di sini.');

@@ -132,9 +132,10 @@
     .kode-hint { font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono); }
 
     /* BARANG STORE */
-    .bs-sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); }
-    .bs-sub-tab { padding:10px 18px; font-size:13px; font-weight:600; color:var(--muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; font-family:var(--sans); }
-    .bs-sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    /* Sub-tab pakai pattern WindPulse pill dari style.css (.tab-bar/.tab-btn) — pakai shared class langsung */
+    .bs-sub-tabs-wrap { padding:14px 18px 0; }
+    .bs-sub-tab:focus { outline:none; }
+    .bs-sub-tab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
     .bs-barang-group { padding:6px 18px 4px; font-size:10px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.7px; background:var(--surface2); border-bottom:1px solid var(--border); }
     .bs-barang-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .1s; user-select:none; }
     .bs-barang-row:last-child { border-bottom:none; }
@@ -155,6 +156,16 @@
     .bs-member-row.checked .bs-member-cb { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
     .bs-empty { padding:40px 20px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:13px; }
     .bs-info-bar { padding:8px 18px; font-size:12px; font-family:var(--mono); color:var(--muted); background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    /* Segmented sort group — selaras pattern lain (rounded container, subtle active) */
+    .bs-sort-group { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; height:36px; }
+    .bs-sort-btn { padding:0 14px; font-size:13px; font-family:var(--mono); font-weight:600; background:var(--bg); color:var(--muted); border:none; cursor:pointer; transition:background .15s,color .15s; height:100%; }
+    .bs-sort-btn:hover:not(.active) { color:var(--text); }
+    .bs-sort-btn.active { background:var(--surface2); color:var(--accent); }
+    .bs-sort-btn:focus { outline:none; }
+    .bs-sort-btn:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+    /* Info-bar action group height align */
+    .bs-info-bar > div { gap:8px; }
+    .bs-info-bar .btn { height:36px; padding:0 14px; font-size:13px; }
     /* Search — SVG icon, clear button, no overlap */
     .bs-search-wrap { position:relative; display:flex; align-items:center; }
     .bs-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; display:flex; align-items:center; line-height:1; }
@@ -162,19 +173,9 @@
     .bs-search-input:focus { border-color:var(--accent); }
     .bs-search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 5px; border-radius:4px; display:none; align-items:center; line-height:1; transition:color .15s; }
     .bs-search-clear:hover { color:var(--text); }
-    .bs-grup-form { padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
-    .bs-grup-form label { font-size:11px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.6px; display:block; margin-bottom:5px; }
-    .bs-grup-form input[type="text"] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:9px 12px; outline:none; transition:border-color .2s; box-sizing:border-box; }
-    .bs-grup-form input:focus { border-color:var(--accent); }
-    .bs-grup-form select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:9px 12px; outline:none; }
     #bsGrupFormPanel { display:none; flex-direction:column; }
     #bsGrupFormPanel.open { display:flex; }
 
-    /* SIMPLE MODAL (Satuan & Kategori) */
-    .simple-modal-title { font-size:16px; font-weight:600; margin-bottom:16px; }
-    .simple-modal-label { display:block; font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
-    .simple-modal-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--sans); font-size:14px; padding:10px 13px; outline:none; transition:border-color .2s; }
-    .simple-modal-input:focus { border-color:var(--accent); }
   </style>
 </head>
 <body>
@@ -269,7 +270,10 @@
               </div>
               <div class="field" style="margin:0;flex-shrink:0">
                 <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Lainnya</label>
-                <button class="btn btn-ghost btn-sm" onclick="bsOpenCopyModal()" style="white-space:nowrap">📋 Salin dari Brand Lain</button>
+                <button class="btn btn-ghost" onclick="bsOpenCopyModal()" style="white-space:nowrap;height:38px;padding:0 14px">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Salin dari Brand Lain
+                </button>
               </div>
             </div>
           </div>
@@ -277,9 +281,11 @@
           <!-- Content card (muncul setelah brand dipilih) -->
           <div class="card" id="bsCard" style="display:none">
             <!-- Sub-tabs -->
-            <div class="bs-sub-tabs">
-              <button class="bs-sub-tab active" id="bsSubBarang" onclick="bsSwitchSub('barang')">⚙ Barang Ditampilkan</button>
-              <button class="bs-sub-tab" id="bsSubGrup" onclick="bsSwitchSub('grup')">🗂 Grup Barang</button>
+            <div class="bs-sub-tabs-wrap">
+              <div class="tab-bar">
+                <button class="tab-btn bs-sub-tab active" id="bsSubBarang" onclick="bsSwitchSub('barang')">⚙ Barang Ditampilkan</button>
+                <button class="tab-btn bs-sub-tab" id="bsSubGrup" onclick="bsSwitchSub('grup')">🗂 Grup Barang</button>
+              </div>
             </div>
 
             <!-- ── Panel Barang ── -->
@@ -287,20 +293,20 @@
               <div class="bs-info-bar">
                 <span id="bsBarangInfo" style="font-size:12px;color:var(--muted);font-family:var(--mono)">—</span>
                 <div style="display:flex;gap:6px;align-items:center">
-                  <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-                    <button id="bsSortKat" onclick="bsSetSort('kategori')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--accent);color:var(--bg);border:none;cursor:pointer;font-weight:600">Kategori</button>
-                    <button id="bsSortAz" onclick="bsSetSort('abjad')" style="padding:5px 11px;font-size:12px;font-family:var(--mono);background:var(--bg);color:var(--muted);border:none;cursor:pointer;font-weight:600">A–Z</button>
+                  <div class="bs-sort-group">
+                    <button id="bsSortKat" class="bs-sort-btn active" onclick="bsSetSort('kategori')">Kategori</button>
+                    <button id="bsSortAz" class="bs-sort-btn" onclick="bsSetSort('abjad')">A–Z</button>
                   </div>
                   <button class="btn btn-primary btn-sm" onclick="bsSaveBarang()">💾 Simpan</button>
                 </div>
               </div>
-              <div style="padding:12px 18px 14px;border-bottom:1px solid var(--border)">
-                <div class="bs-search-wrap">
-                  <span class="bs-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                  <input type="text" class="bs-search-input" id="bsSearchBarang" placeholder="Cari barang..." oninput="bsRenderBarangList();document.getElementById('bsSearchBarangClear').style.display=this.value?'flex':'none'"/>
-                  <button class="bs-search-clear" id="bsSearchBarangClear" onclick="document.getElementById('bsSearchBarang').value='';bsRenderBarangList();this.style.display='none'">✕</button>
+              <div style="padding:12px 18px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <div class="search-wrap" style="flex:1;min-width:200px">
+                  <span class="search-icon">🔍</span>
+                  <input type="text" class="search-input" id="bsSearchBarang" placeholder="Cari barang..." oninput="bsRenderBarangList();document.getElementById('bsSearchBarangClear').style.display=this.value?'flex':'none'"/>
+                  <button class="search-clear" id="bsSearchBarangClear" onclick="document.getElementById('bsSearchBarang').value='';bsRenderBarangList();this.style.display='none'" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 6px">✕</button>
                 </div>
-                <div style="display:flex;gap:6px;margin-top:10px">
+                <div style="display:flex;gap:6px;flex-shrink:0">
                   <button class="btn btn-ghost btn-sm" onclick="bsSelectAll()">✓ Pilih Semua</button>
                   <button class="btn btn-ghost btn-sm" onclick="bsSelectNone()" style="color:var(--muted)">✕ Hapus Semua</button>
                 </div>
@@ -330,22 +336,22 @@
                     <span style="font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px" id="bsGrupFormTitle">Tambah Grup Baru</span>
                     <button class="btn btn-ghost btn-sm" onclick="bsResetGrupForm()">✕ Batal</button>
                   </div>
-                  <div class="bs-grup-form" style="flex:1;overflow-y:auto">
+                  <div style="padding:16px 18px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
                     <input type="hidden" id="bsGrupFormId"/>
-                    <div>
+                    <div class="field" style="margin-bottom:0">
                       <label>Nama Grup</label>
                       <input type="text" id="bsGrupFormNama" placeholder="cth: Beef Patty Group"/>
                     </div>
-                    <div>
+                    <div class="field" style="margin-bottom:0">
                       <label>Anggota Grup</label>
-                      <div class="bs-search-wrap" style="margin-bottom:6px">
-                        <span class="bs-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                        <input type="text" class="bs-search-input" id="bsGrupMemberSearch" placeholder="Cari barang anggota..." oninput="bsRenderGrupMemberList();document.getElementById('bsGrupMemberSearchClear').style.display=this.value?'flex':'none'"/>
-                        <button class="bs-search-clear" id="bsGrupMemberSearchClear" onclick="document.getElementById('bsGrupMemberSearch').value='';bsRenderGrupMemberList();this.style.display='none'">✕</button>
+                      <div class="search-wrap" style="position:relative;margin-bottom:6px">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" id="bsGrupMemberSearch" placeholder="Cari barang anggota..." oninput="bsRenderGrupMemberList();document.getElementById('bsGrupMemberSearchClear').style.display=this.value?'flex':'none'"/>
+                        <button class="search-clear" id="bsGrupMemberSearchClear" onclick="document.getElementById('bsGrupMemberSearch').value='';bsRenderGrupMemberList();this.style.display='none'" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 6px">✕</button>
                       </div>
                       <div id="bsGrupMemberList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>
                     </div>
-                    <div id="bsGrupPrimerWrap" style="display:none">
+                    <div class="field" id="bsGrupPrimerWrap" style="display:none;margin-bottom:0">
                       <label>Barang Primer <span style="text-transform:none;font-size:10px;color:var(--muted)">(stok disimpan ke sini)</span></label>
                       <select id="bsGrupFormPrimer"></select>
                     </div>
@@ -435,7 +441,7 @@
               <div>
                 <div class="profile-name" id="profileName">—</div>
                 <div class="profile-email" id="profileEmail">—</div>
-                <span class="badge badge-blue" style="margin-top:6px" id="profileRole">—</span>
+                <span class="badge" style="margin-top:6px;background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3)" id="profileRole">—</span>
               </div>
             </div>
             <div class="card-body">
@@ -460,12 +466,16 @@
               <div class="success-box" id="passSuccess"></div>
               <div class="error-box"   id="passError"></div>
               <div class="field">
+                <label>Password Lama</label>
+                <input type="password" id="pPassOld" placeholder="Password saat ini" autocomplete="current-password"/>
+              </div>
+              <div class="field">
                 <label>Password Baru</label>
-                <input type="password" id="pPassNew" placeholder="Min. 6 karakter"/>
+                <input type="password" id="pPassNew" placeholder="Min. 6 karakter" autocomplete="new-password"/>
               </div>
               <div class="field">
                 <label>Konfirmasi Password</label>
-                <input type="password" id="pPassConfirm" placeholder="Ulangi password baru"/>
+                <input type="password" id="pPassConfirm" placeholder="Ulangi password baru" autocomplete="new-password"/>
               </div>
               <button class="btn btn-primary" onclick="changePassword()">Ubah Password</button>
             </div>
@@ -907,9 +917,9 @@
       <div class="field">
         <label>Role</label>
         <select id="roleSelect">
-          <option value="admin">Admin — akses penuh</option>
-          <option value="staff">Staff — bisa input, tidak bisa hapus</option>
-          <option value="viewer">Viewer — hanya lihat data</option>
+          <option value="superadmin" data-min-actor="superadmin">Superadmin — penuh + kelola admin</option>
+          <option value="admin" data-min-actor="superadmin">Admin — akses penuh</option>
+          <option value="user" data-min-actor="admin">User — hanya lihat & input</option>
         </select>
       </div>
       <input type="hidden" id="roleUserId"/>
@@ -949,7 +959,8 @@
         <label>Role</label>
         <select id="cuRole">
           <option value="user">User — hanya bisa lihat & input</option>
-          <option value="admin">Admin — akses penuh</option>
+          <option value="admin" data-min-actor="superadmin">Admin — akses penuh</option>
+          <option value="superadmin" data-min-actor="superadmin">Superadmin — penuh + kelola admin</option>
         </select>
       </div>
       <div class="kode-brand-hint">
@@ -1032,11 +1043,12 @@
 
     /* Fetch role */
     const role = await getUserRole(); applyRoleUI(role);
-    document.getElementById('userRole').textContent = role === 'admin' ? 'Admin' : 'User';
-    document.getElementById('profileRole').textContent   = role === 'admin' ? 'Admin' : 'User';
+    const _roleLabel = role === 'superadmin' ? 'Superadmin' : (role === 'admin' ? 'Admin' : (role ? role[0].toUpperCase()+role.slice(1) : 'User'));
+    document.getElementById('userRole').textContent       = _roleLabel;
+    document.getElementById('profileRole').textContent    = _roleLabel;
 
-    /* ── Blokir akses Settings untuk non-admin ── */
-    if (role !== 'admin') {
+    /* ── Blokir akses Settings untuk non-admin (superadmin ikut admin) ── */
+    if (!isAdminLevel(role)) {
       document.querySelector('.settings-grid').innerHTML = `
         <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:16px">
           <div class="access-denied-icon">🔒</div>
@@ -1096,8 +1108,13 @@
           </div>
         </div>
         <div class="brand-right">
-          <button class="btn btn-ghost btn-sm" onclick="openBrandModal('${b.id}')">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteBrand('${b.id}','${b.nama.replace(/'/g,"\\'")}')">🗑</button>
+          <button class="btn btn-ghost btn-sm" onclick="openBrandModal('${b.id}')" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBrand('${b.id}','${b.nama.replace(/'/g,"\\'")}')" title="Hapus">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
         </div>
       </div>`;
     }).join('');
@@ -1134,23 +1151,43 @@
         return;
       }
 
+      // Current actor role — tentukan permission edit
+      const actorRole = (sessionStorage.getItem('userRole') || 'user').toLowerCase();
+      const _roleBadge = (role) => {
+        const r = (role||'').toLowerCase();
+        if (r === 'superadmin') return `<span class="badge" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.35)">Superadmin</span>`;
+        if (r === 'admin')      return `<span class="badge" style="background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3)">Admin</span>`;
+        if (r === 'staff')      return `<span class="badge" style="background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.25)">Staff</span>`;
+        if (r === 'viewer')     return `<span class="badge" style="background:rgba(107,114,128,0.15);color:var(--muted);border:1px solid var(--border)">Viewer</span>`;
+        return `<span class="badge badge-gray">User</span>`;
+      };
+      // Permission matrix:
+      // - superadmin: edit semua (kecuali demote dirinya sendiri — handled by isSelf)
+      // - admin: hanya edit user/staff/viewer (TIDAK boleh edit admin/superadmin)
+      // - lainnya: tidak boleh edit
+      const _canEdit = (targetRole) => {
+        const t = (targetRole||'').toLowerCase();
+        if (actorRole === 'superadmin') return true;
+        if (actorRole === 'admin')      return !['admin','superadmin'].includes(t);
+        return false;
+      };
+
       tbody.innerHTML = profiles.map(p => {
         const name  = p.nama  || p.email?.split('@')[0] || '—';
         const email = p.email || '—';
         const tgl   = p.created_at ? new Date(p.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—';
-        const roleBadge = p.role === 'admin'
-          ? `<span class="badge" style="background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3)">Admin</span>`
-          : `<span class="badge badge-gray">User</span>`;
         const isSelf = p.id === selfId;
         const escapedName = (name||'').replace(/'/g,"\\'");
+        let aksi;
+        if (isSelf) aksi = '<span style="font-size:11px;color:var(--muted)">itu kamu</span>';
+        else if (!_canEdit(p.role)) aksi = `<span style="font-size:11px;color:var(--muted)" title="Tidak punya akses">🔒 dikunci</span>`;
+        else aksi = `<button class="btn btn-ghost btn-sm" onclick="openRoleModal('${p.id}','${escapedName}','${p.role}')">Ubah Role</button>`;
         return `<tr>
           <td class="user-name-cell">${name}${isSelf?` <span class="user-self-badge">(kamu)</span>`:''}</td>
           <td class="user-meta-cell">${email}</td>
-          <td>${roleBadge}</td>
+          <td>${_roleBadge(p.role)}</td>
           <td class="user-meta-cell">${tgl}</td>
-          <td>
-            ${!isSelf ? `<button class="btn btn-ghost btn-sm" onclick="openRoleModal('${p.id}','${escapedName}','${p.role}')">Ubah Role</button>` : '—'}
-          </td>
+          <td>${aksi}</td>
         </tr>`;
       }).join('');
     } catch(e) {
@@ -1158,17 +1195,41 @@
     }
   };
 
+  // Filter option role yg boleh dipilih sesuai actor role
+  function _applyRoleSelectFilter(selectEl) {
+    if (!selectEl) return;
+    const actorRole = (sessionStorage.getItem('userRole') || 'user').toLowerCase();
+    Array.from(selectEl.options).forEach(opt => {
+      const min = opt.dataset.minActor || 'admin'; // default min = admin
+      let allowed = false;
+      if (actorRole === 'superadmin') allowed = true;
+      else if (actorRole === 'admin') allowed = (min !== 'superadmin');
+      opt.disabled = !allowed;
+      opt.hidden   = !allowed;
+    });
+  }
+
   window.openRoleModal  = (uid, name, role) => {
     document.getElementById('roleUserId').value = uid;
     document.getElementById('roleUserName').textContent = name;
-    document.getElementById('roleSelect').value = role;
+    const sel = document.getElementById('roleSelect');
+    _applyRoleSelectFilter(sel);
+    sel.value = role;
     document.getElementById('roleModal').classList.add('show');
   };
   window.closeRoleModal = () => document.getElementById('roleModal').classList.remove('show');
 
   window.saveRole = async () => {
-    const uid  = document.getElementById('roleUserId').value;
-    const role = document.getElementById('roleSelect').value;
+    const uid       = document.getElementById('roleUserId').value;
+    const role      = document.getElementById('roleSelect').value;
+    const actorRole = (sessionStorage.getItem('userRole') || 'user').toLowerCase();
+    // Client-side guard (RLS server-side tetap enforce)
+    if (role === 'superadmin' && actorRole !== 'superadmin') {
+      showToast('Hanya superadmin yang bisa menetapkan role superadmin', 'error'); return;
+    }
+    if (role === 'admin' && actorRole !== 'superadmin') {
+      showToast('Hanya superadmin yang bisa menetapkan role admin', 'error'); return;
+    }
     try {
       const { error } = await window._sb.from('profiles').update({ role }).eq('id', uid);
       if (error) throw error;
@@ -1188,6 +1249,7 @@
     document.getElementById('cuName').value  = '';
     document.getElementById('cuEmail').value = '';
     document.getElementById('cuPass').value  = '';
+    _applyRoleSelectFilter(document.getElementById('cuRole'));
     document.getElementById('cuRole').value  = 'user';
     document.getElementById('createUserModal').classList.add('show');
     setTimeout(()=>document.getElementById('cuName').focus(), 100);
@@ -1225,12 +1287,14 @@
          tapi kalau auto-confirm aktif user langsung terbuat.
          Set role di profiles — trigger sudah insert 'user', kita update jika perlu */
       if (newUser?.user) {
-        /* Update profiles dengan nama, email, dan role */
+        /* Update profiles dengan nama, email, role, dan tag app 'purchasing'
+           supaya user ini visible di app purchasing (Supabase di-share dgn app lain) */
         await window._sb.from('profiles').upsert({
           id:    newUser.user.id,
           nama:  name,
           email: email,
-          role:  role
+          role:  role,
+          apps:  ['purchasing']
         });
 
         /* Restore session admin jika sempat ter-replace */
@@ -1591,7 +1655,7 @@
   }
 
   async function deleteBrand(id, nama) {
-    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
+    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     /* Cek dulu berapa data yang akan terdampak */
     const [{ count: cBarang }, { count: cVendor }, { count: cBeli }] = await Promise.all([
       window._sb.from('barang_brands').select('*', { count:'exact', head:true }).eq('brand_id', id),
@@ -1650,18 +1714,29 @@
   }
 
   async function changePassword() {
+    const op = document.getElementById('pPassOld').value;
     const np = document.getElementById('pPassNew').value;
     const cp = document.getElementById('pPassConfirm').value;
     const errEl  = document.getElementById('passError');
     const succEl = document.getElementById('passSuccess');
     errEl.classList.remove('show'); succEl.classList.remove('show');
-    if (np.length < 6) { errEl.textContent = 'Password minimal 6 karakter'; errEl.classList.add('show'); return; }
-    if (np !== cp)     { errEl.textContent = 'Password tidak cocok'; errEl.classList.add('show'); return; }
+    if (!op)           { errEl.textContent = 'Password lama wajib diisi'; errEl.classList.add('show'); return; }
+    if (np.length < 6) { errEl.textContent = 'Password baru minimal 6 karakter'; errEl.classList.add('show'); return; }
+    if (np !== cp)     { errEl.textContent = 'Konfirmasi password tidak cocok'; errEl.classList.add('show'); return; }
+    if (op === np)     { errEl.textContent = 'Password baru sama dengan yang lama'; errEl.classList.add('show'); return; }
     try {
+      // Verifikasi password lama: re-auth via signInWithPassword
+      const { data: { session } } = await window._sb.auth.getSession();
+      const email = session?.user?.email;
+      if (!email) throw new Error('Sesi tidak valid, login ulang');
+      const { error: authErr } = await window._sb.auth.signInWithPassword({ email, password: op });
+      if (authErr) throw new Error('Password lama salah');
+      // Update ke password baru
       const { error } = await window._sb.auth.updateUser({ password: np });
       if (error) throw error;
       succEl.textContent = '✓ Password berhasil diubah';
       succEl.classList.add('show');
+      document.getElementById('pPassOld').value = '';
       document.getElementById('pPassNew').value = '';
       document.getElementById('pPassConfirm').value = '';
     } catch(e) {
@@ -1773,10 +1848,8 @@
 
   function bsSetSort(mode) {
     bsSortMode = mode;
-    document.getElementById('bsSortKat').style.background = mode==='kategori' ? 'var(--accent)' : 'var(--bg)';
-    document.getElementById('bsSortKat').style.color      = mode==='kategori' ? 'var(--bg)'    : 'var(--muted)';
-    document.getElementById('bsSortAz').style.background  = mode==='abjad'    ? 'var(--accent)' : 'var(--bg)';
-    document.getElementById('bsSortAz').style.color       = mode==='abjad'    ? 'var(--bg)'   : 'var(--muted)';
+    document.getElementById('bsSortKat').classList.toggle('active', mode === 'kategori');
+    document.getElementById('bsSortAz').classList.toggle('active',  mode === 'abjad');
     bsRenderBarangList();
   }
 
@@ -1787,6 +1860,10 @@
     const sel = document.getElementById('bsBrandSelect');
     sel.innerHTML = '<option value="">— Pilih brand —</option>' +
       window.allBrands.map(b => `<option value="${b.id}">${b.nama}</option>`).join('');
+    // Restore brand pilihan sebelumnya (saat user pindah panel & kembali)
+    if (bsActiveBrandId) {
+      sel.value = bsActiveBrandId;
+    }
   }
 
   async function bsSelectBrand(brandId) {
@@ -2223,7 +2300,7 @@
   }
 
   async function hapusBarangByBrand() {
-    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
+    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusBarangBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2243,7 +2320,7 @@
   }
 
   async function hapusVendorByBrand() {
-    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
+    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusVendorBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2262,7 +2339,7 @@
   }
 
   async function hapusBelisByBrand() {
-    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
+    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     const brandId   = document.getElementById('hapusBelisBrand').value;
     const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
     if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
@@ -2282,7 +2359,7 @@
   }
 
   async function hapusSemua(tipe) {
-    if (window._userRole !== 'admin') { showToast('Akses ditolak', 'error'); return; }
+    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     const labelMap = { barang:'semua barang', vendor:'semua vendor', pembelian:'semua riwayat pembelian', harga:'semua riwayat harga', stockopname:'semua data stock opname', purchaseplan:'semua purchase plan' };
     if (!confirm(`Hapus ${labelMap[tipe]}?\n\nAksi ini TIDAK BISA dibatalkan.`)) return;
     if (!confirm(`Konfirmasi sekali lagi — hapus ${labelMap[tipe]} secara permanen?`)) return;
@@ -2327,31 +2404,43 @@
 </script>
 
 <!-- ═══ MODAL SATUAN ═══ -->
-<div id="satuanOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:360px;max-width:95vw">
-    <div class="simple-modal-title" id="satuanModalTitle">Tambah Satuan</div>
-    <label class="simple-modal-label">Nama Satuan</label>
-    <input id="satuanInput" type="text" placeholder="cth: kg, liter, karton..." maxlength="30"
-      class="simple-modal-input"/>
-    <input type="hidden" id="satuanEditId"/>
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="btn btn-ghost" onclick="closeSatuanModal()" style="flex:1">Batal</button>
-      <button class="btn btn-primary" onclick="saveSatuan()" style="flex:1">Simpan</button>
+<div id="satuanOverlay" class="modal-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" id="satuanModalTitle">Tambah Satuan</div>
+      <button class="modal-close" onclick="closeSatuanModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nama Satuan</label>
+        <input id="satuanInput" type="text" placeholder="cth: kg, liter, karton..." maxlength="30"/>
+        <input type="hidden" id="satuanEditId"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSatuanModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveSatuan()">Simpan</button>
     </div>
   </div>
 </div>
 
 <!-- ═══ MODAL KATEGORI ═══ -->
-<div id="kategoriOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:360px;max-width:95vw">
-    <div class="simple-modal-title" id="kategoriModalTitle">Tambah Kategori</div>
-    <label class="simple-modal-label">Nama Kategori</label>
-    <input id="kategoriInput" type="text" placeholder="cth: Daging, Sayuran..." maxlength="50"
-      class="simple-modal-input"/>
-    <input type="hidden" id="kategoriEditId"/>
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="btn btn-ghost" onclick="closeKategoriModal()" style="flex:1">Batal</button>
-      <button class="btn btn-primary" onclick="saveKategori()" style="flex:1">Simpan</button>
+<div id="kategoriOverlay" class="modal-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" id="kategoriModalTitle">Tambah Kategori</div>
+      <button class="modal-close" onclick="closeKategoriModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nama Kategori</label>
+        <input id="kategoriInput" type="text" placeholder="cth: Daging, Sayuran..." maxlength="50"/>
+        <input type="hidden" id="kategoriEditId"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeKategoriModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveKategori()">Simpan</button>
     </div>
   </div>
 </div>
@@ -2389,11 +2478,10 @@ function openSatuanModal(id) {
   document.getElementById('satuanEditId').value = id || '';
   document.getElementById('satuanInput').value = id ? (window.allSatuan.find(s=>s.id===id)?.nama||'') : '';
   document.getElementById('satuanModalTitle').textContent = id ? 'Edit Satuan' : 'Tambah Satuan';
-  const ov = document.getElementById('satuanOverlay');
-  ov.style.display = 'flex';
+  document.getElementById('satuanOverlay').classList.add('show');
   setTimeout(() => document.getElementById('satuanInput').focus(), 50);
 }
-function closeSatuanModal() { document.getElementById('satuanOverlay').style.display = 'none'; }
+function closeSatuanModal() { document.getElementById('satuanOverlay').classList.remove('show'); }
 
 async function saveSatuan() {
   const nama = document.getElementById('satuanInput').value.trim();
@@ -2461,11 +2549,10 @@ function openKategoriModal(id) {
   document.getElementById('kategoriEditId').value = id || '';
   document.getElementById('kategoriInput').value = id ? (window.allKategori.find(k=>k.id===id)?.nama||'') : '';
   document.getElementById('kategoriModalTitle').textContent = id ? 'Edit Kategori' : 'Tambah Kategori';
-  const ov = document.getElementById('kategoriOverlay');
-  ov.style.display = 'flex';
+  document.getElementById('kategoriOverlay').classList.add('show');
   setTimeout(() => document.getElementById('kategoriInput').focus(), 50);
 }
-function closeKategoriModal() { document.getElementById('kategoriOverlay').style.display = 'none'; }
+function closeKategoriModal() { document.getElementById('kategoriOverlay').classList.remove('show'); }
 
 async function saveKategori() {
   const nama = document.getElementById('kategoriInput').value.trim();
@@ -2545,9 +2632,16 @@ async function loadKodeOrder() {
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
             <span class="kode-item-date">${tgl}</span>
-            <button class="btn btn-ghost btn-sm" onclick="copyKode('${p.kode}')" title="Salin kode">📋</button>
-            <button class="btn btn-ghost btn-sm" onclick="openKodeModal('${p.id}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteKodeOrder('${p.id}','${p.kode}')">🗑</button>
+            <button class="btn btn-ghost btn-sm" onclick="copyKode('${p.kode}')" title="Salin kode">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="openKodeModal('${p.id}')" title="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteKodeOrder('${p.id}','${p.kode}')" title="Hapus">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
           </div>
         </div>`;
     }).join('');

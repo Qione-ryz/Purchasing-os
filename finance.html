@@ -9,6 +9,48 @@
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
   <script src="datefilter.js"></script>
+  <style>
+    /* Filter chip — pakai pattern sama dgn inventory (stock-filter-chip).
+       Konsisten lintas page: rounded pill, mono small, active=accent cyan. */
+    .pay-chip{padding:6px 14px;border-radius:18px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s}
+    .pay-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+    .pay-chip.active{background:rgba(0,212,255,0.12);color:var(--accent);border-color:rgba(0,212,255,0.35);font-weight:600}
+    .pay-chip:focus{outline:none}
+    .pay-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* Cegah :focus outline persistent di tombol picker tanggal & topbar */
+    #datePickerEl button:focus,
+    #btnDateFilter:focus,
+    #btnRefreshData:focus{outline:none}
+    #datePickerEl button:focus-visible,
+    #btnDateFilter:focus-visible,
+    #btnRefreshData:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* Search bar finance — explicit padding-left agar icon tidak overlap text */
+    .filter-bar .search-input{padding-left:38px !important}
+    .filter-bar .search-icon{left:13px}
+    /* Sortable header */
+    .th-sort{cursor:pointer;user-select:none;transition:color .15s}
+    .th-sort:hover{color:var(--accent)}
+    .th-sort .sort-ind{font-size:9px;opacity:.5;margin-left:4px}
+    .th-sort.sorted .sort-ind{opacity:1;color:var(--accent)}
+    /* Mobile card list */
+    .pay-mobile-list{display:none;flex-direction:column;gap:10px;padding:4px 0}
+    .pay-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative}
+    .pay-card.paid::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent2);border-radius:10px 0 0 10px}
+    .pay-card.pending::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent3);border-radius:10px 0 0 10px}
+    .pay-card-r1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .pay-card-vendor{font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pay-card-amount{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap}
+    .pay-card-meta{display:flex;justify-content:space-between;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap}
+    .pay-card-action{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:6px;border-top:1px solid var(--border)}
+
+    @media(max-width:768px){
+      .table-card .table-wrap{display:none}
+      .pay-mobile-list{display:flex}
+      #tableInfo{padding:10px 14px}
+    }
+  </style>
 </head>
 <body>
 <div id="page-loader"><div class="loader-ring"></div></div>
@@ -23,15 +65,25 @@
       <div class="page-title">Pembayaran</div>
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="payCountChip" style="display:none;font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:14px;background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.25)"></span>
+      <select id="filterBrand" onchange="onFilterBrandChange()" class="filter-select" title="Filter berdasarkan brand">
+        <option value="all">Semua Brand</option>
+      </select>
       <div style="position:relative">
         <button class="btn btn-ghost" id="btnDateFilter">
           📅 <span id="dateFilterLabel">Semua Waktu</span>
         </button>
-        <div id="datePickerEl" style="display:none;position:absolute;right:0;top:100%;z-index:300;margin-top:4px"></div>
+        <div id="datePickerEl" class="date-picker-panel" style="display:none"></div>
         <input type="hidden" id="fDateFrom"/>
         <input type="hidden" id="fDateTo"/>
       </div>
+      <button id="btnRefreshData" class="btn btn-ghost" onclick="loadPayments()"
+        style="padding:0 14px;height:36px"
+        title="Reload data pembayaran">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+        Refresh Data
+      </button>
     </div>
   </div>
 
@@ -54,12 +106,18 @@
     </div>
 
     <!-- Filter bar -->
-    <div class="filter-bar" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="filter-bar" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;align-items:center">
       <div class="search-wrap" style="flex:1;min-width:180px">
         <span class="search-icon">🔍</span>
-        <input id="searchVendor" class="search-input" placeholder="Cari vendor..." oninput="applyFilter()"/>
+        <input id="searchVendor" class="search-input" placeholder="Cari vendor / invoice..." oninput="applyFilter()"/>
       </div>
-      <select id="filterStatus" class="filter-select" onchange="applyFilter()">
+      <div class="pay-status-chips" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="pay-chip active" data-status="pending" onclick="setPayStatus('pending')">Belum Lunas</button>
+        <button type="button" class="pay-chip" data-status="paid" onclick="setPayStatus('paid')">Lunas</button>
+        <button type="button" class="pay-chip" data-status="" onclick="setPayStatus('')">Semua</button>
+      </div>
+      <!-- legacy select tetap supaya applyFilter() lama tdk pecah -->
+      <select id="filterStatus" style="display:none">
         <option value="pending">Belum Lunas</option>
         <option value="paid">Lunas</option>
         <option value="">Semua Status</option>
@@ -72,11 +130,11 @@
         <table>
           <thead>
             <tr>
-              <th style="white-space:nowrap">Tgl Bayar</th>
+              <th class="th-sort" data-col="tgl" onclick="setPaySort('tgl')" style="white-space:nowrap">Tgl Bayar <span class="sort-ind">↕</span></th>
               <th style="white-space:nowrap">No. Invoice</th>
-              <th>Vendor</th>
+              <th class="th-sort" data-col="vendor" onclick="setPaySort('vendor')">Vendor <span class="sort-ind">↕</span></th>
               <th>Keterangan</th>
-              <th style="text-align:right;white-space:nowrap">Jumlah</th>
+              <th class="th-sort" data-col="jumlah" onclick="setPaySort('jumlah')" style="text-align:right;white-space:nowrap">Jumlah <span class="sort-ind">↕</span></th>
               <th style="white-space:nowrap">Transfer Ke</th>
               <th style="text-align:center;white-space:nowrap">Xero</th>
               <th style="text-align:center;white-space:nowrap">Bukti</th>
@@ -88,6 +146,7 @@
           </tbody>
         </table>
       </div>
+      <div class="pay-mobile-list" id="payMobileList"></div>
       <div id="tableInfo" style="padding:10px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)"></div>
     </div>
 

@@ -38,29 +38,29 @@
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
       <button class="btn btn-ghost btn-sm" id="btnAktifkanNotif" onclick="aktifkanNotif()" style="display:none" title="Aktifkan notifikasi order baru">🔔 Aktifkan Notif</button>
-      <button class="btn btn-ghost btn-sm" id="btnTabCancelled" onclick="toggleCancelledTab()" style="color:var(--muted)">Cancelled (—)</button>
+      <button class="btn btn-ghost btn-sm" id="btnTabCancelled" onclick="toggleCancelledTab()" style="color:var(--muted)" title="Buka daftar order yang dibatalkan">Cancelled (—) →</button>
       <button class="btn btn-ghost btn-sm admin-only" id="btnPurge" onclick="purgeCancelled()" style="color:var(--danger);border-color:rgba(248,113,113,0.3);display:none">🗑 Hapus Permanen</button>
-      <button class="btn btn-ghost btn-sm" id="btnTabArsip" onclick="toggleArsipTab()" style="color:var(--muted)">📦 Arsip</button>
+      <button class="btn btn-ghost btn-sm" id="btnTabArsip" onclick="toggleArsipTab()" style="color:var(--muted)" title="Buka daftar order arsip lama">📦 Arsip →</button>
     </div>
   </div>
 
   <div class="content">
 
-    <!-- STAT STRIP -->
+    <!-- STAT STRIP — clickable filter -->
     <div class="stat-strip">
-      <div class="strip-card blue">
+      <div class="strip-card blue strip-clickable" onclick="filterByStat('')" title="Tampilkan semua">
         <div class="strip-val blue" id="statTotal">—</div>
         <div class="strip-label">Total Order</div>
       </div>
-      <div class="strip-card orange">
+      <div class="strip-card orange strip-clickable" onclick="filterByStat('pending')" title="Filter: Pending saja">
         <div class="strip-val orange" id="statPending">—</div>
         <div class="strip-label">Pending</div>
       </div>
-      <div class="strip-card purple">
+      <div class="strip-card purple strip-clickable" onclick="filterByStat('partial')" title="Filter: Partial saja">
         <div class="strip-val purple" id="statPartial">—</div>
         <div class="strip-label">Partial</div>
       </div>
-      <div class="strip-card green">
+      <div class="strip-card green strip-clickable" onclick="filterByStat('selesai')" title="Filter: Selesai saja">
         <div class="strip-val green" id="statSelesai">—</div>
         <div class="strip-label">Selesai</div>
       </div>
@@ -389,22 +389,25 @@ try {
 // ─── Override applyRoleUI — sekali admin, tidak bisa di-downgrade
 // (Pola: definisikan langsung sebagai window.fn, bukan const _orig = fn)
 window.applyRoleUI = function(role) {
-  if (window._userRole === 'admin' && role !== 'admin') return;
+  // Cegah downgrade kalau sudah admin/superadmin
+  if (window._isAdmin && !window.isAdminLevel(role)) return;
   // Jalankan logika applyRoleUI dari auth.js secara manual
   window._userRole = role;
+  window._isAdmin  = window.isAdminLevel(role);
   document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = role === 'admin' ? '' : 'none';
+    el.style.display = window._isAdmin ? '' : 'none';
   });
   const roleEl = document.getElementById('userRole');
   if (roleEl) {
-    roleEl.textContent = role === 'admin' ? 'Admin' : 'User';
-    roleEl.style.color = role === 'admin' ? 'var(--accent2)' : 'var(--muted)';
+    if (role === 'superadmin') { roleEl.textContent = 'Superadmin'; roleEl.style.color = '#a78bfa'; }
+    else if (role === 'admin') { roleEl.textContent = 'Admin'; roleEl.style.color = 'var(--accent2)'; }
+    else { roleEl.textContent = role ? (role[0].toUpperCase()+role.slice(1)) : 'User'; roleEl.style.color = 'var(--muted)'; }
   }
 };
 
 // _isReadOnly: helper lokal
 function _isReadOnly() {
-  return !window._userRole || window._userRole !== 'admin';
+  return !window._isAdmin;
 }
 
 // ═══════════════════════════════════════════════
@@ -1058,8 +1061,9 @@ async function loadAll() {
             }
             const f         = it.faktor_konversi || 1;
             const kebutuhan = (it.qty_order || 0) * f;
-            const dapat     = (it.status_item === 'selesai')
-              ? kebutuhan  // selesai manual = selalu dianggap penuh
+            const _itDone = it.status_item === 'selesai' || it.status_item === 'fifo_selesai';
+            const dapat   = _itDone
+              ? kebutuhan  // selesai (manual/auto) = selalu dianggap penuh
               : (it.is_custom
                   ? (it.qty_terpenuhi || 0)
                   : (fifoResultMap[it.id] ?? it.qty_terpenuhi ?? 0));
@@ -1180,11 +1184,19 @@ function toggleCancelledTab() {
   if (_showArsip) {
     _showArsip = false;
     archivedOrders = [];
-    document.getElementById('btnTabArsip')?.classList.remove('btn-arsip-active');
+    const arsipBtn = document.getElementById('btnTabArsip');
+    if (arsipBtn) {
+      arsipBtn.classList.remove('btn-arsip-active');
+      arsipBtn.innerHTML = '📦 Arsip →';
+      arsipBtn.style.color = 'var(--muted)';
+    }
   }
   _showCancelled = !_showCancelled;
   const btn = document.getElementById('btnTabCancelled');
-  if (btn) btn.classList.toggle('btn-tab-active', _showCancelled);
+  if (btn) {
+    btn.classList.toggle('btn-tab-active', _showCancelled);
+    btn.style.color = _showCancelled ? 'var(--danger)' : 'var(--muted)';
+  }
   updateStats();
   applyFilters();
 }
@@ -1208,6 +1220,14 @@ function clearSearch() {
 // ═══════════════════════════════════════════════
 // FILTER & RENDER TABLE
 // ═══════════════════════════════════════════════
+// Filter via stat strip click — set dropdown status lalu apply
+function filterByStat(statusValue) {
+  const sel = document.getElementById('filterStatus');
+  if (sel) sel.value = statusValue || '';
+  applyFilters();
+}
+window.filterByStat = filterByStat;
+
 function applyFilters() {
   // Jika tab arsip aktif, filter archivedOrders dengan search/brand/status
   if (_showArsip) {
@@ -1348,6 +1368,21 @@ function _buildAksiCell(o) {
     : '';
 }
 
+// Pisahkan catatan menjadi { orderBy, note } — "Order by: X" prefix di-extract.
+// Catatan order dari order.html disusun: "<note user>\nOrder by: <nama>" atau "Order by: <nama>"
+function _extractOrderBy(catatan) {
+  if (!catatan) return { orderBy: '', note: '' };
+  const lines = String(catatan).split('\n').map(l => l.trim()).filter(Boolean);
+  let orderBy = '';
+  const noteLines = [];
+  for (const line of lines) {
+    const m = line.match(/^Order by:\s*(.+)$/i);
+    if (m && !orderBy) orderBy = m[1].trim();
+    else noteLines.push(line);
+  }
+  return { orderBy, note: noteLines.join(' · ') };
+}
+
 function renderTable() {
   const tbody = document.getElementById('orderTbody');
   const total = filtered.length;
@@ -1369,11 +1404,21 @@ function renderTable() {
     const shortId = o.id.substring(0,8).toUpperCase();
     const progressCell = _buildProgressCell(o.progress);
 
+    const _catParts = _extractOrderBy(o.catatan);
+    const _orderByLine = _catParts.orderBy
+      ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono);display:flex;align-items:center;gap:4px">👤 <span style="color:var(--text)">${_catParts.orderBy}</span></div>`
+      : '';
+    const _isUrgent = /urgent/i.test(_catParts.note);
+    const _noteLine = _catParts.note
+      ? `<div title="${_catParts.note.replace(/"/g,'&quot;')}" style="font-size:11px;color:${_isUrgent?'var(--danger)':'var(--muted)'};margin-top:2px;font-family:var(--mono);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_isUrgent?'⚠':'📝'} ${_catParts.note}</div>`
+      : '';
+
     return `
       <tr id="row-${o.id}" style="cursor:pointer" onclick="openDetail('${o.id}')">
         <td>
           <div style="font-family:var(--mono);font-size:12px;color:var(--accent)">${shortId}</div>
-          ${o.catatan?`<div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)">📝 ${o.catatan.substring(0,40)}${o.catatan.length>40?'...':''}</div>`:''}
+          ${_orderByLine}
+          ${_noteLine}
         </td>
         <td>${_buildBrandTag(o.brand_id, brandNama)}</td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${o.pemesan?.kode||'—'}</td>
@@ -1601,15 +1646,25 @@ async function archiveOrder(orderId) {
 }
 
 function toggleArsipTab() {
+  // Reset cancelled tab dulu jika aktif (exclusive — arsip ≠ cancelled)
+  if (_showCancelled) {
+    _showCancelled = false;
+    document.getElementById('btnTabCancelled')?.classList.remove('btn-tab-active');
+  }
   _showArsip = !_showArsip;
   const btn = document.getElementById('btnTabArsip');
-  if (btn) btn.classList.toggle('btn-arsip-active', _showArsip);
+  if (btn) {
+    btn.classList.toggle('btn-arsip-active', _showArsip);
+    // Update label visual untuk indikasi active/balik
+    btn.innerHTML = _showArsip ? '↩ Kembali ke Order Aktif' : '📦 Arsip →';
+    btn.style.color = _showArsip ? 'var(--accent)' : 'var(--muted)';
+  }
 
   if (_showArsip) {
     loadArsip();
   } else {
     archivedOrders = [];
-    applyFilters();
+    loadAll();
   }
 }
 
@@ -1681,7 +1736,9 @@ async function _refreshDetailBody(orderId) {
               const adaData = Object.keys(beliTotalPerBarang).length > 0;
               for (const it of activeItemsForSync) {
                 if ((it.status_item || 'pending') === 'selesai') continue;
-                const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
+                // undefined = item di-exclude FIFO (locked via order_item_id, atau tidak ada beli pool).
+                // Jangan reset — pertahankan qty_terpenuhi dari DB.
+                const newQty = fifoResultMap[it.id];
                 if (newQty === undefined) continue;
                 it.qty_terpenuhi = newQty;
               }
@@ -1817,10 +1874,25 @@ async function openDetail(orderId) {
   window._lastBestVendorPerBarang = {};
   window._lastDetailOrderId       = orderId;
 
+  const _detailCatParts = _extractOrderBy(o.catatan);
   document.getElementById('detailTitle').innerHTML = brandNama + ' · ' + tgl + ' <span style="font-size:13px;font-weight:400;color:var(--muted);font-family:var(--mono)">🕐 ' + jam + '</span>';
-  document.getElementById('detailMeta').textContent = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}`;
+  const _orderByMeta = _detailCatParts.orderBy
+    ? ` · 👤 <span style="color:var(--text)">${_detailCatParts.orderBy}</span>`
+    : '';
+  document.getElementById('detailMeta').innerHTML = `${o.pemesan?.kode||'—'} · #${o.id.substring(0,8).toUpperCase()}${_orderByMeta}`;
   document.getElementById('detailBody').innerHTML    = '<div style="text-align:center;padding:20px"><span class="spinner"></span></div>';
   const _mdEl = document.getElementById('modalDetail'); _mdEl.classList.add('show'); _mdEl._orderId = orderId;
+
+  // Disable tombol "Order via WA" di footer kalau tidak ada item yang masih perlu dibeli.
+  // Pakai item-level check (bukan hanya order status) untuk akurasi.
+  const _btnWAFooter = document.getElementById('btnModalWA');
+  if (_btnWAFooter) {
+    // Akan di-update setelah items dimuat; set default dulu
+    _btnWAFooter.disabled = false;
+    _btnWAFooter.style.opacity = '';
+    _btnWAFooter.style.cursor  = '';
+    _btnWAFooter.title = 'Kirim order ke vendor via WhatsApp';
+  }
 
   try {
     const cutoff1M = new Date(); cutoff1M.setMonth(cutoff1M.getMonth() - 1);
@@ -1866,7 +1938,9 @@ async function openDetail(orderId) {
               const adaData = Object.keys(beliTotalPerBarang).length > 0;
               for (const it of activeItemsForSync) {
                 if ((it.status_item || 'pending') === 'selesai') continue;
-                const newQty = fifoResultMap[it.id] ?? (adaData ? 0 : undefined);
+                // undefined = item di-exclude FIFO (locked via order_item_id, atau tidak ada beli pool).
+                // Jangan reset — pertahankan qty_terpenuhi dari DB.
+                const newQty = fifoResultMap[it.id];
                 if (newQty === undefined) continue;
                 it.qty_terpenuhi = newQty;
               }
@@ -1887,32 +1961,13 @@ async function openDetail(orderId) {
           }
         }
 
-        // Setelah FIFO selesai: hanya update progress di modal (vendor grouping tidak berubah)
+        // Setelah FIFO selesai: refresh modal body agar status badge + progress + tombol ↩ up-to-date.
+        // _refreshDetailBody fetch data terbaru dari DB (termasuk status_item='fifo_selesai' baru).
         const modalNow = document.getElementById('modalDetail');
         if (!modalNow || !modalNow.classList.contains('show') || modalNow._orderId !== orderId) return;
 
         _updateTableRowProgress(orderId, o, itemsArr);
-        window._lastDetailItems = itemsArr;
-
-        // Update progress bar & badge tiap item langsung di DOM — tanpa rebuild modal
-        itemsArr.forEach(it => {
-          const faktor = it.faktor_konversi || 1;
-          const hasFaktor = it.satuan_db && faktor > 1;
-          const qtyTerpenuhiOrder = hasFaktor ? (it.qty_terpenuhi / faktor) : it.qty_terpenuhi;
-          const pct = it.qty_order > 0 ? Math.min(100, Math.round(qtyTerpenuhiOrder / it.qty_order * 100)) : 0;
-          const progressLabel = hasFaktor
-            ? `${qtyTerpenuhiOrder.toFixed(1)}/${it.qty_order} ${it.satuan}`
-            : `${it.qty_terpenuhi}/${it.qty_order} ${it.satuan || ''}`;
-
-          // Cari row item di dalam modal body berdasarkan data-item-id
-          const row = document.querySelector(`#detailBody tr[data-item-id="${it.id}"]`);
-          if (!row) return;
-
-          const progBar = row.querySelector('.prog-bar');
-          if (progBar) { progBar.style.width = pct + '%'; progBar.className = 'prog-bar ' + (pct >= 100 ? 'done' : pct >= 50 ? 'mid' : pct > 0 ? 'low' : 'zero'); }
-          const progText = row.querySelector('.prog-text');
-          if (progText) progText.textContent = progressLabel;
-        });
+        await _refreshDetailBody(orderId);
       } catch(e) { console.warn('openDetail background refresh failed:', e); }
     })();
 
@@ -2003,10 +2058,11 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
       : `${it.qty_terpenuhi}/${it.qty_order} ${it.satuan || ''}`;
 
     // Status item
-    const statusItem  = it.status_item || 'pending';
-    const isCancelled = statusItem === 'cancelled';
-    const isOrdered   = statusItem === 'ordered';
-    const isDone      = statusItem === 'selesai' || pct >= 100;
+    const statusItem    = it.status_item || 'pending';
+    const isCancelled   = statusItem === 'cancelled';
+    const isOrdered     = statusItem === 'ordered';
+    const isFifoSelesai = statusItem === 'fifo_selesai';
+    const isDone        = statusItem === 'selesai' || isFifoSelesai || pct >= 100;
 
     // ── Kolom STATUS (badge + keterangan) ──
     let badgeCell = '';
@@ -2015,7 +2071,9 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
       badgeCell    = `<span class="badge badge-red">Batal</span>`;
       progressCell = `<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">—</span>`;
     } else if (isDone) {
-      badgeCell = `<span class="badge badge-green">Selesai</span>`;
+      badgeCell = isFifoSelesai
+        ? `<span class="badge badge-green" title="Selesai otomatis oleh FIFO — klik ↩ untuk batalkan">Selesai</span>`
+        : `<span class="badge badge-green">Selesai</span>`;
       progressCell = `<div>
         <div class="prog-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${progressLabel}</div>
         <div class="prog-wrap" style="margin-top:3px;margin-bottom:0"><div class="prog-bar done" style="width:100%"></div></div>
@@ -2041,23 +2099,17 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     const aksiDisabled = isDone || isCancelled;
     _itemNamaMap[it.id] = it.nama_barang || '';
 
-    // Tombol "Batalkan Selesai":
-    //  - Manual selesai (status_item='selesai')                        → batalkanSelesaiItem
-    //  - FIFO-filled  (progress 100% via FIFO, status_item != selesai) → tolakFifoItem (set block_fifo=true)
-    const isManualDone = statusItem === 'selesai';
-    const isFifoDone   = !isManualDone && !isCancelled && pct >= 100;
-    let batalSelesaiBtn = '';
-    if (!_isReadOnly() && isManualDone) {
-      batalSelesaiBtn = `<button class="btn btn-sm"
-           onclick="event.stopPropagation();batalkanSelesaiItem('${it.id}','${o.id}')"
-           style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
-           title="Batalkan status selesai — kembalikan ke pending">↩</button>`;
-    } else if (!_isReadOnly() && isFifoDone) {
-      batalSelesaiBtn = `<button class="btn btn-sm"
-           onclick="event.stopPropagation();tolakFifoItem('${it.id}','${o.id}')"
-           style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
-           title="Lepas item ini dari FIFO — pembelian dikembalikan ke pool, item ke Pending">↩</button>`;
-    }
+    // Tombol ↩ hanya untuk manual selesai. FIFO selesai: tampilkan icon non-clickable saja.
+    const isManualDone  = statusItem === 'selesai';
+    const batalSelesaiBtn = (!_isReadOnly() && isDone)
+      ? (isFifoSelesai
+          ? `<span style="width:32px;height:32px;flex-shrink:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,212,255,0.07);color:var(--accent);border:1px solid rgba(0,212,255,0.18);font-size:11px;font-family:var(--mono);opacity:.7;cursor:default;user-select:none"
+               title="Selesai otomatis oleh FIFO">FIFO</span>`
+          : `<button class="btn btn-sm"
+               onclick="event.stopPropagation();batalkanSelesaiItem('${it.id}','${o.id}')"
+               style="width:32px;height:32px;padding:0;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(247,146,79,0.1);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);font-size:13px;cursor:pointer;transition:background .15s"
+               title="Batalkan status selesai manual">↩</button>`)
+      : '';
 
     const aksiCell = _isReadOnly() ? '<span style="color:var(--muted);font-size:11px">—</span>' : `
       <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap;align-items:center">
@@ -2079,17 +2131,13 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
           title="Batalkan item">✕</button>
       </div>`;
 
-    // Link "harus dibeli" di bawah nama barang (hanya jika belum selesai/cancelled)
-    const beliLink = (!isDone && !isCancelled && !_isReadOnly())
-      ? `<div style="margin-top:4px">
-           <a href="javascript:void(0)" style="font-size:11px;color:var(--accent2);font-family:var(--mono);text-decoration:none;opacity:0.8"
-             onclick="event.stopPropagation();openBeliModal('${it.id}','${it.barang_id||''}','${o.brand_id}',${JSON.stringify(it.nama_barang)},'${it.satuan||''}',${sisa},${faktor},'${it.satuan_db||''}')">
-             ✦ harus dibeli
-           </a>
-         </div>`
-      : '';
+    const beliLink = '';
 
     const hargaLabel = it.harga_estimasi ? 'Rp '+Number(it.harga_estimasi).toLocaleString('id-ID') : '—';
+    // Deklarasi cancelledKet di sini agar bisa diakses oleh mobile branch & desktop branch.
+    const cancelledKet = (isCancelled && it.keterangan_cancel)
+      ? `<div style="margin-top:3px;font-size:10px;color:var(--danger);opacity:0.7;font-family:var(--mono);line-height:1.4;white-space:normal">✕ ${it.keterangan_cancel}</div>`
+      : '';
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
       return `<tr data-item-id="${it.id}" style="${isCancelled ? 'opacity:0.6;background:rgba(255,77,106,0.03)' : ''}">
@@ -2111,9 +2159,6 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
         </td>
       </tr>`;
     }
-    const cancelledKet = (isCancelled && it.keterangan_cancel)
-      ? `<div style="margin-top:3px;font-size:10px;color:var(--danger);opacity:0.7;font-family:var(--mono);line-height:1.4;white-space:normal">✕ ${it.keterangan_cancel}</div>`
-      : '';
     return `<tr data-item-id="${it.id}" style="${isCancelled ? 'opacity:0.6;background:rgba(255,77,106,0.03)' : ''}">
       <td class="col-barang" style="vertical-align:middle">
         <div style="font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${isCancelled?';text-decoration:line-through;color:var(--muted)':''}" title="${(it.nama_barang||'').replace(/"/g,'&quot;')}">${it.nama_barang}${it.is_custom?'<span class="custom-tag">custom</span>':''}</div>
@@ -2189,9 +2234,8 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     if (groupId) window._groupItemIds[_gKey] = orderableItems.map(it => it.id);
     if (groupId) { window._groupVendorMap = window._groupVendorMap || {}; window._groupVendorMap[_gKey] = groupId; }
     const groupBulkBtn = (!_isReadOnly() && orderableItems.length > 0 && groupId) ? `
-      <button class="btn btn-sm"
+      <button type="button" class="vendor-group-action ${allOrdered?'is-cancel':'is-order'}"
         onclick="event.stopPropagation();_aksiOrderedGroup('${_gKey}','${o.id}',${allOrdered})"
-        style="font-size:11px;padding:4px 10px;background:${allOrdered?'rgba(56,189,248,0.15)':'rgba(56,189,248,0.06)'};color:#38bdf8;border:1px solid ${allOrdered?'rgba(56,189,248,0.4)':'rgba(56,189,248,0.2)'};border-radius:6px;cursor:pointer;white-space:nowrap"
         title="${allOrdered?'Batalkan semua tanda dipesan di grup ini':'Tandai semua item vendor ini sudah dipesan'}">
         ${allOrdered?'✕ Batal Dipesan':'✓ Tandai Dipesan'}
       </button>` : '';
@@ -2225,9 +2269,19 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
         const vNama = vend?.nama || vid;
         const noHp  = vend?.telp || '';
         const waNum = _toWaNum(noHp);
+        // Grup done = semua non-cancelled item sudah selesai (manual ATAU FIFO penuh)
+        const groupDone = gitems
+          .filter(it => (it.status_item||'pending') !== 'cancelled')
+          .every(it => {
+            if ((it.status_item||'pending') === 'selesai') return true;
+            const f = it.faktor_konversi || 1;
+            return it.qty_order > 0 && (it.qty_terpenuhi||0) >= (it.qty_order * f);
+          });
         let waBtn = '';
         if (!_isReadOnly()) {
-          if (waNum) {
+          if (groupDone) {
+            waBtn = `<span class="vendor-group-none" title="Semua item di grup ini sudah selesai">✓ Selesai</span>`;
+          } else if (waNum) {
             waBtn = `<a class="vendor-group-wa" href="javascript:void(0)"
               onclick="openWAForVendor('${vid}','${o.id}')">📱 WA Vendor</a>`;
           } else {
@@ -2299,7 +2353,6 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
         <div class="vendor-group">
           <div class="vendor-group-header">
             <div><span class="vg-name">Semua Barang</span><span class="vg-meta"> · ${allItems.length} item</span></div>
-            ${!_isReadOnly() ? `<button class="vendor-group-wa" onclick="openWAModeSelector()">📱 Order via WA</button>` : ''}
           </div>
           ${bulkBar}
           <table class="sub-table" style="margin:0">
@@ -2315,26 +2368,49 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
   }
 
   const totalVendorGroups = vendorGroups.length + (noVendorItems.length > 0 ? 1 : 0);
-  const _brandDetColor = brandColors[o.brand_id] || null;
-  const _brandDetStyle = _brandDetColor ? `background:${_brandDetColor};color:${getBadgeTextColor(_brandDetColor)};padding:3px 10px;font-size:12px;font-weight:500` : '';
+  const _detailCatParts2 = _extractOrderBy(o.catatan);
+  const _userNoteOnly = _detailCatParts2.note;
+  const _isUrgentDetail = /urgent/i.test(_userNoteOnly);
   document.getElementById('detailBody').innerHTML = `
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
       ${statusBadge}
-      <span class="badge" style="${_brandDetStyle}">${brandNama}</span>
-      ${totalEst>0?`<span style="font-size:12px;font-family:var(--mono);color:var(--muted)">Est. total: <strong style="color:var(--text)">Rp ${totalEst.toLocaleString('id-ID')}</strong></span>`:''}
+      ${totalEst>0?`<span title="Estimasi total — berdasarkan harga riwayat terakhir, belum tentu sama dengan harga aktual" style="font-size:12px;font-family:var(--mono);color:var(--muted);cursor:help">Est. total: <strong style="color:var(--text)">Rp ${totalEst.toLocaleString('id-ID')}</strong></span>`:''}
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">Grup Vendor</span>
-        <button id="toggleVendorGroupBtn" onclick="toggleDetailVendorGroup()"
+        <span title="Saat ON: item dikelompokkan per vendor terbaik dari riwayat harga. OFF: tampil flat satu tabel." style="font-size:11px;font-family:var(--mono);color:var(--muted);cursor:help">Grup Vendor</span>
+        <button id="toggleVendorGroupBtn" onclick="toggleDetailVendorGroup()" title="Toggle tampilan grup vendor"
           style="position:relative;width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;transition:background .2s;background:${_groupByVendor?'var(--accent)':'var(--border)'}">
           <span style="position:absolute;top:3px;left:${_groupByVendor?'20':'3'}px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></span>
         </button>
       </div>
     </div>
-    ${o.catatan?`<div class="info-box blue" style="margin-bottom:16px">📝 ${o.catatan}</div>`:''}
+    ${_userNoteOnly?`<div class="info-box ${_isUrgentDetail?'red':'blue'}" style="margin-bottom:16px">${_isUrgentDetail?'⚠':'📝'} ${_userNoteOnly}</div>`:''}
     <div id="detailGroupsContainer">
       ${buildGroupsHtml(_groupByVendor)}
     </div>
   `;
+
+  // Update footer WA button: disable jika semua item non-cancelled sudah selesai
+  const _btnWAF = document.getElementById('btnModalWA');
+  if (_btnWAF) {
+    // Saat Grup Vendor ON: tiap vendor group punya tombol WA sendiri → footer tidak perlu
+    if (_groupByVendor) {
+      _btnWAF.style.display = 'none';
+    } else {
+      _btnWAF.style.display = '';
+      const _hasActive = items.some(it => {
+        if ((it.status_item||'pending') === 'cancelled') return false;
+        if ((it.status_item||'pending') === 'selesai') return false;
+        if ((it.status_item||'pending') === 'fifo_selesai') return false;
+        const f = it.faktor_konversi || 1;
+        if (it.qty_order > 0 && (it.qty_terpenuhi||0) >= (it.qty_order * f)) return false;
+        return true;
+      });
+      _btnWAF.disabled = !_hasActive;
+      _btnWAF.style.opacity = _hasActive ? '' : '0.4';
+      _btnWAF.style.cursor  = _hasActive ? '' : 'not-allowed';
+      _btnWAF.title = _hasActive ? 'Kirim order ke vendor via WhatsApp' : 'Semua item sudah selesai';
+    }
+  }
 
   // Expose toggle function untuk button
   window._currentBuildGroupsHtml = buildGroupsHtml;
@@ -2351,6 +2427,9 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
     if (container && window._currentBuildGroupsHtml) {
       container.innerHTML = window._currentBuildGroupsHtml(newVal);
     }
+    // Sync footer WA visibility saat toggle
+    const _bWA = document.getElementById('btnModalWA');
+    if (_bWA) _bWA.style.display = newVal ? 'none' : '';
   };
 }
 
@@ -2674,58 +2753,6 @@ async function batalkanSelesaiItem(itemId, orderId) {
   );
 }
 window.batalkanSelesaiItem = batalkanSelesaiItem;
-
-// Lepas item dari FIFO: set block_fifo=true, reset qty_terpenuhi=0,
-// unlink riwayat_beli_items agar pembelian kembali ke pool.
-async function tolakFifoItem(itemId, orderId) {
-  const nama = _itemNamaMap[itemId] || itemId;
-  showConfirm(
-    'Lepas Item dari FIFO?',
-    `<strong>${nama}</strong> akan dikembalikan ke <strong>Pending</strong>.<br><br>
-     <span style="font-size:12px;color:var(--muted);font-family:var(--mono);line-height:1.5">
-       • qty_terpenuhi direset ke 0<br>
-       • Pembelian yang nge-fill (FIFO) di-unlink, kembali ke pool<br>
-       • Item ini tidak akan menerima alokasi FIFO lagi sampai flag dibuka manual
-     </span>`,
-    async () => {
-      try {
-        const { data: { session: sess } } = await _sb.auth.getSession();
-        if (!sess) throw new Error('Tidak ada sesi login — silakan login ulang');
-
-        const { data: updData, error: updErr } = await _sb
-          .from('order_items')
-          .update({ qty_terpenuhi: 0, status_item: 'pending', block_fifo: true })
-          .eq('id', itemId)
-          .select();
-
-        if (updErr) throw updErr;
-        if (!updData || updData.length === 0) {
-          throw new Error('Update ditolak DB (0 rows) — cek RLS policy.');
-        }
-
-        // Unlink riwayat_beli_items yang sempat ter-link manual (jika ada)
-        await _sb
-          .from('riwayat_beli_items')
-          .update({ order_item_id: null })
-          .eq('order_item_id', itemId);
-
-        await _recalcOrderStatus(orderId, {
-          [itemId]: { qty_terpenuhi: 0, status_item: 'pending' }
-        });
-
-        showToast('success', `↩ ${nama} dilepas dari FIFO`);
-        if (typeof _invalidateFifoCache === 'function') _invalidateFifoCache();
-        await loadAll();
-        await _refreshDetailBody(orderId);
-      } catch(e) {
-        showToast('error', '✕ ' + e.message);
-        console.error('[tolakFifoItem]', e);
-      }
-    }
-  );
-}
-window.tolakFifoItem       = tolakFifoItem;
-
 window.openBeliModal       = openBeliModal;
 window.submitBeli          = submitBeli;
 

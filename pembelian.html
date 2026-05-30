@@ -788,7 +788,7 @@
     document.getElementById('userAvatar').textContent = name[0].toUpperCase();
     const role = await getUserRole(); applyRoleUI(role);
     window._userRole = role;
-    if (role !== 'admin') {
+    if (!isAdminLevel(role)) {
       // User tidak bisa catat pembelian — langsung ke riwayat
       switchTab('riwayat');
     }
@@ -845,8 +845,8 @@
       window._invalidateAllCache();
     }
 
-    if (urlParams.get('new') && window._userRole === 'admin') switchTab('form');
-    else if (urlParams.get('tab') === 'riwayat' || window._userRole !== 'admin') switchTab('riwayat');
+    if (urlParams.get('new') && window._isAdmin) switchTab('form');
+    else if (urlParams.get('tab') === 'riwayat' || !window._isAdmin) switchTab('riwayat');
   })();
 
   /* ── LOAD MASTER DATA ── */
@@ -1803,7 +1803,7 @@
     const results = getFilteredBarang(q, 15);
     if (!results.length) {
       const q2 = document.getElementById('itemSearch').value.trim();
-      const adminBtn = window._userRole === 'admin'
+      const adminBtn = window._isAdmin
         ? `<div onmousedown="openQuickAddBarang('${q2.replace(/'/g,"\\'")}'); event.preventDefault()"
             style="padding:8px 14px;font-size:12px;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);transition:background .15s"
             onmouseover="this.style.background='rgba(0,212,255,0.07)'"
@@ -2649,7 +2649,7 @@
               Detail
             </button>
 
-            ${window._userRole==='admin'?`
+            ${window._isAdmin?`
             <div class="action-more-wrap">
               <button class="action-more-btn" onclick="toggleActionMenu(event,'rmenu-${r.id}')" title="Aksi lain">⋯</button>
               <div class="action-more-menu" id="rmenu-${r.id}">

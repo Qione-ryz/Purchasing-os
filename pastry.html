@@ -10,22 +10,17 @@
   <script src="datefilter.js"></script>
   <script src="sidebar.js"></script>
   <style>
-    .tab-bar { display:flex; gap:4px; margin-bottom:18px; border-bottom:2px solid var(--border); }
-    .tab-btn {
-      padding:8px 18px; font-size:13px; font-family:var(--sans); font-weight:500;
-      background:none; border:none; cursor:pointer; color:var(--muted);
-      border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s,border-color .15s;
-    }
-    .tab-btn.active { color:#000; border-bottom-color:var(--accent); font-weight:700; }
-    .tab-btn:hover:not(.active) { color:var(--text); }
+    /* Tab styling — pakai .tab-bar/.tab-btn dari style.css (WindPulse pill style) */
+    .tab-btn:focus { outline:none }
+    .tab-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px }
     .tab-panel { display:none; } .tab-panel.active { display:block; }
 
     .badge-tipe {
       display:inline-block; padding:2px 8px; border-radius:10px;
-      font-size:11px; font-family:var(--mono); font-weight:600; text-transform:uppercase;
+      font-size:11px; font-family:var(--mono); font-weight:600;
     }
-    .badge-dispose    { background:#fee2e2; color:#dc2626; }
-    .badge-compliment { background:#dcfce7; color:#16a34a; }
+    .badge-dispose    { background:rgba(220,38,38,.15); color:#dc2626; border:1px solid rgba(220,38,38,.3); }
+    .badge-compliment { background:rgba(22,163,74,.15); color:#16a34a; border:1px solid rgba(22,163,74,.3); }
 
     .export-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
     .export-bar select, .export-bar input[type=month] {
@@ -48,7 +43,7 @@
     <div>
       <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
       <div class="page-title">Pastry</div>
-      <div class="page-sub" id="activeBrandLabel">—</div>
+      <div class="page-sub" id="activeBrandLabel"></div>
     </div>
 
   </div>
@@ -581,10 +576,11 @@
       if (error) throw error;
       rAllData = data || [];
 
-      /* Stats */
-      document.getElementById('rStatTotal').textContent     = rAllData.length;
-      document.getElementById('rStatDispose').textContent   = rAllData.filter(r=>r.tipe==='dispose').length;
-      document.getElementById('rStatCompliment').textContent= rAllData.filter(r=>r.tipe==='compliment').length;
+      /* Stats — mute color when 0 (WindPulse pattern) */
+      const setStat=(id,val,active)=>{const el=document.getElementById(id);if(!el)return;el.textContent=val;el.style.color=val===0?'var(--muted)':active;el.style.opacity=val===0?'.55':'1';};
+      setStat('rStatTotal',rAllData.length,'');
+      setStat('rStatDispose',rAllData.filter(r=>r.tipe==='dispose').length,'#dc2626');
+      setStat('rStatCompliment',rAllData.filter(r=>r.tipe==='compliment').length,'#16a34a');
 
       renderRiwayatTable();
     } catch(e) {
@@ -598,7 +594,7 @@
     const pages = Math.ceil(total/R_PER_PAGE)||1;
     rCurrentPage = Math.min(rCurrentPage, pages);
     const slice = rAllData.slice((rCurrentPage-1)*R_PER_PAGE, rCurrentPage*R_PER_PAGE);
-    const isAdmin = window._userRole === 'admin';
+    const isAdmin = window._isAdmin;
 
     if (!slice.length) {
       tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">

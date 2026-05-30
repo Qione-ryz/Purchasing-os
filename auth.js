@@ -33,22 +33,36 @@ async function getUserRole() {
  * Sembunyikan elemen yang hanya boleh dilihat admin.
  * Tambahkan class "admin-only" pada elemen HTML yang ingin disembunyikan dari user biasa.
  */
+/** Cek apakah role punya privilege admin-level (admin atau superadmin). */
+function isAdminLevel(role) {
+  return role === 'admin' || role === 'superadmin';
+}
+
 function applyRoleUI(role) {
   window._userRole = role;
+  window._isAdmin  = isAdminLevel(role);
   document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = role === 'admin' ? '' : 'none';
+    el.style.display = window._isAdmin ? '' : 'none';
   });
   /* Tampilkan badge role di sidebar */
   const roleEl = document.getElementById('userRole');
   if (roleEl) {
-    roleEl.textContent = role === 'admin' ? 'Admin' : 'User';
-    roleEl.style.color = role === 'admin' ? 'var(--accent2)' : 'var(--muted)';
+    if (role === 'superadmin') {
+      roleEl.textContent = 'Superadmin';
+      roleEl.style.color = '#a78bfa';
+    } else if (role === 'admin') {
+      roleEl.textContent = 'Admin';
+      roleEl.style.color = 'var(--accent2)';
+    } else {
+      roleEl.textContent = role ? (role[0].toUpperCase()+role.slice(1)) : 'User';
+      roleEl.style.color = 'var(--muted)';
+    }
   }
 }
 
-/** Cek apakah user boleh melakukan aksi. Tampilkan toast jika tidak. */
+/** Cek apakah user boleh melakukan aksi admin-level (admin atau superadmin). */
 function requireAdmin(showToastFn) {
-  if (window._userRole !== 'admin') {
+  if (!isAdminLevel(window._userRole)) {
     if (showToastFn) showToastFn('Hanya admin yang bisa melakukan aksi ini.', 'error');
     return false;
   }
@@ -58,3 +72,4 @@ function requireAdmin(showToastFn) {
 window.getUserRole  = getUserRole;
 window.applyRoleUI  = applyRoleUI;
 window.requireAdmin = requireAdmin;
+window.isAdminLevel = isAdminLevel;

@@ -812,14 +812,14 @@ function fillFormFromScan(data) {
     const el = document.getElementById("fTanggal");
     if (el) {
       let tanggal = data.tanggal;
-      // Koreksi tahun OCR yang terlalu jauh di belakang (sering salah baca)
       const parsed = new Date(tanggal);
       const now    = new Date();
       const diffTahun = now.getFullYear() - parsed.getFullYear();
+
+      // Koreksi 1: tahun OCR terlalu jauh di belakang (>1 thn). Sering OCR misread.
       if (!isNaN(parsed) && diffTahun > 1) {
         const corrected = new Date(parsed);
         corrected.setFullYear(now.getFullYear());
-        // Jika setelah koreksi masih di masa depan, pakai tahun lalu
         if (corrected > now) corrected.setFullYear(now.getFullYear() - 1);
         const yyyy = corrected.getFullYear();
         const mm   = String(corrected.getMonth() + 1).padStart(2, "0");
@@ -829,8 +829,23 @@ function fillFormFromScan(data) {
         data._tanggalAsli    = tanggalAsli;
         data._tanggalKoreksi = tanggal;
       }
+
+      // Koreksi 2: tanggal di masa depan (mis. OCR baca bulan/tgl yang belum terjadi).
+      // Invoice di masa depan tidak masuk akal — auto-correct ke hari ini + warning.
+      const reparsed = new Date(tanggal);
+      if (!isNaN(reparsed) && reparsed > now) {
+        const yyyy = now.getFullYear();
+        const mm   = String(now.getMonth() + 1).padStart(2, "0");
+        const dd   = String(now.getDate()).padStart(2, "0");
+        const tanggalAsliFuture = data._tanggalAsli || tanggal;
+        tanggal = `${yyyy}-${mm}-${dd}`;
+        data._tanggalAsli       = tanggalAsliFuture;
+        data._tanggalKoreksi    = tanggal;
+        data._tanggalFutureWarn = true;
+      }
+
       el.value = tanggal;
-      data.tanggal = tanggal; // update agar modal review tampil tanggal yg sudah dikoreksi
+      data.tanggal = tanggal;
     }
   }
   // Catatan tidak diisi otomatis dari scan
@@ -929,7 +944,9 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
     </div>
     ${window._scanData?._tanggalKoreksi ? `
     <div style="margin-bottom:10px;padding:7px 12px;background:rgba(247,146,79,0.08);border:1px solid rgba(247,146,79,0.25);border-radius:6px;font-size:11px;font-family:var(--mono);color:var(--accent3)">
-      ⚠ Tahun dari OCR terdeteksi tidak wajar (<span style="font-weight:600">${window._scanData._tanggalAsli}</span>). Sudah dikoreksi otomatis menjadi <span style="font-weight:600">${window._scanData._tanggalKoreksi}</span> — periksa kembali jika perlu.
+      ⚠ ${window._scanData?._tanggalFutureWarn
+        ? `Tanggal OCR di masa depan (<span style="font-weight:600">${window._scanData._tanggalAsli}</span>) — invoice tidak mungkin bertanggal nanti. Dikoreksi otomatis ke hari ini: <span style="font-weight:600">${window._scanData._tanggalKoreksi}</span>. Periksa kembali kalau perlu.`
+        : `Tahun dari OCR terdeteksi tidak wajar (<span style="font-weight:600">${window._scanData._tanggalAsli}</span>). Sudah dikoreksi otomatis menjadi <span style="font-weight:600">${window._scanData._tanggalKoreksi}</span> — periksa kembali jika perlu.`}
     </div>` : ""}` : "";
 
   const vendorSection = `

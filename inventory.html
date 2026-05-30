@@ -15,11 +15,15 @@
   --bg:#030709;--surface:#0a1a1f;--surface2:#0f2429;--border:#152c33;
   --accent:#00d4ff;--accent2:#00b8e0;--accent3:#00c2b3;
   --text:#f0f6f4;--muted:#4a6e78;--danger:#ff4d6a;
-  --mono:'DM Mono',monospace;--sans:'Poppins',sans-serif;--radius:12px;
+  --mono:'DM Mono',monospace;--sans:'Poppins',sans-serif;--radius:14px;
   /* Spacing scale */
   --sp-xs:4px;--sp-sm:8px;--sp-md:12px;--sp-lg:16px;--sp-xl:20px;--sp-2xl:28px;--sp-3xl:40px;
+  /* Pastry/semantic */
+  --pastry:#f59e0b;--success:#16a34a;--danger2:#dc2626;
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+button:focus:not(:focus-visible),input:focus:not(:focus-visible),select:focus:not(:focus-visible),textarea:focus:not(:focus-visible){outline:none}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
 
 /* TOPBAR */
@@ -44,12 +48,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .io-type-bar-btn.pastry.active{background:rgba(251,191,36,.12);color:#f59e0b;border-color:rgba(251,191,36,.45)}
 .pastry-tipe-select{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:var(--mono);padding:5px 8px;cursor:pointer;outline:none;transition:border-color .2s;min-width:120px;width:120px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a6e78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
 .pastry-tipe-select:focus{border-color:var(--accent)}
-.pastry-tipe-dispose{color:#dc2626}
-.pastry-tipe-compliment{color:#16a34a}
+.pastry-tipe-dispose{color:var(--danger2,#dc2626);border-color:rgba(220,38,38,.4) !important}
+.pastry-tipe-compliment{color:var(--success,#16a34a);border-color:rgba(22,163,74,.4) !important}
+/* Pastry badge (Dispose/Compliment) — dipakai di history & list */
+.pastry-badge{display:inline-block;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px;text-transform:uppercase;letter-spacing:.3px}
+.pastry-badge-dispose{background:rgba(220,38,38,.15);color:var(--danger2,#dc2626);border:1px solid rgba(220,38,38,.3)}
+.pastry-badge-compliment{background:rgba(22,163,74,.15);color:var(--success,#16a34a);border:1px solid rgba(22,163,74,.3)}
 .tab-btn{padding:16px 24px;font-size:14px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:7px}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab-btn:hover:not(.active){color:var(--text)}
-.tab-badge{background:var(--accent);color:#fff;font-size:10px;padding:1px 5px;border-radius:10px;font-family:var(--mono)}
+.tab-badge{background:var(--accent);color:var(--bg);font-size:10px;padding:1px 5px;border-radius:10px;font-family:var(--mono);font-weight:700}
 
 /* LAYOUT */
 .content{padding:var(--sp-2xl) var(--sp-2xl);max-width:1200px;margin:0 auto;position:relative;z-index:1}
@@ -61,7 +69,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .card-body{padding:22px}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s,background .15s;text-decoration:none;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s,background .15s;text-decoration:none;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn:disabled:hover{border-color:var(--border)}
 .btn:active{transform:scale(0.97)}
 .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
@@ -153,7 +163,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* BRAND FILTER TABS */
 .brand-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .brand-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;font-family:var(--mono)}
-.brand-chip.active{color:#0d0f14;border-color:transparent}
+.brand-chip.active{color:var(--bg);border-color:transparent}
 .brand-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
 
 /* BARCODE SCANNER */
@@ -229,8 +239,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* Search bar compact on mobile */
 @media(max-width:700px){
-  .io-search-input{font-size:13px;padding:8px 30px 8px 32px}
-  .stock-search .io-search-input{font-size:13px}
+  .io-search-input{font-size:16px;padding:8px 30px 8px 32px}
+  .stock-search .io-search-input{font-size:16px}
 }
 
 /* AUDIT STICKY FOOTER */
@@ -305,7 +315,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .io-meta-bar{display:grid;grid-template-columns:220px 1fr;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
 .io-meta-cell{padding:13px 20px}
 .io-meta-cell:first-child{border-right:1px solid var(--border)}
-.io-meta-label{font-family:var(--mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;font-weight:600}
+.io-meta-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;font-weight:500}
 .io-meta-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;padding:8px 12px;outline:none;font-family:var(--mono);transition:border-color .2s}
 .io-meta-input:focus{border-color:var(--accent);background:var(--bg)}
 /* Icon kalender putih — robust cross-browser */
@@ -339,6 +349,12 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 .btn-scan-mobile{display:none;align-items:center;gap:6px;padding:8px 14px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
 .io-footer-sticky{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface)}
 .io-footer-actions{display:flex;gap:8px;align-items:center}
+.io-footer-actions .btn{justify-content:center}
+
+/* Empty-state keranjang (dipakai saat list keranjang kosong) */
+.io-empty-keranjang{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;font-family:var(--mono);line-height:1.6}
+.io-empty-keranjang::before{content:'📦';display:block;font-size:32px;margin-bottom:10px;opacity:.7;font-family:var(--sans)}
+.io-empty-keranjang span{font-size:11px;opacity:.65;margin-top:4px;display:block}
 
 /* Mobile ≤ 1024px */
 @media(max-width:1024px){
@@ -419,7 +435,12 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 
 /* Transfer info form field with label — matches screenshot style */
 .tr-field-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:block}
-.tr-from-display{background:var(--bg);border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.3px}
+.tr-from-display{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.tr-from-display::before{content:'📍';font-size:12px;opacity:.8}
+
+/* Barang Bebas button — token-based (pastry/amber) */
+.btn-barang-bebas{font-size:11px;padding:5px 10px;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:6px;color:var(--pastry,#f59e0b);cursor:pointer;font-family:var(--sans);font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;transition:background .15s,border-color .15s}
+.btn-barang-bebas:hover{background:rgba(245,158,11,0.18);border-color:rgba(245,158,11,0.55)}
 .tr-field-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 12px;outline:none;transition:border-color .2s}
 .tr-field-input:focus{border-color:var(--accent)}
 .tr-field-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 32px 8px 12px;outline:none;transition:border-color .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;appearance:none;cursor:pointer}
@@ -597,6 +618,29 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 .stock-btn-min{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
 .stock-btn-min:hover{color:var(--text);border-color:var(--accent)}
 
+/* Stock filter chip bar */
+.stock-filter-bar{display:flex;gap:6px;padding:10px 18px;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.stock-filter-bar::-webkit-scrollbar{height:0}
+.stock-filter-chip{padding:6px 14px;border-radius:18px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.stock-filter-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+.stock-filter-chip.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.stock-filter-chip[data-f="rendah"].active{background:var(--accent3);border-color:var(--accent3)}
+.stock-filter-chip[data-f="habis"].active{background:var(--danger);border-color:var(--danger);color:#fff}
+.stock-filter-chip[data-f="aman"].active{background:var(--accent2);border-color:var(--accent2)}
+
+/* Mobile card: left status strip */
+.stock-mobile-card{position:relative}
+.stock-mobile-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);transition:background .15s}
+.stock-mobile-card.s-habis::before{background:var(--danger)}
+.stock-mobile-card.s-rendah::before{background:var(--accent3)}
+.stock-mobile-card.s-aman::before{background:var(--accent2)}
+
+@media(max-width:768px){
+  .stock-mobile-card{padding:14px 16px 14px 18px}
+  .stock-btn-min{padding:9px 14px;font-size:13px;min-height:38px}
+  .stock-filter-bar{padding:10px 14px}
+}
+
 /* Mobile stock cards */
 .stock-mobile-card{padding:14px 16px;border-bottom:1px solid var(--border)}
 .stock-mobile-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
@@ -728,7 +772,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
 <!-- IO Drawer: List Barang (mobile) -->
 <div class="io-drawer" id="ioDrawer">
   <div class="io-col-header" style="justify-content:space-between">
-    <span class="io-col-title">List All Item</span>
+    <span class="io-col-title">Pilih Barang</span>
     <button onclick="closeIoDrawer()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">✕</button>
   </div>
   <div class="io-search-wrap">
@@ -737,6 +781,11 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       <input type="text" class="io-search-input" id="searchIoBarangDrawer" placeholder="Cari nama atau satuan..." oninput="filterIoBarang(this.value,'drawer')"/>
       <button class="io-search-clear" id="ioSearchClearDrawer" onclick="clearIoSearch('drawer')">✕</button>
     </div>
+  </div>
+  <!-- Column header — selaras Transfer drawer -->
+  <div class="io-search-hint" style="display:flex;justify-content:space-between;padding:8px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <span style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Nama &amp; Satuan</span>
+    <span style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Stok</span>
   </div>
   <div class="io-search-hint" id="ioSearchHintDrawer"></div>
   <div class="io-col-scroll" id="ioBarangListDrawer"></div>
@@ -816,7 +865,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
     <div class="stat-card"><div class="stat-label">Total Item</div><div class="stat-value" id="statTotalItem">—</div><div class="stat-sub">jenis barang</div></div>
     <div class="stat-card"><div class="stat-label">Stok Rendah</div><div class="stat-value" style="color:var(--accent3)" id="statLow">—</div><div class="stat-sub">perlu reorder</div></div>
     <div class="stat-card"><div class="stat-label">Habis</div><div class="stat-value" style="color:var(--danger)" id="statEmpty">—</div><div class="stat-sub">stok nol</div></div>
-    <div class="stat-card"><div class="stat-label">Transaksi Hari Ini</div><div class="stat-value" style="color:var(--accent)" id="statToday">—</div><div class="stat-sub">gerakan stok</div></div>
+    <div class="stat-card"><div class="stat-label">Transaksi Hari Ini</div><div class="stat-value" id="statToday">—</div><div class="stat-sub">gerakan stok</div></div>
   </div>
 
   <div class="card">
@@ -829,6 +878,12 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
         <span class="io-search-icon">🔍</span>
         <input type="text" id="searchStock" placeholder="Cari barang..." oninput="filterStockTable(this.value);document.getElementById('clearStock').style.display=this.value?'block':'none'" class="io-search-input" style="padding-left:34px"/>
         <button id="clearStock" onclick="document.getElementById('searchStock').value='';filterStockTable('');this.style.display='none'" class="io-search-clear" style="display:none">✕</button>
+      </div>
+      <div class="stock-filter-bar" id="stockFilterBar">
+        <button class="stock-filter-chip active" data-f="all" onclick="setStockFilter('all')">Semua</button>
+        <button class="stock-filter-chip" data-f="aman" onclick="setStockFilter('aman')">Aman</button>
+        <button class="stock-filter-chip" data-f="rendah" onclick="setStockFilter('rendah')">Rendah</button>
+        <button class="stock-filter-chip" data-f="habis" onclick="setStockFilter('habis')">Habis</button>
       </div>
     </div>
     <div class="stock-tbl-wrap">
@@ -863,7 +918,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
         <span class="io-col-title">List All Item</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span id="trSelCountPanel" style="font-size:11px;font-family:var(--mono);color:var(--accent3)"></span>
-          <button onclick="openBarangBebasModal()" style="font-size:11px;padding:4px 10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:6px;color:#f59e0b;cursor:pointer;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:4px" title="Tambah barang yang tidak ada di database">＋ Barang Bebas</button>
+          <button onclick="openBarangBebasModal()" class="btn-barang-bebas" title="Tambah barang yang tidak ada di database">＋ Barang Bebas</button>
         </div>
       </div>
       <div class="io-search-wrap" style="padding:12px 16px;border-bottom:1px solid var(--border)">
@@ -938,10 +993,10 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
           <span id="trItemCount" style="font-size:12px;font-family:var(--mono);color:var(--muted)"></span>
         </div>
         <div class="tr-items-scroll" id="transferItems">
-          <div style="text-align:center;padding:52px 20px;color:var(--muted);font-size:13px;font-family:var(--mono)">Belum ada barang dipilih<br><span style="font-size:11px;opacity:.6;margin-top:6px;display:block">Klik barang di panel kiri untuk memilih</span></div>
+          <div class="io-empty-keranjang">Belum ada barang dipilih<br><span>Klik barang di panel kiri untuk memilih</span></div>
         </div>
         <div class="tr-footer">
-          <div id="trEmptyMsg" style="font-size:13px;color:var(--muted);text-align:center;padding:6px 0;font-family:var(--mono)">Isi info transfer &amp; pilih barang</div>
+          <div id="trEmptyMsg" style="font-size:12px;color:var(--muted);text-align:center;padding:4px 0;font-family:var(--mono);opacity:.6">Lengkapi info transfer untuk lanjut</div>
           <div id="trFooterActions" style="display:none;gap:10px;align-items:center">
             <button class="btn btn-primary" style="flex:1;font-size:14px" onclick="submitTransfer()" id="btnSubmitTransfer">
               <span id="btnSubmitTransferLabel">🔄 Transfer Barang</span>
@@ -975,7 +1030,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
         <span style="font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Nama &amp; Satuan</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Stok</span>
-          <button onclick="openBarangBebasModal()" style="font-size:11px;padding:4px 10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:6px;color:#f59e0b;cursor:pointer;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:4px">＋ Bebas</button>
+          <button onclick="openBarangBebasModal()" class="btn-barang-bebas">＋ Bebas</button>
         </div>
       </div>
       <div style="flex:1;overflow-y:auto" id="transferBarangList">
@@ -1007,7 +1062,13 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       </div>
     </div>
     <div class="card-body-info">
-      <p style="font-size:12px;color:var(--muted);font-family:var(--mono)">Isikan jumlah fisik yang dihitung. Tombol <b style="color:var(--accent2)">Simpan Koreksi</b> akan muncul saat ada perubahan.</p>
+      <p style="font-size:12px;color:var(--muted);font-family:var(--mono);line-height:1.6">Isikan <b style="color:var(--text)">qty fisik</b> hanya untuk barang yang selisih dengan stok sistem. Baris kosong → stok tetap. Tombol <b style="color:var(--accent2)">Simpan Koreksi</b> muncul saat ada selisih.</p>
+      <div class="stock-filter-bar" style="padding:8px 0 0;border-bottom:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <button class="stock-filter-chip active" data-af="all" onclick="setAuditFilter('all')">Semua</button>
+        <button class="stock-filter-chip" data-af="diisi" onclick="setAuditFilter('diisi')">Sudah Diisi</button>
+        <button class="stock-filter-chip" data-af="selisih" onclick="setAuditFilter('selisih')">Selisih ≠ 0</button>
+        <span id="auditRowCount" style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)"></span>
+      </div>
     </div>
     <table class="audit-thead-table">
       <colgroup><col class="ac1"/><col class="ac2"/><col class="ac3"/><col class="ac4"/><col class="ac5"/><col class="ac6"/></colgroup>
@@ -1068,7 +1129,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       <div class="rw-filter-bar">
         <div class="rw-top-row">
           <div class="rw-title-group">
-            <span class="card-title">📋 Gerakan Stok</span>
+            <span class="card-title">📊 Gerakan Stok</span>
           </div>
           <div class="rw-export-group">
             <div class="rw-export-wrap">
@@ -1081,6 +1142,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
           </div>
         </div>
         <div class="rw-filters">
+          <input type="text" id="rwSearchStok" placeholder="🔍 Cari di halaman..." oninput="rwFilterClient('rwSearchStok','riwayatTbody','riwayatMobileList')" class="rw-select" style="max-width:180px;font-family:var(--sans);background-image:none;padding-right:10px"/>
           <select id="filterRiwayatTipe" onchange="riwayatPage_=0;loadRiwayat()" class="rw-select">
             <option value="">Semua tipe</option>
             <option value="masuk">📥 Masuk</option>
@@ -1130,6 +1192,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
           </div>
         </div>
         <div class="rw-filters">
+          <input type="text" id="rwSearchTr" placeholder="🔍 Cari di halaman..." oninput="rwFilterClient('rwSearchTr','transferHistoryTbody','transferMobileList')" class="rw-select" style="max-width:180px;font-family:var(--sans);background-image:none;padding-right:10px"/>
           <button class="rw-date-btn" id="rwDateBtnTr" onclick="toggleDateFilter('tr',this)">
             <span id="rwDateLabelTr">📅 Semua Waktu</span> ▾
           </button>
@@ -1142,6 +1205,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
         </table>
       </div>
       <div class="rw-mobile-list rw-mobile-only" id="transferMobileList"></div>
+      <div style="padding:10px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center">Menampilkan maks 100 transfer terakhir · pakai filter tanggal untuk periode lain</div>
     </div>
   </div>
 
@@ -1164,6 +1228,7 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
           </div>
         </div>
         <div class="rw-filters">
+          <input type="text" id="rwSearchAu" placeholder="🔍 Cari di halaman..." oninput="rwFilterClient('rwSearchAu','auditHistoryTbody','auditMobileListRw')" class="rw-select" style="max-width:180px;font-family:var(--sans);background-image:none;padding-right:10px"/>
           <button class="rw-date-btn" id="rwDateBtnAu" onclick="toggleDateFilter('au',this)">
             <span id="rwDateLabelAu">📅 Semua Waktu</span> ▾
           </button>
@@ -1171,11 +1236,12 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       </div>
       <div class="rw-tbl-wrap rw-desktop-only">
         <table class="tbl rw-tbl">
-          <thead><tr><th>Tanggal</th><th>Barang</th><th>Selisih</th><th>Catatan</th><th>Oleh</th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Barang</th><th style="text-align:right">Sistem</th><th style="text-align:right">Fisik</th><th style="text-align:right">Selisih</th><th>Catatan</th><th>Oleh</th></tr></thead>
           <tbody id="auditHistoryTbody"></tbody>
         </table>
       </div>
       <div class="rw-mobile-list rw-mobile-only" id="auditMobileListRw"></div>
+      <div style="padding:10px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center">Menampilkan maks 200 koreksi terakhir · pakai filter tanggal untuk periode lain</div>
     </div>
   </div>
 
@@ -1416,11 +1482,11 @@ input[type="date"].io-meta-input::-webkit-calendar-picker-indicator:hover{opacit
       <div id="sjPrintContent" style="background:#fff;color:#000;padding:40px 48px;font-family:'Arial',sans-serif;font-size:13px"></div>
     </div>
     <div class="modal-footer" style="background:var(--surface);border-top:1px solid var(--border);padding:14px 24px;justify-content:space-between;flex-shrink:0">
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="downloadSJJpg()" style="border-color:var(--accent2);color:var(--accent2)" id="btnDownloadJpg">⬇ Download JPG</button>
-        <button class="btn btn-orange" onclick="printSJPopup()">🖨 Cetak</button>
-      </div>
       <button class="btn btn-ghost" onclick="document.getElementById('sjPreviewOverlay').classList.remove('show')">Tutup</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="downloadSJJpg()" id="btnDownloadJpg">⬇ Download JPG</button>
+        <button class="btn btn-primary" onclick="printSJPopup()">🖨 Cetak</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1620,14 +1686,36 @@ async function loadStockData(){
   const today=todayStr();
   try{
     const{data,count}=await _sb.from('inventory_log').select('id',{count:'exact'}).eq('brand_id',currentBrand.id).eq('tanggal',today);
-    document.getElementById('statToday').textContent=(count||0);
+    const v=count||0;
+    const el=document.getElementById('statToday');
+    el.textContent=v;
+    el.style.color=v===0?'var(--muted)':'var(--accent)';
+    el.style.opacity=v===0?'.55':'1';
   }catch(e){}
 }
 
+let _stockFilter='all';
+function setStockFilter(f){
+  _stockFilter=f;
+  document.querySelectorAll('.stock-filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));
+  const q=document.getElementById('searchStock')?.value||'';
+  renderStockTable(q);
+}
+function _stockStatus(qty,min){
+  if(qty<=0)return'habis';
+  if(min>0&&qty<=min)return'rendah';
+  return'aman';
+}
 function renderStockTable(q=''){
   const tbody=document.getElementById('stockTbody');
   const isMobile=window.innerWidth<=768;
-  const list=_buildVisibleList(q);
+  let list=_buildVisibleList(q);
+  if(_stockFilter!=='all'){
+    list=list.filter(item=>{
+      const s=stockMap[item.barang_id]||{qty:0,min_qty:0};
+      return _stockStatus(s.qty||0,s.min_qty||0)===_stockFilter;
+    });
+  }
   if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Tidak ada barang ditemukan</div></div></td></tr>';return}
   if(isMobile){
     tbody.innerHTML='<tr><td colspan="6" style="padding:0;border:none"><div id="stockCardList"></div></td></tr>';
@@ -1639,17 +1727,18 @@ function renderStockTable(q=''){
       else if(min>0&&qty<=min){badge='badge-orange';levelLabel='Rendah'}
       const badgeLabel=min>0?`${levelLabel} : min ${min}`:levelLabel;
       const grupBadge=item.type==='grup'?`<span style="font-size:10px;background:rgba(0,194,179,0.12);color:var(--accent3);border-radius:4px;padding:1px 5px;margin-left:5px">grup</span>`:'';
-      return `<div class="stock-mobile-card">
+      const st=_stockStatus(qty,min);
+      return `<div class="stock-mobile-card s-${st}">
         <div class="stock-mobile-row1">
           <div class="stock-mobile-nama">${item.nama}${grupBadge}</div>
           <span class="badge ${badge} stock-mobile-badge">${badgeLabel}</span>
         </div>
         <div class="stock-mobile-row2">
           <div class="stock-mobile-qty">
-            <span class="stock-mobile-num" style="color:${qty<=0?'var(--danger)':'var(--accent2)'}">${qty.toLocaleString('id-ID')}</span>
+            <span class="stock-mobile-num" style="color:${qty<=0?'var(--danger)':'var(--accent2)'};${qty<=0?'font-weight:500;opacity:.75':''}">${qty.toLocaleString('id-ID')}</span>
             <span class="stock-mobile-sat">${item.satuan}</span>
           </div>
-          <button class="stock-btn-min" onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})">Min. Stok</button>
+          <button class="stock-btn-min" onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})">⚙ Atur</button>
         </div>
       </div>`;
     }).join('');
@@ -1666,10 +1755,10 @@ function renderStockTable(q=''){
     return `<tr>
       <td style="font-weight:500">${item.nama}${grupBadge}</td>
       <td style="font-family:var(--mono);font-size:13px;color:var(--muted)">${item.satuan||'—'}</td>
-      <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${qty<=0?'var(--danger)':qty<=min&&min>0?'var(--accent3)':'var(--accent2)'}">${qty.toLocaleString('id-ID')}</td>
+      <td style="text-align:right;font-family:var(--mono);font-weight:${qty<=0?'500':'600'};opacity:${qty<=0?'.75':'1'};color:${qty<=0?'var(--danger)':qty<=min&&min>0?'var(--accent3)':'var(--accent2)'}">${qty.toLocaleString('id-ID')}</td>
       <td><span class="badge ${badge}">${levelLabel}</span>${min>0?`<div class="stock-bar-wrap" style="margin-top:4px"><div class="stock-bar stock-${level}" style="width:${pct}%"></div></div>`:''}</td>
       <td style="font-family:var(--mono);font-size:13px;color:var(--muted)">${min>0?min:'—'}</td>
-      <td><button onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})" class="stock-btn-min">Min. Stok</button></td>
+      <td><button onclick="openMinStok('${item.barang_id}','${item.nama.replace(/'/g,"\\'")}',${min})" class="stock-btn-min">⚙ Atur</button></td>
     </tr>`;
   }).join('');
 }
@@ -1699,9 +1788,18 @@ function updateStats(){
     if(qty<=0)empty++;
     else if(min>0&&qty<=min)low++;
   });
-  document.getElementById('statTotalItem').textContent=total;
-  document.getElementById('statLow').textContent=low;
-  document.getElementById('statEmpty').textContent=empty;
+  const setStat=(id,val,activeColor)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.textContent=val;
+    el.style.color=(val===0||val==='0')?'var(--muted)':activeColor;
+    el.style.opacity=(val===0||val==='0')?'.55':'1';
+  };
+  setStat('statTotalItem',total,'');
+  setStat('statLow',low,'var(--accent3)');
+  setStat('statEmpty',empty,'var(--danger)');
+  // statToday di-update tempat lain; tetap pastikan mute saat 0
+  const tEl=document.getElementById('statToday');
+  if(tEl){const v=parseInt(tEl.textContent,10)||0;tEl.style.color=v===0?'var(--muted)':'';tEl.style.opacity=v===0?'.55':'1'}
 }
 
 let ioKeranjang = []; // [{barang_id, nama, satuan, qty, stok}]
@@ -1869,7 +1967,7 @@ function renderIoBarang(q=''){
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:8px">
-        <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:${s.qty<=0?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:${s.qty<=0?'500':'600'};opacity:${s.qty<=0?'.75':'1'};color:${s.qty<=0?'var(--danger)':'var(--accent2)'}">${(s.qty||0).toLocaleString('id-ID')}</div>
         <div style="font-size:11px;color:var(--muted)">${item.satuan}</div>
       </div>
     </div>`;
@@ -1921,7 +2019,7 @@ function renderIoKeranjang(){
             <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
               <span class="io-keranjang-nama">${item.nama}</span>
             </div>
-            <select class="pastry-tipe-select" onchange="setPastryTipe(${i},this.value)">${buildPastryTipeOptions(item._pastryTipe||'')}</select>
+            <select class="pastry-tipe-select pastry-tipe-${item._pastryTipe||'dispose'}" onchange="setPastryTipe(${i},this.value);this.className='pastry-tipe-select pastry-tipe-'+this.value">${buildPastryTipeOptions(item._pastryTipe||'dispose')}</select>
           </div>
           <div class="io-pastry-bottom">
             <span class="io-keranjang-stok" style="flex:1;font-size:11px">${item.satuan||''}</span>
@@ -2611,7 +2709,7 @@ function renderTransferItems(){
   if(countEl) countEl.textContent=n?n+' barang':'';
   if(selCountBtn){selCountBtn.textContent=n;selCountBtn.style.display=n?'inline':'none'}
   if(!n){
-    wrap.innerHTML='<div style="text-align:center;padding:52px 20px;color:var(--muted);font-size:13px;font-family:var(--mono)">Belum ada barang dipilih<br><span style="font-size:11px;opacity:.6;margin-top:6px;display:block">Klik barang di panel kiri untuk memilih</span></div>';
+    wrap.innerHTML='<div class="io-empty-keranjang">Belum ada barang dipilih<br><span>Klik barang di panel kiri untuk memilih</span></div>';
     if(emptyMsg)emptyMsg.style.display='block';
     if(footerActions)footerActions.style.display='none';
     return;
@@ -2620,8 +2718,7 @@ function renderTransferItems(){
   if(footerActions)footerActions.style.display='flex';
   const lbl=document.getElementById('btnSubmitTransferLabel');
   if(lbl)lbl.textContent=`🔄 Transfer ${n} Barang`;
-  wrap.innerHTML=`<div class="tr-summary-label"><span style="font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Ringkasan — ${n} barang</span></div>`
-    +transferItems.map((it,i)=>`
+  wrap.innerHTML=transferItems.map((it,i)=>`
     <div class="tr-item-row">
       <div class="tr-item-info">
         <div class="tr-item-nama">${it.nama}${it.untracked?`<span style="font-size:10px;font-family:var(--mono);color:#f59e0b;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:4px;padding:1px 5px;margin-left:5px">∞ tidak ditrack</span>`:''}
@@ -3005,8 +3102,7 @@ function renderSJ({no_sj,tanggal,dari,ke,oleh,catatan,items}){
     <div class="sj-meta">
       <div class="sj-meta-item"><div class="sj-meta-label">Dari Brand</div><b>${dari}</b></div>
       <div class="sj-meta-item"><div class="sj-meta-label">Ke Brand</div><b>${ke}</b></div>
-      <div class="sj-meta-item"><div class="sj-meta-label">Dibuat Oleh</div>${oleh}</div>
-      <div class="sj-meta-item"><div class="sj-meta-label">Tanggal</div>${tglFmt}</div>
+      <div class="sj-meta-item" style="grid-column:1/-1"><div class="sj-meta-label">Dibuat Oleh</div>${oleh}</div>
     </div>
     ${catatan?`<div style="background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px"><b>Catatan:</b> ${catatan}</div>`:''}
     <table class="sj-tbl"><thead><tr><th style="padding:8px 12px">#</th><th style="padding:8px 12px">Nama Barang</th><th style="padding:8px 12px">Satuan</th><th style="padding:8px 12px;text-align:right">Jumlah</th></tr></thead><tbody>${itemRows}</tbody></table>
@@ -3132,10 +3228,21 @@ async function loadAuditDirect(){
   updateAuditFooter();
 }
 
+let _auditFilter='all';
+function setAuditFilter(f){
+  _auditFilter=f;
+  document.querySelectorAll('.stock-filter-chip[data-af]').forEach(c=>c.classList.toggle('active',c.dataset.af===f));
+  filterAuditTable(document.getElementById('searchAudit')?.value||'');
+}
 function filterAuditTable(q){
-  auditDirectFiltered = q
+  let base = q
     ? auditDirectData.filter(it=>it.nama.toLowerCase().includes(q.toLowerCase()))
     : [...auditDirectData];
+  if(_auditFilter==='diisi') base=base.filter(it=>it.qty_fisik!=null);
+  else if(_auditFilter==='selisih') base=base.filter(it=>it.qty_fisik!=null&&it.qty_fisik!==it.qty_sistem);
+  auditDirectFiltered = base;
+  const cnt=document.getElementById('auditRowCount');
+  if(cnt) cnt.textContent=`${base.length} / ${auditDirectData.length} barang`;
   renderAuditDirectTable();
 }
 
@@ -3169,14 +3276,14 @@ function renderAuditDirectTable(){
     return `<tr style="${hasDiff?'background:rgba(0,212,255,0.04)':''}">
       <td style="font-weight:500">${it.nama}</td>
       <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${it.satuan||'—'}</td>
-      <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${it.qty_sistem<=0?'var(--danger)':'var(--accent2)'}">${(it.qty_sistem||0).toLocaleString('id-ID')}</td>
+      <td style="text-align:right;font-family:var(--mono);font-weight:${it.qty_sistem<=0?'500':'600'};opacity:${it.qty_sistem<=0?'.75':'1'};color:${it.qty_sistem<=0?'var(--danger)':'var(--accent2)'}">${(it.qty_sistem||0).toLocaleString('id-ID')}</td>
       <td style="text-align:right">
-        <input type="number" value="${it.qty_fisik!=null?it.qty_fisik:''}" min="0" step="0.1" placeholder="—"
+        <input type="number" value="${it.qty_fisik!=null?it.qty_fisik:''}" min="0" step="0.1" placeholder="ketik qty"
           onchange="auditDirectData[${idx}].qty_fisik=this.value!==''?parseFloat(this.value):null;filterAuditTable(document.getElementById('searchAudit').value);updateAuditFooter()"
-          style="width:80px;background:var(--bg);border:1px solid ${it.qty_fisik!=null?'var(--accent)':'var(--border)'};border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;text-align:center"/>
+          style="width:90px;background:var(--bg);border:1px solid ${it.qty_fisik!=null?'var(--accent)':'var(--border)'};border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;text-align:center"/>
       </td>
       <td style="text-align:right;font-family:var(--mono);font-size:12px" class="${selClass}">${selisih!=null?(selisih>0?'+':'')+selisih.toLocaleString('id-ID'):'—'}</td>
-      <td><input type="text" value="${it.catatan||''}" placeholder="catatan..." onchange="auditDirectData[${idx}].catatan=this.value" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none"/></td>
+      <td><input type="text" value="${it.catatan||''}" placeholder="+ catatan" onchange="auditDirectData[${idx}].catatan=this.value" style="width:100%;background:${it.catatan?'var(--bg)':'transparent'};border:1px solid ${it.catatan?'var(--border)':'transparent'};border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;transition:background .15s,border-color .15s" onfocus="this.style.background='var(--bg)';this.style.borderColor='var(--accent)'" onblur="if(!this.value){this.style.background='transparent';this.style.borderColor='transparent'}else{this.style.borderColor='var(--border)'}"/></td>
     </tr>`;
   }).join('');
 
@@ -3244,7 +3351,7 @@ async function saveAllAuditKoreksi(){
 async function loadAuditHistory(){
   const tbody=document.getElementById('auditHistoryTbody');
   const mobileList=document.getElementById('auditMobileListRw');
-  tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⏳</div></div></td></tr>';
+  tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div></div></td></tr>';
   try{
     const bulanAwal=document.getElementById('filterAuditBulanAwal')?.value;
     const bulanAkhir=document.getElementById('filterAuditBulanAkhir')?.value;
@@ -3252,20 +3359,33 @@ async function loadAuditHistory(){
     if(bulanAwal){const tglAwal=bulanAwal+'-01';const tglAkhir=(bulanAkhir||bulanAwal)+'-'+String(_lastDay(bulanAkhir||bulanAwal)).padStart(2,'0');q=q.gte('tanggal',tglAwal).lte('tanggal',tglAkhir)}
     const{data}=await q;
     if(!data||!data.length){
-      const empty='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada koreksi</div></div></td></tr>';
+      const empty='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">Belum ada koreksi</div></div></td></tr>';
       tbody.innerHTML=empty;
       if(mobileList)mobileList.innerHTML='<div style="padding:32px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px">Belum ada koreksi</div>';
       return;
     }
     // Desktop
+    const parseAudit=(c)=>{
+      const mSel=c?.match(/Selisih: ([+\-\d.]+)/);
+      const mSis=c?.match(/Sistem: ([+\-\d.]+)/);
+      const mFis=c?.match(/Fisik: ([+\-\d.]+)/);
+      const sel=mSel?parseFloat(mSel[1]):0;
+      const sis=mSis?parseFloat(mSis[1]):null;
+      const fis=mFis?parseFloat(mFis[1]):null;
+      // Strip metadata from catatan untuk user-visible
+      const userNote=(c||'').replace(/(Sistem|Fisik|Selisih):\s*[+\-\d.]+\s*·?\s*/g,'').replace(/^[·\s]+|[·\s]+$/g,'').trim();
+      return {sel,sis,fis,userNote};
+    };
     tbody.innerHTML=data.map(r=>{
-      const m=r.catatan?.match(/Selisih: ([+\-\d.]+)/);
-      const sel=m?parseFloat(m[1]):0;
+      const {sel,sis,fis,userNote}=parseAudit(r.catatan);
+      const sat=r.barang?.satuan||'';
       return `<tr>
         <td style="font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap">${r.tanggal||'—'}</td>
         <td style="font-weight:500;font-size:13px">${r.barang?.nama||'—'}</td>
-        <td style="font-family:var(--mono);font-weight:600;color:${sel>0?'var(--accent2)':sel<0?'var(--danger)':'var(--muted)'};white-space:nowrap">${sel>0?'+':''}${sel.toLocaleString('id-ID')} <span style="font-size:11px;color:var(--muted)">${r.barang?.satuan||''}</span></td>
-        <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.catatan||''}">${r.catatan||'—'}</td>
+        <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap">${sis!=null?sis.toLocaleString('id-ID'):'—'} <span style="font-size:10px;opacity:.7">${sat}</span></td>
+        <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--text);white-space:nowrap">${fis!=null?fis.toLocaleString('id-ID'):'—'} <span style="font-size:10px;color:var(--muted);opacity:.7">${sat}</span></td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${sel>0?'var(--accent2)':sel<0?'var(--danger)':'var(--muted)'};white-space:nowrap">${sel>0?'+':''}${sel.toLocaleString('id-ID')}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${userNote||r.catatan||''}">${userNote||'—'}</td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.oleh||'—'}</td>
       </tr>`;
     }).join('');
@@ -3288,9 +3408,21 @@ async function loadAuditHistory(){
         </div>
       </div>`;
     }).join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="5" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" style="color:var(--danger);padding:16px">Gagal memuat</td></tr>'}
 }
 
+function rwFilterClient(inputId,tbodyId,mobileId){
+  const q=(document.getElementById(inputId)?.value||'').toLowerCase().trim();
+  const filterRows=(parent,rowSel)=>{
+    if(!parent)return;
+    parent.querySelectorAll(rowSel).forEach(el=>{
+      const t=el.textContent.toLowerCase();
+      el.style.display=(!q||t.includes(q))?'':'none';
+    });
+  };
+  filterRows(document.getElementById(tbodyId),'tr');
+  filterRows(document.getElementById(mobileId),'.rw-card');
+}
 async function loadRiwayat(){
   const tbody=document.getElementById('riwayatTbody');
   const mobileList=document.getElementById('riwayatMobileList');
@@ -3308,7 +3440,11 @@ async function loadRiwayat(){
     const{data,count,error}=await q;
     if(error)throw error;
     riwayatTotal=count||0;
-    document.getElementById('riwayatInfo').textContent=`${riwayatTotal} total · Hal. ${riwayatPage_+1}`;
+    {
+      const from=riwayatTotal?riwayatPage_*PAGE_SIZE+1:0;
+      const to=Math.min((riwayatPage_+1)*PAGE_SIZE,riwayatTotal);
+      document.getElementById('riwayatInfo').textContent=riwayatTotal?`Menampilkan ${from}–${to} dari ${riwayatTotal}`:'Tidak ada data';
+    }
     document.getElementById('btnRiwayatPrev').disabled=riwayatPage_===0;
     document.getElementById('btnRiwayatNext').disabled=(riwayatPage_+1)*PAGE_SIZE>=riwayatTotal;
     if(!data||!data.length){
@@ -3379,7 +3515,7 @@ function _ensureDateInputs(){
   });
 }
 
-    function toggleDateFilter(btnEl,id){
+    function toggleDateFilter(id,btnEl){
       const popup=document.getElementById('rwDatePopup');
       if(!popup)return;
       if(_activeDateId===id&&popup.style.display!=='none'){
@@ -3795,8 +3931,8 @@ function renderRwPastryPage() {
   if(tbody) tbody.innerHTML = slice.map(r => {
     const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
     const badge = r.tipe === 'dispose'
-      ? '<span style="background:#fee2e2;color:#dc2626;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px">Dispose</span>'
-      : '<span style="background:#dcfce7;color:#16a34a;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px">Compliment</span>';
+      ? '<span class="pastry-badge pastry-badge-dispose">Dispose</span>'
+      : '<span class="pastry-badge pastry-badge-compliment">Compliment</span>';
     return `<tr>
       <td style="font-family:var(--mono);font-size:12px">${tgl}</td>
       <td style="font-weight:500">${r.nama_pastry||'—'}</td>
@@ -3810,13 +3946,11 @@ function renderRwPastryPage() {
   /* Mobile cards */
   if(mobileEl) mobileEl.innerHTML = slice.map(r => {
     const tgl = r.tanggal ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-    const badgeStyle = r.tipe==='dispose'
-      ? 'background:#fee2e2;color:#dc2626'
-      : 'background:#dcfce7;color:#16a34a';
+    const badgeCls = r.tipe==='dispose' ? 'pastry-badge-dispose' : 'pastry-badge-compliment';
     return `<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span style="font-weight:600;font-size:14px">${r.nama_pastry||'—'}</span>
-        <span style="${badgeStyle};border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:700;padding:2px 8px;text-transform:uppercase">${r.tipe}</span>
+        <span class="pastry-badge ${badgeCls}">${r.tipe}</span>
       </div>
       <div style="display:flex;gap:12px;font-size:12px;color:var(--muted);font-family:var(--mono)">
         <span>${tgl}</span>

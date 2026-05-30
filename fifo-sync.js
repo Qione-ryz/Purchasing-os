@@ -86,7 +86,7 @@ async function _runFifoSync(barangIds, opts) {
   // 1. Ambil semua competing order_items
   let _competingRaw = await _inBatch(
     'order_items',
-    'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom, block_fifo',
+    'id, order_id, barang_id, qty_order, qty_terpenuhi, faktor_konversi, status_item, is_custom',
     'barang_id', barangIds
   );
   if (!_competingRaw.length) {
@@ -98,9 +98,7 @@ async function _runFifoSync(barangIds, opts) {
   }
 
   const _competingFiltered = (_competingRaw || []).filter(ci =>
-    !ci.is_custom
-    && (ci.status_item || 'pending') !== 'cancelled'
-    && ci.block_fifo !== true
+    !ci.is_custom && (ci.status_item || 'pending') !== 'cancelled'
   );
 
   const uniqueOrderIds = [...new Set((_competingFiltered || []).map(ci => ci.order_id).filter(Boolean))];
@@ -123,8 +121,10 @@ async function _runFifoSync(barangIds, opts) {
     linkedRows.forEach(r => { if (r.order_item_id) manuallyLinkedItemIds.add(r.order_item_id); });
   }
 
+  // 'fifo_selesai' = otomatis di-set FIFO saat item penuh → excluded seperti 'selesai' manual
+  const _isDoneStatus = s => s === 'selesai' || s === 'fifo_selesai';
   const fifoCompetitors = (allCompetingItems || []).filter(ci =>
-    !manuallyLinkedItemIds.has(ci.id) && (ci.status_item || 'pending') !== 'selesai'
+    !manuallyLinkedItemIds.has(ci.id) && !_isDoneStatus(ci.status_item || 'pending')
   );
 
   // 3. Ambil total qty pembelian FIFO
@@ -224,7 +224,7 @@ async function _runFifoSync(barangIds, opts) {
     for (const ci of competitors) {
       const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
       const statusCi  = ci.status_item || 'pending';
-      if (statusCi === 'selesai') {
+      if (_isDoneStatus(statusCi)) {
         hasil[ci.id] = Math.min(ci.qty_terpenuhi || 0, kebutuhan);
       } else {
         // PERBAIKAN: ordered tidak di-reset ke 0 — pertahankan qty yang sudah ada
@@ -237,7 +237,7 @@ async function _runFifoSync(barangIds, opts) {
 
     let orderQueueIdx = 0;
     // pending mulai dari 0, ordered sudah ada nilai awal dari DB
-    const orderQueue = competitors.filter(ci => (ci.status_item || 'pending') !== 'selesai');
+    const orderQueue = competitors.filter(ci => !_isDoneStatus(ci.status_item || 'pending'));
 
     for (const bi of beliItems) {
       const beliTgl = bi.riwayat_beli?.tanggal || '';
@@ -274,13 +274,19 @@ async function _runFifoSync(barangIds, opts) {
     for (const ci of competitors) {
       const statusCi = ci.status_item || 'pending';
       let val;
-      if (statusCi === 'selesai') {
+      if (_isDoneStatus(statusCi)) {
         val = hasil[ci.id];
-      } else {
+      } else if (statusCi === 'ordered') {
+        // Ordered = komitmen ke vendor. Preserve qty_terpenuhi yg sudah ada
+        // hanya kalau tidak ada beli relevan (FIFO belum punya data utk recompute).
         const adaBeli = beliItems.some(bi =>
           (bi.riwayat_beli?.tanggal || '') >= (ci.orders?.created_at || '').substring(0, 10)
         );
         val = adaBeli ? hasil[ci.id] : undefined;
+      } else {
+        // Pending: SELALU pakai hasil FIFO (0 kalau tidak ter-alokasi).
+        // Mencegah stale qty_terpenuhi tertinggal setelah beli dihapus.
+        val = hasil[ci.id];
       }
       fifoResultMap[ci.id] = val;
       if (val !== undefined) newResultPerBarang[barangId][ci.id] = val;
@@ -294,18 +300,28 @@ async function _runFifoSync(barangIds, opts) {
     _fifoCache.beliTotal[id] = beliTotalPerBarang[id] || 0;
   });
 
-  // 5. Update DB di background untuk item FIFO yang qty-nya berubah
+  // 5. Update DB di background untuk item FIFO yang qty-nya berubah.
+  //    Jika item baru PENUH via FIFO → set status_item='fifo_selesai' untuk lock permanen.
+  //    Pada run berikutnya item ini excluded dari kompetitor → alokasi stabil multi-user.
   const adaData = Object.keys(beliTotalPerBarang).length > 0;
   if (adaData) {
     fifoCompetitors
-      .filter(ci => barangIdsToCalc.includes(ci.barang_id)) // hanya yang baru dihitung
+      .filter(ci => barangIdsToCalc.includes(ci.barang_id))
       .forEach(ci => {
-        if ((ci.status_item || 'pending') === 'selesai') return;
+        if (_isDoneStatus(ci.status_item || 'pending')) return;
         const newQty = fifoResultMap[ci.id];
         if (newQty === undefined) return;
-        if (newQty === (ci.qty_terpenuhi || 0)) return;
+        const kebutuhan = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
+        const nowFull   = kebutuhan > 0 && newQty >= kebutuhan;
+        const qtyChanged = newQty !== (ci.qty_terpenuhi || 0);
+
+        if (!qtyChanged && !nowFull) return;
+
+        const updatePayload = { qty_terpenuhi: newQty };
+        if (nowFull) updatePayload.status_item = 'fifo_selesai';
+
         _sb.from('order_items')
-          .update({ qty_terpenuhi: newQty })
+          .update(updatePayload)
           .eq('id', ci.id)
           .then(() => {})
           .catch(e => console.warn('fifo update failed:', ci.id, e));

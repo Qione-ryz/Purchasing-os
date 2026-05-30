@@ -8,6 +8,26 @@
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
+  <style>
+    /* Status tab filter */
+    .status-tab{background:none;border:none;cursor:pointer;padding:5px 12px;border-radius:7px;font-size:12px;font-family:var(--sans);color:var(--muted);transition:all .15s ease;white-space:nowrap}
+    .status-tab:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+    .status-tab.active{background:var(--surface2);color:var(--text);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+    body.light-mode .status-tab.active{background:var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+    /* Mobile: drawer pattern untuk draft list */
+    .draft-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:140;backdrop-filter:blur(2px)}
+    .draft-drawer-overlay.show{display:block}
+    @media(max-width:768px){
+      #btnOpenDraftDrawer{display:inline-flex !important}
+      #draftListPanel{position:fixed !important;top:var(--topbar-h,60px);left:0;bottom:0;width:88vw;max-width:340px;z-index:150;background:var(--surface);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.5)}
+      #draftListPanel.drawer-open{transform:translateX(0)}
+      #reviewPanel{width:100% !important;flex:1 1 100% !important}
+      #reviewContent{flex-direction:column !important}
+      #imgViewerPanel{width:100% !important;max-height:42vh;border-right:none !important;border-bottom:1px solid var(--border)}
+      #correctionForm{flex:1 1 auto !important}
+    }
+  </style>
 </head>
 <body>
 <div id="page-loader"><div class="loader-ring"></div></div>
@@ -22,17 +42,36 @@
       <div class="page-title">Invoice Drafts</div>
       <div class="page-sub" id="activeBrandLabel">Semua Brand</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <select id="filterStatus" onchange="loadDrafts()" class="filter-select">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="draftCountChip" style="display:none;font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:14px;background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.25)"></span>
+      <select id="filterBrand" onchange="onFilterBrandChange()" class="filter-select" title="Filter berdasarkan brand">
+        <option value="all">Semua Brand</option>
+      </select>
+      <div id="statusTabBar" style="display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:3px">
+        <button class="status-tab active" data-status="needs_review" onclick="setStatusTab('needs_review')">Perlu Review</button>
+        <button class="status-tab" data-status="confirmed"    onclick="setStatusTab('confirmed')">Confirmed</button>
+        <button class="status-tab" data-status="rejected"     onclick="setStatusTab('rejected')">Rejected</button>
+        <button class="status-tab" data-status=""             onclick="setStatusTab('')">Semua</button>
+      </div>
+      <select id="filterStatus" style="display:none">
         <option value="needs_review">Perlu Review</option>
         <option value="confirmed">Confirmed</option>
         <option value="rejected">Rejected</option>
         <option value="">Semua Status</option>
       </select>
+      <button id="btnRefreshData" class="btn btn-ghost" onclick="refreshDraftsData()"
+        style="padding:0 14px;height:36px"
+        title="Paksa reload draft & data master">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+        Refresh Data
+      </button>
+      <!-- Mobile: tombol buka drawer draft list -->
+      <button class="btn btn-ghost btn-sm" id="btnOpenDraftDrawer" onclick="document.getElementById('draftListPanel').classList.toggle('drawer-open');document.getElementById('draftDrawerOverlay').classList.toggle('show')" style="display:none">☰ Daftar</button>
     </div>
   </div>
 
-  <div class="content" style="padding:0;height:calc(100vh - 60px);overflow:hidden">
+  <div class="draft-drawer-overlay" id="draftDrawerOverlay" onclick="document.getElementById('draftListPanel').classList.remove('drawer-open');this.classList.remove('show')"></div>
+  <div class="content" style="padding:0;height:calc(100dvh - var(--topbar-h,60px));overflow:hidden">
     <div id="draftsLayout" style="display:flex;height:100%">
 
       <!-- LEFT: Draft list -->
@@ -57,15 +96,15 @@
         <div id="reviewContent" style="display:none;flex:1;overflow:hidden;flex-direction:row">
           <!-- Image viewer -->
           <div id="imgViewerPanel" style="width:45%;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);flex-shrink:0">
-            <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-shrink:0">
-              <span style="font-size:11px;color:var(--muted)">Foto Invoice</span>
-              <div style="margin-left:auto;display:flex;gap:3px;align-items:center">
-                <button class="btn btn-ghost btn-icon" onclick="draftImgRotate(-1)" title="Putar kiri">↺</button>
-                <button class="btn btn-ghost btn-icon" onclick="draftImgZoom(-1)" title="Zoom out">−</button>
-                <span id="draftZoomLabel" style="font-size:11px;color:var(--muted);min-width:36px;text-align:center">100%</span>
-                <button class="btn btn-ghost btn-icon" onclick="draftImgZoom(1)" title="Zoom in">+</button>
-                <button class="btn btn-ghost btn-icon" onclick="draftImgRotate(1)" title="Putar kanan">↻</button>
-                <button class="btn btn-ghost btn-icon" onclick="draftImgReset()" title="Reset">⊙</button>
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;background:var(--surface2);flex-shrink:0">
+              <span style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:500">Foto Invoice</span>
+              <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgRotate(-1)" title="Putar Kiri" style="width:28px;height:28px;padding:0">↺</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgZoom(-1)" title="Zoom Out" style="width:28px;height:28px;padding:0">−</button>
+                <span id="draftZoomLabel" style="font-family:var(--mono);font-size:11px;color:var(--accent);min-width:42px;text-align:center;font-weight:600">100%</span>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgZoom(1)" title="Zoom In" style="width:28px;height:28px;padding:0">+</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgRotate(1)" title="Putar Kanan" style="width:28px;height:28px;padding:0">↻</button>
+                <button class="btn btn-ghost btn-icon btn-sm is-destructive" onclick="draftImgReset()" title="Reset Zoom & Putar" style="width:28px;height:28px;padding:0">⊙</button>
               </div>
             </div>
             <div id="draftImgContainer" style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px">
@@ -76,25 +115,32 @@
           </div>
 
           <!-- Correction form -->
-          <div id="correctionForm" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px">
+          <div id="correctionForm" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
 
-            <div id="draftInfoBar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);flex-shrink:0"></div>
+            <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px">
 
-            <div class="card" style="flex-shrink:0">
-              <div class="card-header"><span class="card-title">Vendor</span></div>
-              <div class="card-body" id="vendorSection"></div>
-            </div>
-
-            <div class="card" style="flex-shrink:0">
-              <div class="card-header">
-                <span class="card-title">Item Pembelian</span>
+              <!-- Card: Informasi Invoice -->
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">Informasi Invoice</span>
+                  <span id="draftStatusChip" style="font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:10px"></span>
+                </div>
+                <div class="card-body" id="infoSection"></div>
               </div>
-              <div class="card-body" id="itemsSection"></div>
+
+              <!-- Card: Daftar Barang — overflow visible supaya dropdown gak terpotong card -->
+              <div class="card" style="overflow:visible">
+                <div class="card-header">
+                  <span class="card-title">Daftar Barang</span>
+                  <span id="itemCountChip" style="font-family:var(--mono);font-size:12px;color:var(--muted)">0 item</span>
+                </div>
+                <div class="card-body" style="overflow:visible;padding:12px 16px" id="itemsSection"></div>
+              </div>
+
             </div>
 
-            <div class="card" style="flex-shrink:0">
-              <div class="card-body" id="summarySection"></div>
-            </div>
+            <!-- Sticky action bar -->
+            <div id="summarySection" style="flex-shrink:0;border-top:1px solid var(--border);background:rgba(10,26,31,0.85);backdrop-filter:blur(12px);padding:14px 20px;position:sticky;bottom:0;z-index:10"></div>
 
           </div>
         </div>

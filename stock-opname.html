@@ -65,7 +65,7 @@
       <button class="month-nav-btn" onclick="goMonth(-1)">‹</button>
       <button class="month-label" id="monthLabel" onclick="toggleMonthPicker()" title="Klik untuk pilih bulan">—</button>
       <button class="month-nav-btn" onclick="goMonth(1)">›</button>
-      <span class="so-month-sub" id="monthSubLabel"></span>
+      <span class="so-month-sub" id="monthSubLabel" title="Bulan pembanding — Stok Bulan Lalu &amp; data historis diambil dari bulan ini" style="cursor:help"></span>
       <div class="brand-filter-row" style="margin-left:auto">
         <label>Brand</label>
         <select class="filter-select" id="soFilterBrand" onchange="onFilterChange()"></select>
@@ -171,7 +171,9 @@
       <div class="table-card anim">
         <div class="card-header">
           <span class="card-title">Pemakaian — <span id="pemakaianMonthTitle" style="color:var(--accent)">—</span></span>
-          <span class="so-formula-hint">= Stok Awal + Pembelian − Stok Akhir</span>
+          <span class="so-formula-hint" title="Pemakaian = Stok Awal Bulan + Pembelian Bulan Ini − Stok Akhir Bulan" style="cursor:help">
+            ⓘ Stok Awal + Pembelian − Stok Akhir
+          </span>
         </div>
         <div class="table-wrap">
           <table>
@@ -197,20 +199,25 @@
     <!-- ══ TAB 3: PURCHASE PLAN ══ -->
     <div id="tabPlan" style="display:none">
       <div class="plan-gen-bar admin-only">
-        <label>Generate Plan</label>
-        <span class="so-formula-hint">Rekomendasi = Rata-rata Pakai − Stok Akhir Bln Lalu</span>
-        <span class="so-formula-hint">+</span>
-        <div style="display:flex;align-items:center;gap:5px">
-          <input type="text" inputmode="decimal" id="planBufferPct" value="0"
-            class="so-buffer-input"
-            onkeydown="handleNumKeydown(event)"
-            oninput="document.getElementById('planBufferLabel').textContent=this.value"/>
-          <span class="so-formula-hint">% buffer dari rata-rata pakai</span>
+        <div class="plan-gen-row">
+          <label class="plan-gen-label">Generate Plan</label>
+          <div class="plan-gen-input-group">
+            <input type="text" inputmode="decimal" id="planBufferPct" value="0"
+              class="so-buffer-input"
+              onkeydown="handleNumKeydown(event)"
+              oninput="document.getElementById('planBufferLabel').textContent=this.value"
+              title="Tambahan persentase buffer di atas rata-rata pakai"/>
+            <span class="so-formula-hint">% buffer</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="generatePlan()" title="Hitung otomatis rekomendasi berdasarkan rumus di bawah">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generate
+          </button>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="generatePlan()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Generate
-        </button>
+        <div class="plan-gen-formula">
+          <span style="opacity:.7">ⓘ Rumus:</span>
+          <code>Rekomendasi = Rata-rata Pakai 3 Bln × (1 + Buffer%) − Stok Akhir Bln Lalu</code>
+        </div>
       </div>
       <div class="notice-box info" id="noticePlan" style="display:none"></div>
       <div class="toolbar">
@@ -229,7 +236,11 @@
       <div class="table-card anim">
         <div class="card-header">
           <span class="card-title">Purchase Plan — <span id="planMonthTitle" style="color:var(--accent)">—</span></span>
-
+          <span class="plan-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--accent2)"></span>Diisi</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--danger)"></span>Belum diisi</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>Excluded</span>
+          </span>
         </div>
         <div class="table-wrap">
           <table>
@@ -239,10 +250,10 @@
                 <th style="width:100px">SKU</th>
                 <th style="width:70px">Satuan</th>
                 <th style="text-align:right;width:120px">Stok Akhir Bln Lalu</th>
-                <th style="text-align:right;width:110px">Rata-rata Pakai 3 Bln</th>
-                <th style="text-align:right;width:110px">Rekomendasi Plan</th>
+                <th style="text-align:right;width:110px" title="Rata-rata pemakaian 3 bulan ke belakang dari bulan ini">Rata-rata Pakai 3 Bln</th>
+                <th style="text-align:right;width:110px" title="Hasil rumus generate plan — angka hijau = perlu beli, merah = surplus">Rekomendasi Plan</th>
                 <th style="text-align:right;width:110px">Purchase Plan</th>
-                <th style="width:44px;text-align:center" class="admin-only" title="Exclude dari plan"></th>
+                <th style="width:44px;text-align:center" class="admin-only" title="Toggle exclude/include item dari plan"></th>
               </tr>
             </thead>
             <tbody id="planTableBody">
@@ -982,7 +993,7 @@
     const _currStockData = (stockData[_bkey()] || {})[curr] || {};
     const hasCurr = list.some(b => _currStockData[b.id] != null);
     const notice  = document.getElementById('noticeOpname');
-    if (!hasCurr && list.length > 0 && window._userRole === 'admin') {
+    if (!hasCurr && list.length > 0 && window._isAdmin) {
       notice.style.display = 'flex';
       notice.innerHTML = 'ℹ️ Belum ada stock opname untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Input nilai di kolom "Stok Bulan Ini" lalu klik Simpan.';
     } else { notice.style.display = 'none'; }
@@ -1008,7 +1019,7 @@
           + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
           + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
           + '<td class="td-num">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + (window._userRole === 'admin'
+          + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
                 +   ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
                 +   ' data-bid="' + b.id + '"'
@@ -1052,7 +1063,7 @@
           + '<td><span class="item-meta">—</span></td>'
           + '<td><span class="item-meta">' + satuan + '</span></td>'
           + '<td class="td-num">' + (primerPrev != null ? fmt(primerPrev) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + (window._userRole === 'admin'
+          + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
                 + ' class="cell-input' + (isDraft ? ' changed' : '') + '"'
                 + ' data-grpid="' + grp.id + '"'
@@ -1105,7 +1116,7 @@
           + '<button class="so-sep-toggle" onclick="toggleCollapseEmpty(\'' + gKey + '\')">'
           + labelTxt
           + '</button>'
-          + (window._userRole === 'admin'
+          + (window._isAdmin
             ? '<button class="so-sep-hide-btn" onclick="hideEmptyToConfig(\'' + gKey + '\')" title="Sembunyikan barang kosong ini dari daftar opname">'
               + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
               + ' Kelola Barang'
@@ -1127,7 +1138,7 @@
     const bar = document.getElementById('opnameProgressBar');
     if (bar) { bar.style.width = pct + '%'; bar.style.background = pct === 100 ? 'var(--accent2)' : pct > 50 ? 'var(--accent)' : 'var(--accent3)'; }
     document.getElementById('opnameSaveStatus').textContent = hasCurr && !opnameChanged ? '✓ Data tersimpan' : '';
-    if (window._userRole === 'admin') document.getElementById('opnameSaveBar').style.display = opnameChanged ? 'flex' : 'none';
+    if (window._isAdmin) document.getElementById('opnameSaveBar').style.display = opnameChanged ? 'flex' : 'none';
     /* Apply hide-empty class */
     const tbody2 = document.getElementById('opnameTableBody');
     if (tbody2) tbody2.closest('table').classList.toggle('hide-empty-active', hideEmptyMode);
@@ -1351,15 +1362,26 @@
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
-    document.getElementById('statGridPemakaian').innerHTML =
-      '<div class="stat-card"><div class="stat-label">Total Pemakaian</div><div class="stat-val green">' + fmt(totalUsage) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
-    + '<div class="stat-card"><div class="stat-label">Barang Terhitung</div><div class="stat-val blue">' + countOk + '</div><div class="stat-sub">dari ' + merged.length + ' item</div></div>'
-    + '<div class="stat-card"><div class="stat-label">Data Kurang</div><div class="stat-val ' + (countMissing > 0 ? 'orange' : 'green') + '">' + countMissing + '</div><div class="stat-sub">item belum lengkap</div></div>';
+    const statGridPem = document.getElementById('statGridPemakaian');
+    if (countOk === 0 && countMissing > 0) {
+      // Semua data kurang — sembunyikan stat untuk kurangi noise
+      statGridPem.style.display = 'none';
+    } else {
+      statGridPem.style.display = '';
+      const pctTerhitung = merged.length > 0 ? Math.round(countOk / merged.length * 100) : 0;
+      statGridPem.innerHTML =
+        '<div class="stat-card"><div class="stat-label">Total Pemakaian</div><div class="stat-val green">' + fmt(totalUsage) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">Progress Data</div><div class="stat-val blue">' + countOk + ' / ' + merged.length + '</div><div class="stat-sub">' + pctTerhitung + '% item terhitung</div></div>'
+      + '<div class="stat-card"><div class="stat-label">Data Kurang</div><div class="stat-val ' + (countMissing > 0 ? 'orange' : 'green') + '">' + countMissing + '</div><div class="stat-sub">item belum lengkap</div></div>';
+    }
 
     const notice = document.getElementById('noticePemakaian');
     if (countMissing > 0) {
       notice.style.display = 'flex';
-      notice.innerHTML = '⚠️ ' + countMissing + ' item belum memiliki data stok lengkap. Pastikan stock opname bulan lalu dan bulan ini sudah diisi.';
+      const ctaBtn = countOk === 0
+        ? ' <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="switchTab(\'opname\')">→ Isi Stock Opname</button>'
+        : '';
+      notice.innerHTML = '⚠️ ' + countMissing + ' item belum memiliki data stok lengkap. Pastikan stock opname bulan lalu dan bulan ini sudah diisi.' + ctaBtn;
     } else notice.style.display = 'none';
   }
 
@@ -1387,7 +1409,7 @@
       document.getElementById('planDraftBadge').innerHTML = '<span class="badge badge-ok">TERSIMPAN</span>';
     } else {
       notice.style.display = 'flex';
-      notice.innerHTML = 'Belum ada purchase plan untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Klik ⚡ Generate atau langsung isi kolom "Purchase Plan".';
+      notice.innerHTML = 'Belum ada purchase plan untuk <strong>' + mlabel(curYear, curMonth) + '</strong>. Klik <strong>⚡ Generate</strong> di atas atau isi manual kolom "Purchase Plan".';
       notice.className = 'notice-box warning';
       document.getElementById('planDraftBadge').innerHTML = '';
     }
@@ -1415,7 +1437,7 @@
           : rekomen == null ? '<span style="color:var(--muted)">—</span>'
           : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
           : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
-        const excludeBtnHtml = window._userRole === 'admin'
+        const excludeBtnHtml = window._isAdmin
           ? '<td style="text-align:center;padding:0 6px"><button onclick="togglePlanExclude(\'' + grp.primer_barang_id + '\')" title="' + (excluded ? 'Masukkan ke plan' : 'Exclude dari plan') + '" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:' + (excluded ? '1' : '0.35') + ';transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=\'' + (excluded ? '1' : '0.35') + '\'">' + (excluded ? '🚫' : '🚫') + '</button></td>'
           : '<td></td>';
         rows += '<tr style="' + (excluded ? 'opacity:0.45;background:var(--surface-alt,rgba(255,255,255,0.02))' : '') + '">'
@@ -1427,7 +1449,7 @@
           + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
-          + (window._userRole === 'admin'
+          + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
                 '<input type="text" inputmode="decimal" autocomplete="off"'
                 + ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
@@ -1457,7 +1479,7 @@
           : rekomen == null ? '<span style="color:var(--muted)">—</span>'
           : rekomen < 0 ? '<span class="so-num-danger">' + fmt(rekomen) + '</span>'
           : '<span class="so-num-ok">' + fmt(rekomen) + '</span>';
-        const excludeBtnHtml = window._userRole === 'admin'
+        const excludeBtnHtml = window._isAdmin
           ? '<td style="text-align:center;padding:0 6px"><button onclick="togglePlanExclude(\'' + b.id + '\')" title="' + (excluded ? 'Masukkan ke plan' : 'Exclude dari plan') + '" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:' + (excluded ? '1' : '0.35') + ';transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=\'' + (excluded ? '1' : '0.35') + '\'">' + (excluded ? '🚫' : '🚫') + '</button></td>'
           : '<td></td>';
         rows += '<tr style="' + (excluded ? 'opacity:0.45;background:var(--surface-alt,rgba(255,255,255,0.02))' : '') + '">'
@@ -1467,7 +1489,7 @@
           + '<td class="td-num">' + (stokAkhirLalu != null ? fmt(stokAkhirLalu) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + '<td class="td-num so-num-muted">' + (avgRound != null ? fmt(avgRound) : '—') + '</td>'
           + '<td style="text-align:right">' + rekomenHtml + '</td>'
-          + (window._userRole === 'admin'
+          + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right">' + (excluded ? '<span style="color:var(--muted);font-size:12px">—</span>' :
                 '<input type="text" inputmode="decimal" autocomplete="off"'
                 +   ' class="cell-input' + (isChanged ? ' changed' : '') + '"'
@@ -1483,7 +1505,7 @@
     });
 
     tbody.innerHTML = rows || '<tr class="empty-row"><td colspan="7">Tidak ada barang.</td></tr>';
-    if (window._userRole === 'admin') document.getElementById('planSaveBar').style.display = (planDraft && Object.keys(planDraft).length) ? 'flex' : 'none';
+    if (window._isAdmin) document.getElementById('planSaveBar').style.display = (planDraft && Object.keys(planDraft).length) ? 'flex' : 'none';
   }
 
   function generatePlan() {
@@ -1639,7 +1661,7 @@
       '<div class="stat-card"><div class="stat-label">Total Plan</div><div class="stat-val blue">' + fmt(totalPlan) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
     + '<div class="stat-card"><div class="stat-label">Pembelian Aktual</div><div class="stat-val green">' + fmt(totalActual) + '</div><div class="stat-sub">' + mlabel(curYear, curMonth) + '</div></div>'
     + '<div class="stat-card"><div class="stat-label">Realisasi</div><div class="stat-val ' + (pctReal==null ? '' : (pctReal>=90&&pctReal<=110 ? 'green' : 'orange')) + '">' + (pctReal != null ? pctReal + '%' : '—') + '</div><div class="stat-sub">dari purchase plan</div></div>'
-    + '<div class="stat-card"><div class="stat-label">Sesuai / Lebih / Kurang</div><div class="stat-val">' + countOk + ' / <span style="color:var(--danger)">' + countOver + '</span> / <span style="color:var(--accent3)">' + countUnder + '</span></div><div class="stat-sub">barang</div></div>';
+    + '<div class="stat-card"><div class="stat-label" title="Sesuai = realisasi 90-110% dari plan&#10;Lebih = pembelian aktual melebihi plan&#10;Kurang = pembelian aktual di bawah plan" style="cursor:help">Sesuai / Lebih / Kurang ⓘ</div><div class="stat-val"><span style="color:var(--accent2)">' + countOk + '</span> / <span style="color:var(--danger)">' + countOver + '</span> / <span style="color:var(--accent3)">' + countUnder + '</span></div><div class="stat-sub">barang</div></div>';
 
     const hasPlan = merged.some(function(item) {
       return item.type === 'grup'
@@ -1647,10 +1669,15 @@
         : _currPlanData[item.barang.id] != null;
     });
     const notice = document.getElementById('noticeRealisasi');
+    const statGrid = document.getElementById('statGridRealisasi');
     if (!hasPlan) {
       notice.style.display = 'flex';
-      notice.innerHTML = '⚠️ Belum ada purchase plan untuk bulan ini. Buat di tab <strong>Purchase Plan</strong> terlebih dahulu.';
-    } else notice.style.display = 'none';
+      notice.innerHTML = '⚠️ Belum ada purchase plan untuk bulan ini. <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="switchTab(\'plan\')">→ Ke Purchase Plan</button>';
+      statGrid.style.display = 'none';
+    } else {
+      notice.style.display = 'none';
+      statGrid.style.display = '';
+    }
   }
 
   function exportExcel() {

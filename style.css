@@ -510,7 +510,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:24px; }
 .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .stat-label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:6px; }
-.stat-val { font-family:var(--mono); font-size:22px; font-weight:600; color:var(--text); }
+.stat-val { font-family:var(--mono); font-size:28px; font-weight:600; color:var(--text); line-height:1.1; }
 .stat-val.green  { color:var(--accent2); }
 .stat-val.orange { color:var(--accent3); }
 .stat-val.blue   { color:var(--accent); }
@@ -540,9 +540,19 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .item-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
 
 /* ── PLAN GENERATE BAR ── */
-.plan-gen-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.15); border-radius:10px; margin-bottom:20px; }
+.plan-gen-bar { display:flex; flex-direction:column; gap:8px; padding:14px 18px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.15); border-radius:10px; margin-bottom:20px; }
+.plan-gen-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.plan-gen-label { font-family:var(--mono); font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:.7px; font-weight:600; }
+.plan-gen-input-group { display:flex; align-items:center; gap:6px; }
+.plan-gen-formula { font-family:var(--mono); font-size:10px; color:var(--muted); padding-left:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.plan-gen-formula code { background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.12); border-radius:4px; padding:2px 6px; color:var(--accent); font-size:10px; }
 .plan-gen-bar label { font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
 .plan-pct-input { width:70px; background:var(--bg); border:1px solid rgba(0,212,255,0.25); border-radius:6px; color:var(--accent); font-family:var(--mono); font-size:14px; padding:6px 8px; outline:none; text-align:center; }
+
+/* ── PLAN LEGEND ── */
+.plan-legend { display:flex; gap:14px; font-family:var(--mono); font-size:11px; color:var(--text); flex-wrap:wrap; padding:6px 10px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.12); border-radius:6px; }
+.plan-legend .legend-item { display:flex; align-items:center; gap:6px; line-height:1; }
+.plan-legend .legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
 
 /* ── NOTICE BOX ── */
 .notice-box { padding:11px 16px; border-radius:8px; font-family:var(--mono); font-size:12px; margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; }
@@ -1547,6 +1557,23 @@ tr.so-separator-row > td {
 .strip-card.orange::before { background:var(--accent3); }
 .strip-card.green::before  { background:var(--accent2); }
 .strip-card.purple::before { background:#a78bfa; }
+
+/* Clickable stat strip — hover affordance */
+.strip-clickable { cursor:pointer; transition:border-color .15s, transform .12s, box-shadow .15s; }
+.strip-clickable:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:var(--glow-accent); }
+.strip-clickable:active { transform:translateY(0); }
+
+
+
+/* Sticky modal header for long detail modal */
+.modal-header { position:sticky; top:0; z-index:5; background:var(--surface); }
+
+/* Info box variants */
+.info-box { padding:10px 14px; border-radius:8px; font-family:var(--mono); font-size:12px; line-height:1.5; display:flex; align-items:flex-start; gap:8px; }
+.info-box.blue   { background:rgba(0,212,255,0.06);  border:1px solid rgba(0,212,255,0.18);  color:var(--accent); }
+.info-box.orange { background:rgba(247,146,79,0.06); border:1px solid rgba(247,146,79,0.2);  color:var(--accent3); }
+.info-box.red    { background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.25); color:var(--danger); font-weight:500; }
+.info-box.green  { background:rgba(56,217,169,0.06); border:1px solid rgba(56,217,169,0.2);  color:var(--accent2); }
 .strip-val { font-family:var(--mono); font-size:22px; font-weight:500; line-height:1; margin-bottom:4px; }
 .strip-val.blue   { color:var(--accent); }
 .strip-val.orange { color:var(--accent3); }
@@ -1584,9 +1611,23 @@ tr.so-separator-row > td {
 .vendor-group-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:12px; font-weight:600; }
 .vendor-group-header .vg-name { color:var(--text); }
 .vendor-group-header .vg-meta { font-family:var(--mono); font-size:11px; color:var(--muted); }
-.vendor-group-wa { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; background:rgba(37,211,102,0.12); color:#25D366; border:1px solid rgba(37,211,102,0.3); transition:background .15s; text-decoration:none; white-space:nowrap; }
+/* Base style — dipakai oleh tombol aksi di vendor group header (Tandai Dipesan, WA Vendor, dll) */
+.vendor-group-action, .vendor-group-wa {
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  height:28px; padding:0 12px; box-sizing:border-box;
+  border-radius:6px;
+  font-family:var(--sans); font-size:11px; font-weight:500; line-height:1;
+  cursor:pointer; text-decoration:none; white-space:nowrap;
+  border:1px solid transparent;
+  transition:background .15s, border-color .15s;
+}
+.vendor-group-wa { background:rgba(37,211,102,0.12); color:#25D366; border-color:rgba(37,211,102,0.3); }
 .vendor-group-wa:hover { background:rgba(37,211,102,0.22); }
-.vendor-group-none { font-size:11px; color:var(--muted); font-family:var(--mono); padding:4px 6px; }
+.vendor-group-action.is-order   { background:rgba(56,189,248,0.06); color:#38bdf8; border-color:rgba(56,189,248,0.2); }
+.vendor-group-action.is-order:hover  { background:rgba(56,189,248,0.18); }
+.vendor-group-action.is-cancel  { background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.4); }
+.vendor-group-action.is-cancel:hover { background:rgba(56,189,248,0.25); }
+.vendor-group-none { font-size:11px; color:var(--muted); font-family:var(--mono); padding:0 8px; height:28px; display:inline-flex; align-items:center; }
 
 /* Custom tag */
 .custom-tag { font-size:10px; font-family:var(--mono); background:rgba(247,146,79,0.12); color:var(--accent3); border:1px solid rgba(255,180,0,0.18); border-radius:4px; padding:2px 6px; margin-left:6px; }
