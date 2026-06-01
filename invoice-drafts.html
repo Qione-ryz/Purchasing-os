@@ -168,47 +168,12 @@
   </div>
 </div>
 
-<!-- Quick add barang modal -->
-<div class="modal-overlay" id="addBarangModal" style="display:none" onclick="if(event.target===this)closeAddBarangModal()">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <div class="modal-title">Tambah Barang Baru</div>
-      <button class="modal-close" onclick="closeAddBarangModal()">✕</button>
-    </div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-      <div>
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Nama Barang *</label>
-        <input id="newBarangNama" class="search-input" style="width:100%;box-sizing:border-box" placeholder="Nama barang..."/>
-      </div>
-      <div style="display:flex;gap:8px">
-        <div style="flex:1">
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">SKU</label>
-          <input id="newBarangSku" class="search-input" style="width:100%;box-sizing:border-box" placeholder="SKU (opsional)"/>
-        </div>
-        <div style="flex:1">
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Satuan Dasar</label>
-          <input id="newBarangSatuan" class="search-input" style="width:100%;box-sizing:border-box" placeholder="pcs / kg / liter..."/>
-        </div>
-      </div>
-      <div>
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Kategori</label>
-        <input id="newBarangKategori" class="search-input" style="width:100%;box-sizing:border-box" placeholder="Kategori (opsional)"/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeAddBarangModal()">Batal</button>
-      <button class="btn-primary" onclick="doAddBarang()">Simpan &amp; Pilih</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);</script>
 <script src="auth.js"></script>
 <script src="ppn.js"></script>
-<script src="barang-helper.js"></script>
-<script src="scan-invoice.js"></script>
 <script src="invoice-drafts.js"></script>
 </body>
 </html>

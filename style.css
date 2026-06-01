@@ -1799,7 +1799,7 @@ td[style*="font-family: var(--mono)"] { font-size: 13px; }
 /* ITEM LIST */
 .item-list { margin-bottom:14px; max-height:360px; overflow-y:auto; scroll-behavior:smooth; }
 .item-row {
-  display:grid; grid-template-columns:1fr 80px 110px 80px 24px;
+  display:grid; grid-template-columns:1fr 80px 150px 100px 24px;
   gap:8px; align-items:center; margin-bottom:8px;
   padding:10px 12px; background:var(--bg);
   border:1px solid var(--border); border-radius:8px;
@@ -1819,7 +1819,7 @@ td[style*="font-family: var(--mono)"] { font-size: 13px; }
 .item-subtotal { font-family:var(--mono); font-size:var(--fs-mono-md); color:var(--accent2); text-align:right; }
 .item-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px; border-radius:4px; transition:color .2s; }
 .item-del:hover { color:var(--danger); }
-.item-header { display:grid; grid-template-columns:1fr 80px 110px 80px 24px; gap:8px; padding:0 12px 6px; font-family:var(--mono); font-size:var(--fs-mono-sm); color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.item-header { display:grid; grid-template-columns:1fr 80px 150px 100px 24px; gap:8px; padding:0 12px 6px; font-family:var(--mono); font-size:var(--fs-mono-sm); color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
 .add-item-area { border:1px dashed var(--border); border-radius:8px; padding:12px; }
 .add-item-row { display:grid; grid-template-columns:1fr auto; gap:8px; }
 .item-dropdown {
@@ -1961,7 +1961,7 @@ td[style*="font-family: var(--mono)"] { font-size: 13px; }
 .sidebar-brand-hidden { display:none !important; }
 
 @media (max-width:1100px) { .form-layout { grid-template-columns:1fr; } .summary-card { position:static; } }
-@media (max-width:768px)  { .item-row,.item-header { grid-template-columns:1fr 70px 100px 70px 24px; } }
+@media (max-width:768px)  { .item-row,.item-header { grid-template-columns:1fr 70px 130px 80px 24px; } }
 
 /* ============================================================
    Harga page — extracted inline styles (typography pass)

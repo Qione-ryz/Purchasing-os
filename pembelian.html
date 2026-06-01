@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PurchaseOS — Pembelian</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -9,7 +10,20 @@
   <link rel="stylesheet" href="theme.css"/>
   <script src="sidebar.js"></script>
   <script src="datefilter.js"></script>
-  
+  <style>
+    @keyframes diSpin { to { transform: rotate(360deg); } }
+    /* Draft invoice tab — semua input hitam seperti form utama */
+    #tabDraft .search-input,
+    #tabDraft .item-input,
+    #tabDraft input[type="text"],
+    #tabDraft input[type="date"],
+    #tabDraft select { background: var(--bg) !important; }
+    body.light-mode #tabDraft .search-input,
+    body.light-mode #tabDraft .item-input,
+    body.light-mode #tabDraft input[type="text"],
+    body.light-mode #tabDraft input[type="date"],
+    body.light-mode #tabDraft select { background: var(--surface) !important; }
+  </style>
 </head>
 <body>
 <div id="page-loader"><div class="loader-ring"></div></div>
@@ -44,12 +58,30 @@
       <button class="tab-btn active admin-only" id="tabBtnForm" onclick="switchTab('form')">🛒 Catat Pembelian</button>
       <button class="tab-btn"        id="tabBtnRiwayat" onclick="switchTab('riwayat')">📋 Riwayat</button>
       <button class="tab-btn"        id="tabBtnBarang"  onclick="switchTab('barang')">🔍 Cari Barang</button>
+      <button class="tab-btn admin-only" id="tabBtnDraft" onclick="switchTab('draft')">🤖 Automation Discord <span id="draftInboxBadge" style="display:none;background:var(--danger);color:#fff;border-radius:8px;font-size:10px;font-weight:600;padding:1px 6px;margin-left:2px;font-family:var(--mono);vertical-align:middle"></span></button>
     </div>
 
     <!-- ════════════════════════════════════════
          TAB 1: FORM PEMBELIAN
     ════════════════════════════════════════ -->
     <div id="tabForm">
+      <!-- Scan Invoice Panel (dari Automation Discord) -->
+      <div id="fScanPanel" style="display:none;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header" style="padding:10px 16px">
+            <span class="card-title" style="font-size:14px">📷 Referensi Invoice</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" onclick="fReviewUlang()" style="padding:7px 18px;font-size:13px;font-weight:600;letter-spacing:.2px">🔄 Review Ulang</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fScanPanel').style.display='none'" style="padding:4px 12px;font-size:12px">✕ Tutup</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:12px 16px;display:grid;grid-template-columns:120px 1fr 1fr;gap:16px;align-items:start">
+            <img id="fScanImg" src="" alt="Invoice" style="width:100%;border-radius:6px;border:1px solid var(--border)"/>
+            <div id="fScanOcrInfo" style="font-size:13px;color:var(--text);line-height:2.2"></div>
+            <div id="fScanItemsList" style="font-size:12px;color:var(--text)"></div>
+          </div>
+        </div>
+      </div>
       <div id="formError" class="error-box"></div>
 
       <div class="form-layout">
@@ -114,9 +146,7 @@
                   <label>No. Faktur / PO</label>
                   <input type="text" id="fNomorFaktur" placeholder="cth: INV-2024-001"
                     oninput="checkDuplikatFaktur(this.value)"/>
-                  <div id="fakturDuplikatHint" style="display:none;margin-top:4px;font-size:11px;color:var(--accent3);font-family:var(--mono)">
-                    ⚠ Nomor faktur ini sudah pernah digunakan
-                  </div>
+                  <div id="fakturDuplikatHint" style="display:none;margin-top:6px"></div>
                 </div>
               </div>
               <div class="field">
@@ -232,11 +262,19 @@
                 <div class="diskon-toggle-btn active" id="dBtnRp" onclick="setDiskonMode('rp')">Rp</div>
                 <div class="diskon-toggle-btn" id="dBtnPct" onclick="setDiskonMode('pct')">%</div>
               </div>
-              <input type="text" inputmode="decimal" id="fDiskon" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fDiskon" placeholder="0"
+                onfocus="_stripFmt(this)"
+                oninput="this.value=this.value.replace(/[^\d.]/g,'');updateSummary()"
+                onblur="_fmtDiskonBlur(this)"
+                style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
             </div>
             <div class="field" style="margin-bottom:14px">
               <label>Ongkos Kirim (Rp)</label>
-              <input type="text" inputmode="decimal" id="fOngkir" placeholder="0" oninput="this.value=this.value.replace(',','.');updateSummary()" onblur="this.value=parseFloat(this.value)||0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
+              <input type="text" inputmode="decimal" id="fOngkir" placeholder="0"
+                onfocus="_stripFmt(this)"
+                oninput="this.value=this.value.replace(/[^\d.]/g,'');updateSummary()"
+                onblur="_fmtRpBlur(this);updateSummary()"
+                style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"/>
             </div>
 
             <div class="summary-divider"></div>
@@ -473,8 +511,139 @@
       </div>
     </div>
 
+    <!-- ════════════════════════════════════════
+         TAB 4: DRAFT INVOICE
+    ════════════════════════════════════════ -->
+    <div id="tabDraft" style="display:none">
+      <div class="toolbar" style="margin-bottom:12px">
+        <div class="search-wrap" style="flex:1;position:relative">
+          <span class="search-icon">🔍</span>
+          <input id="diSearch" class="search-input" placeholder="Cari vendor / invoice..." oninput="diRenderList();diToggleClear()"/>
+          <button id="diSearchClear" onclick="diClearSearch()" title="Hapus pencarian"
+            style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
+        <div style="position:relative">
+          <button id="diBrandBtn" onclick="diToggleBrandDd(event)"
+            style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans);height:38px"
+            onmouseover="this.style.borderColor='var(--accent)'"
+            onmouseout="if(!document.getElementById('diFilterBrand').value)this.style.borderColor='var(--border)'">
+            <span id="diBrandLabel">🏷 Semua Brand</span>
+            <span style="font-size:10px;color:var(--muted)">▾</span>
+          </button>
+          <div id="diBrandDd"
+            style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto"></div>
+        </div>
+        <input type="hidden" id="diFilterBrand"/>
+        <input type="hidden" id="diFilterFrom"/>
+        <input type="hidden" id="diFilterTo"/>
+        <div style="position:relative">
+          <button class="btn btn-ghost btn-sm" id="diBtnDateFilter" style="white-space:nowrap;min-width:120px">
+            📅 <span id="diDateFilterLabel">Semua Tanggal</span>
+          </button>
+          <div id="diDatePicker" class="date-picker-panel" style="display:none"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;height:calc(100dvh - 244px);min-height:320px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+
+        <!-- Kiri: status tabs + daftar draft -->
+        <div id="diListPanel" style="width:280px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--surface)">
+          <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+            <button id="diTab_belum" onclick="diSwitchTab('belum')"
+              style="flex:1;padding:8px 4px;font-size:11px;font-family:var(--sans);border:none;border-bottom:2px solid var(--accent);cursor:pointer;background:transparent;color:var(--accent);transition:all .15s;font-weight:600">Belum Dicek</button>
+            <button id="diTab_input" onclick="diSwitchTab('input')"
+              style="flex:1;padding:8px 4px;font-size:11px;font-family:var(--sans);border:none;border-bottom:2px solid transparent;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;font-weight:500">Sudah Input</button>
+            <button id="diTab_tolak" onclick="diSwitchTab('tolak')"
+              style="flex:1;padding:8px 4px;font-size:11px;font-family:var(--sans);border:none;border-bottom:2px solid transparent;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;font-weight:500">Ditolak</button>
+          </div>
+          <div id="diItems" style="flex:1;overflow-y:auto;padding:8px">
+            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Memuat...</div>
+          </div>
+        </div>
+
+        <!-- Tengah: viewer gambar invoice -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);border-right:1px solid var(--border)">
+          <!-- Controls bar -->
+          <div id="diImgControls" style="display:none;padding:5px 10px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;flex-direction:row;align-items:center;gap:3px;justify-content:flex-end">
+            <button onclick="diImgRotate(-1)" title="Putar kiri"
+              style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↺</button>
+            <span id="diRotateLbl" style="font-size:10px;font-family:var(--mono);color:var(--muted);min-width:26px;text-align:center">0°</span>
+            <button onclick="diImgRotate(1)" title="Putar kanan"
+              style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↻</button>
+            <div style="width:1px;height:16px;background:var(--border);margin:0 2px"></div>
+            <button onclick="diImgZoom(-1)" title="Zoom out"
+              style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+            <span id="diZoomLbl" style="font-size:11px;font-family:var(--mono);color:var(--muted);min-width:34px;text-align:center">100%</span>
+            <button onclick="diImgZoom(1)" title="Zoom in"
+              style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">＋</button>
+            <button onclick="diImgReset()" title="Reset zoom & rotate"
+              style="padding:0 7px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-size:10px;font-family:var(--mono)">⟳</button>
+          </div>
+          <!-- Wrapper: flex:1 + position:relative agar absolute children bounded -->
+          <div id="diImgArea" style="flex:1;position:relative;overflow:hidden;background:var(--bg)">
+            <!-- Empty state -->
+            <div id="diEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+              <div class="empty-state" style="text-align:center;color:var(--muted)">
+                <div style="font-size:48px;margin-bottom:16px">🤖</div>
+                <div>Pilih invoice dari daftar</div>
+              </div>
+            </div>
+            <!-- Loading overlay — sibling diImgView agar tidak ikut scroll -->
+            <div id="diImgLoading" style="display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;background:var(--bg)">
+              <div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:diSpin .7s linear infinite"></div>
+            </div>
+            <!-- diImgView: absolute agar overflow:auto scroll di dalam, tidak expand parent -->
+            <div id="diImgView" style="display:none;position:absolute;inset:0;overflow:auto;cursor:grab;user-select:none">
+              <div id="diImgInner" style="display:block;padding:8px;box-sizing:border-box;">
+                <img id="diImgEl" alt="Invoice" style="display:block;border-radius:4px;" draggable="false"/>
+              </div>
+            </div>
+            <!-- No image -->
+            <div id="diNoImgMsg" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px">
+              <div style="font-size:32px;opacity:.4">📄</div>
+              <div>Tidak ada foto invoice</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kanan: OCR result + actions -->
+        <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:var(--surface)">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span style="font-size:14px;font-weight:600">Hasil OCR</span>
+          </div>
+          <div id="diOcrContent" style="flex:1;overflow-y:auto;padding:14px 16px">
+            <div style="color:var(--muted);font-size:13px;text-align:center;padding-top:40px">Pilih draft untuk lihat hasil OCR</div>
+          </div>
+          <div id="diOcrActions" style="display:none;flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border);flex-direction:column;gap:8px"></div>
+        </div>
+
+      </div>
+    </div>
+
   </div><!-- /content -->
 </main>
+
+<!-- MODAL FOTO INVOICE -->
+<div class="modal-overlay" id="diFotoModal" style="display:none;z-index:1100" onclick="if(event.target===this)diCloseFotoModal()">
+  <div class="modal" style="max-width:90vw;width:860px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0">
+      <div class="modal-title">Foto Invoice</div>
+      <div style="display:flex;gap:4px;align-items:center;margin-left:auto;margin-right:12px">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="diModalImgRotate(-1)" style="width:28px;height:28px;padding:0" title="Putar Kiri">↺</button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="diModalImgZoom(-1)"   style="width:28px;height:28px;padding:0" title="Zoom Out">−</button>
+        <span id="diFotoZoomLbl" style="font-family:var(--mono);font-size:11px;color:var(--accent);min-width:42px;text-align:center;font-weight:600">100%</span>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="diModalImgZoom(1)"    style="width:28px;height:28px;padding:0" title="Zoom In">+</button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="diModalImgRotate(1)"  style="width:28px;height:28px;padding:0" title="Putar Kanan">↻</button>
+        <button class="btn btn-ghost btn-icon btn-sm is-destructive" onclick="diModalImgReset()" style="width:28px;height:28px;padding:0" title="Reset">⊙</button>
+      </div>
+      <button class="modal-close" onclick="diCloseFotoModal()">✕</button>
+    </div>
+    <div id="diFotoModalBody" style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:16px;background:var(--bg);min-height:0">
+      <img id="diFotoModalImg" src="" alt="Invoice" style="max-width:100%;border-radius:4px;transition:transform .15s;transform-origin:top center" draggable="false"/>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL DETAIL RIWAYAT -->
 <div class="modal-overlay" id="detailOverlay">
@@ -837,6 +1006,19 @@
 
     await loadRiwayat();
     hideLoader();
+
+    /* Pre-load badge Automation Discord */
+    if (isAdminLevel(role)) {
+      window._sb.from('invoice_drafts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'needs_review')
+        .is('purchased_at', null)
+        .is('discord_rejected_at', null)
+        .then(({ count }) => {
+          const badge = document.getElementById('draftInboxBadge');
+          if (badge && count > 0) { badge.textContent = count; badge.style.display = 'inline'; }
+        });
+    }
 
     /* Auto-invalidate jika baru balik dari halaman barang/vendor */
     const fromPage = sessionStorage.getItem('_fromPage');
@@ -1673,10 +1855,13 @@
     document.getElementById('tabForm').style.display    = tab === 'form'    ? '' : 'none';
     document.getElementById('tabRiwayat').style.display = tab === 'riwayat' ? '' : 'none';
     document.getElementById('tabBarang').style.display  = tab === 'barang'  ? '' : 'none';
+    document.getElementById('tabDraft').style.display   = tab === 'draft'   ? '' : 'none';
     document.getElementById('tabBtnForm').classList.toggle('active',    tab === 'form');
     document.getElementById('tabBtnRiwayat').classList.toggle('active', tab === 'riwayat');
     document.getElementById('tabBtnBarang').classList.toggle('active',  tab === 'barang');
+    document.getElementById('tabBtnDraft').classList.toggle('active',   tab === 'draft');
     if (tab === 'barang') cbInit();
+    if (tab === 'draft')  diInit();
 
     /* Sembunyikan brandSelect di sidebar saat tab Riwayat / Cari Barang aktif,
        karena kedua tab tsb punya multi-brand filter sendiri. */
@@ -1875,8 +2060,7 @@
   }
 
   function onItemFocus() {
-    const q = document.getElementById('itemSearch').value;
-    if (q) onItemSearch();
+    onItemSearch();
   }
 
   /* ── MULTI-SELECT ── */
@@ -2164,8 +2348,11 @@
       const qtyDisplay = item.qty; /* qty dalam satuan input user */
       return `
       <div class="item-row">
-        <div>
-          <div class="item-label">${item.nama} <span class="harga-src ${srcCls}" title="Sumber harga">${srcLabel}</span></div>
+        <div style="overflow:visible">
+          <div class="item-label">
+            <span>${item.nama}</span>
+            <span class="harga-src ${srcCls}" title="Sumber harga">${srcLabel}</span>
+          </div>
           <div class="item-sub">${item.sku || ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
@@ -2181,10 +2368,11 @@
             : `<span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${item.satuan || ''}</span>`}
         </div>
         <div style="display:flex;align-items:center;gap:4px">
-          <input class="item-input" type="text" inputmode="decimal" min="0" step="any"
-            value="${item.harga_satuan}"
-            oninput="this.value=this.value.replace(',','.');updateItemHarga(${i}, this.value)"
-            onblur="this.value=parseFloat(this.value)||''"
+          <input class="item-input" type="text" inputmode="numeric"
+            value="${item.harga_satuan ? 'Rp ' + Math.round(item.harga_satuan).toLocaleString('id-ID') : ''}"
+            onfocus="this.value=this.value.replace(/[^\\d]/g,'')||''"
+            oninput="this.value=this.value.replace(/[^\\d]/g,'');updateItemHarga(${i},parseInt(this.value,10)||0)"
+            onblur="const v=parseInt(this.value.replace(/[^\\d]/g,''),10)||0;updateItemHarga(${i},v);this.value=v?'Rp '+v.toLocaleString('id-ID'):''"
             title="Harga satuan (Rp, per ${item.satuan})"/>
           <button type="button" title="Konversi harga (bagi dengan jumlah)"
             onclick="openKonversiHarga(${i})"
@@ -2203,6 +2391,7 @@
   function _itemSubtotal(item) {
     return item.qty * (item.faktor || 1) * item.harga_satuan;
   }
+
 
   function updateItemQty(idx, val) {
     items[idx].qty = parseFloat(val) || 0;
@@ -2234,7 +2423,7 @@
     document.getElementById('konversiHargaPopup')?.remove();
 
     const rows = document.querySelectorAll('#itemList .item-row');
-    const hargaInput = rows[idx]?.querySelectorAll('input.item-input[inputmode="decimal"]')[1];
+    const hargaInput = rows[idx]?.querySelector('input.item-input[inputmode="numeric"]');
     if (!hargaInput) return;
 
     const rect = hargaInput.getBoundingClientRect();
@@ -2295,8 +2484,8 @@
     items[idx].harga_src    = 'manual';
     const rows = document.querySelectorAll('#itemList .item-row');
     if (rows[idx]) {
-      const inp = rows[idx].querySelectorAll('input.item-input[inputmode="decimal"]')[1];
-      if (inp) inp.value = newHarga;
+      const inp = rows[idx].querySelector('input.item-input[inputmode="numeric"]');
+      if (inp) inp.value = newHarga ? 'Rp ' + Math.round(newHarga).toLocaleString('id-ID') : '';
       const sub = rows[idx].querySelector('.item-subtotal');
       if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));
     }
@@ -2351,8 +2540,32 @@
     updateSummary();
   }
 
+  /* Format helpers for price inputs */
+  window._fmtRpBlur = function(el) {
+    const v = parseFloat(el.value.replace(/[^\d.]/g,'')) || 0;
+    el.value = v ? 'Rp ' + v.toLocaleString('id-ID') : '';
+  };
+  window._fmtDiskonBlur = function(el) {
+    const v = parseFloat(el.value.replace(/[^\d.]/g,'')) || 0;
+    if (!v) { el.value = ''; return; }
+    el.value = diskonMode === 'pct' ? v + '%' : 'Rp ' + v.toLocaleString('id-ID');
+    updateSummary();
+  };
+  window._stripFmt = function(el) {
+    const raw = el.value;
+    let v;
+    // Indonesian Rp format: dot = thousands separator — strip dots when pattern detected
+    if (raw.includes('Rp') || /\d{1,3}\.\d{3}/.test(raw)) {
+      v = parseFloat(raw.replace(/[^\d,]/g,'').replace(',','.')) || 0;
+    } else {
+      v = parseFloat(raw.replace(/[^\d.]/g,'')) || 0;
+    }
+    el.value = v || '';
+    el.select();
+  };
+
   function getDiskonRp(subtotal) {
-    const val = parseFloat(document.getElementById('fDiskon').value) || 0;
+    const val = parseFloat(document.getElementById('fDiskon').value.replace(/[^\d.]/g,'')) || 0;
     if (diskonMode === 'pct') return subtotal * val / 100;
     return val;
   }
@@ -2361,7 +2574,7 @@
     const ppnRate   = (window._ppnRate || 11) / 100;
     const ppnPct    = window._ppnRate || 11;
     const subtotal  = items.reduce((s, i) => s + _itemSubtotal(i), 0);
-    const ongkir    = parseFloat(document.getElementById('fOngkir').value) || 0;
+    const ongkir    = parseFloat(document.getElementById('fOngkir').value.replace(/[^\d.]/g,'')) || 0;
     const totalQty  = items.reduce((s, i) => s + (i.qty * (i.faktor || 1)), 0);
     const incPPN    = ppnInputMode === 'inc';
 
@@ -2534,6 +2747,31 @@
       window._invalidateHargaCache();
       logActivity('tambah', 'pembelian', faktur || `${tanggal} - ${(window.vendorMap||{})[vendorId]||vendorId}`, `${items.length} item · Rp ${total.toLocaleString('id-ID')}`);
       showToast(`✓ Pembelian disimpan · ${items.length} item · ${formatRp(total)}`, 'success');
+
+      /* Jika berasal dari Automation Discord, tandai 'purchased' di DB.
+         Invoice Drafts tetap bisa lihat dengan status purchased — finance handle konfirmasi sendiri. */
+      if (window._activeDraftId) {
+        const draftId = window._activeDraftId;
+        window._sb.from('invoice_drafts').update({ purchased_at: new Date().toISOString(), riwayat_beli_id: beli.id }).eq('id', draftId).then(() => {});
+        if (typeof DiState !== 'undefined') {
+          DiState.allDrafts = (DiState.allDrafts||[]).filter(d => d.id !== draftId);
+          if (DiState.activeDraft?.id === draftId) {
+            DiState.activeDraft = null;
+            const diEmpty = document.getElementById('diEmpty');
+            if (diEmpty) diEmpty.style.display = 'flex';
+            const diImg = document.getElementById('diImgView');
+            if (diImg) diImg.style.display = 'none';
+            const diNoImg = document.getElementById('diNoImgMsg');
+            if (diNoImg) diNoImg.style.display = 'none';
+            const diAct = document.getElementById('diOcrActions');
+            if (diAct) diAct.style.display = 'none';
+            const diOcr = document.getElementById('diOcrContent');
+            if (diOcr) diOcr.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Pilih draft untuk lihat hasil OCR</div>';
+          }
+          if (typeof diRenderList === 'function') diRenderList();
+        }
+      }
+
       resetForm();
       await window.loadRiwayat();
 
@@ -2562,8 +2800,54 @@
     if (!v) return;
     _fakturCheckTimer = setTimeout(async () => {
       const { data } = await window._sb.from('riwayat_beli')
-        .select('id').eq('nomor_faktur', v).limit(1);
-      hint.style.display = (data && data.length) ? '' : 'none';
+        .select('id, tanggal, vendor_id, total, status, nomor_faktur, created_at')
+        .eq('nomor_faktur', v)
+        .order('created_at', { ascending: true });
+      if (!data || !data.length) { hint.style.display = 'none'; return; }
+
+      const STATUS_LABEL = { selesai: '✓ Selesai', pending: '⏳ Pending', batal: '✕ Batal' };
+      const STATUS_COLOR = { selesai: 'var(--accent2)', pending: 'var(--accent3)', batal: 'var(--danger)' };
+
+      const rows = data.map((r, idx) => {
+        const vendor  = (window.vendorMap||{})[r.vendor_id] || '—';
+        const tgl     = r.tanggal || '—';
+        const total   = r.total ? 'Rp ' + Math.round(r.total).toLocaleString('id-ID') : '—';
+        const stLabel = STATUS_LABEL[r.status] || r.status || '—';
+        const stColor = STATUS_COLOR[r.status] || 'var(--muted)';
+        const urutan  = idx === 0 ? 'Pertama diinput' : 'Duplikat';
+        const urutanColor = idx === 0 ? 'var(--muted)' : 'var(--accent3)';
+        return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                    background:${idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'};
+                    border-radius:6px">
+          <div style="font-size:10px;font-family:var(--mono);color:${urutanColor};
+                      width:70px;flex-shrink:0;font-weight:600">${urutan}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-family:var(--mono);color:var(--text)">${tgl}
+              <span style="color:var(--muted);margin-left:6px">${vendor}</span>
+            </div>
+          </div>
+          <div style="font-size:12px;font-family:var(--mono);color:var(--accent2);white-space:nowrap">${total}</div>
+          <span style="font-size:10px;font-family:var(--mono);color:${stColor};white-space:nowrap">${stLabel}</span>
+          <button onclick="hapusRiwayat('${r.id}','${(r.nomor_faktur||'').replace(/'/g,"\\'")}')"
+            style="flex-shrink:0;padding:2px 8px;font-size:11px;border-radius:4px;
+                   border:1px solid var(--danger);background:transparent;color:var(--danger);
+                   cursor:pointer;font-family:var(--sans);transition:all .15s"
+            onmouseover="this.style.background='rgba(255,77,106,0.12)'"
+            onmouseout="this.style.background='transparent'">Hapus</button>
+        </div>`;
+      }).join('');
+
+      hint.innerHTML = `
+        <div style="border:1px solid rgba(247,146,79,0.3);border-radius:8px;
+                    background:rgba(247,146,79,0.06);overflow:hidden">
+          <div style="padding:7px 10px;border-bottom:1px solid rgba(247,146,79,0.2);
+                      font-size:11px;font-family:var(--mono);color:var(--accent3);font-weight:600">
+            ⚠ ${data.length} entri dengan nomor faktur yang sama
+          </div>
+          ${rows}
+        </div>`;
+      hint.style.display = '';
     }, 400);
   }
 
@@ -2589,6 +2873,12 @@
     document.getElementById('formError').classList.remove('show');
     setStatus('selesai');
     setDefaultDate();
+    /* Bersihkan panel referensi invoice dari Automation Discord */
+    const sp = document.getElementById('fScanPanel');
+    if (sp) sp.style.display = 'none';
+    window._scanData      = null;
+    window._scanFileUrl   = null;
+    window._activeDraftId = null;
   }
 
   /* ══════════════════════════════════════════
@@ -2881,6 +3171,10 @@
           await window._sb.from('riwayat_harga').delete().eq('beli_id', id);
           const { error } = await window._sb.from('riwayat_beli').delete().eq('id', id);
           if (error) throw error;
+          /* Pulihkan purchased_at di invoice_drafts agar muncul kembali di Automation Discord */
+          window._sb.from('invoice_drafts')
+            .update({ purchased_at: null, riwayat_beli_id: null })
+            .eq('riwayat_beli_id', id).then(() => {});
           showToast('Transaksi dihapus · riwayat harga ikut dihapus', 'success');
           logActivity('hapus', 'pembelian', label);
           await window.loadRiwayat();
@@ -3253,6 +3547,1395 @@
     document.getElementById('__menuPortal')?.remove();
     _activeMenuId = null;
   }
+
+  /* ══════════════════════════════════════════
+     TAB DRAFT INVOICE — review & konfirmasi ke riwayat_beli
+  ══════════════════════════════════════════ */
+  const DiState = {
+    allDrafts:          [],
+    activeDraft:        null,
+    items:              [],
+    selectedVendorId:   null,
+    selectedVendorNama: '',
+    selectedBrandId:    null,
+    vendorNamaOcr:      '',
+    vendorSearchOpen:   false,
+    vendorSearchQuery:  '',
+    diskonMode:         'nominal', // 'nominal' | 'pct'
+    diskonVal:          0,
+    ongkirVal:          0,
+    inited:             false,
+    activeTab:          'belum',
+  };
+
+  /* Image viewer — port dari scan-invoice.js */
+  const _DI_ZOOM = [25,50,75,100,125,150,200,300,400];
+  let _diZoomIdx = 3, _diRot = 0;
+
+  function _diApplyRotate() {
+    const img       = document.getElementById('diImgEl');
+    const inner     = document.getElementById('diImgInner');
+    const container = document.getElementById('diImgView');
+    if (!img || !inner) return;
+    const sideways = _diRot === 90 || _diRot === 270;
+    const pct      = _DI_ZOOM[_diZoomIdx] / 100;
+    const natW     = img.naturalWidth  || 1;
+    const natH     = img.naturalHeight || 1;
+    if (sideways) {
+      const cW      = container ? Math.max(100, container.clientWidth - 16) : 400;
+      const renderW = Math.round(cW * pct);
+      const renderH = Math.round(renderW * natH / natW);
+      inner.style.cssText = [
+        'width:' + renderH + 'px',
+        'height:' + renderW + 'px',
+        'padding:0',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'overflow:visible',
+        'box-sizing:content-box',
+        'flex-shrink:0',
+        'margin:8px auto',
+      ].join(';') + ';';
+      img.style.width          = renderW + 'px';
+      img.style.height         = renderH + 'px';
+      img.style.maxWidth       = 'none';
+      img.style.transformOrigin = 'center center';
+      img.style.transform      = 'rotate(' + _diRot + 'deg)';
+      img.style.flexShrink     = '0';
+      img.style.display        = 'block';
+    } else {
+      const cW   = container ? Math.max(100, container.clientWidth) : 400;
+      const pad  = 16; /* 8px kiri + 8px kanan */
+      const imgW = Math.round((cW - pad) * pct);
+      /* inner lebar = imgW + pad, min = cW agar tidak lebih kecil dari container */
+      const innerW = Math.max(cW, imgW + pad);
+      inner.style.cssText = 'display:block;padding:8px;box-sizing:border-box;width:' + innerW + 'px;';
+      img.style.width          = imgW + 'px';
+      img.style.height         = 'auto';
+      img.style.maxWidth       = 'none';
+      img.style.transformOrigin = 'center center';
+      img.style.transform      = 'rotate(' + _diRot + 'deg)';
+      img.style.flexShrink     = '';
+      img.style.display        = 'block';
+    }
+    const rotLbl = document.getElementById('diRotateLbl');
+    if (rotLbl) rotLbl.textContent = _diRot + '°';
+    const zoomLbl = document.getElementById('diZoomLbl');
+    if (zoomLbl) zoomLbl.textContent = _DI_ZOOM[_diZoomIdx] + '%';
+  }
+  function diImgZoom(d)   { _diZoomIdx = Math.min(_DI_ZOOM.length-1, Math.max(0, _diZoomIdx+d)); _diApplyRotate(); }
+  function diImgRotate(d) { _diRot = (_diRot + d*90 + 360) % 360; _diApplyRotate(); }
+  function diImgReset()   { _diZoomIdx = 3; _diRot = 0; _diApplyRotate(); }
+
+  /* Drag-to-pan + scroll-to-zoom untuk diImgView */
+  (function _diSetupDragPan() {
+    let _drag = false, _sx = 0, _sy = 0, _sl = 0, _st = 0;
+    document.addEventListener('mousedown', e => {
+      const c = document.getElementById('diImgView');
+      if (!c || !c.contains(e.target)) return;
+      _drag = true; _sx = e.pageX - c.offsetLeft; _sy = e.pageY - c.offsetTop;
+      _sl = c.scrollLeft; _st = c.scrollTop; c.style.cursor = 'grabbing'; e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!_drag) return;
+      const c = document.getElementById('diImgView'); if (!c) return;
+      c.scrollLeft = _sl - (e.pageX - c.offsetLeft - _sx);
+      c.scrollTop  = _st - (e.pageY - c.offsetTop  - _sy);
+    });
+    document.addEventListener('mouseup', () => {
+      if (!_drag) return; _drag = false;
+      const c = document.getElementById('diImgView'); if (c) c.style.cursor = 'grab';
+    });
+    document.addEventListener('wheel', e => {
+      const c = document.getElementById('diImgView');
+      if (!c || !c.contains(e.target)) return;
+      if (!e.ctrlKey) return; // Ctrl+Scroll = zoom, plain scroll = native up/down
+      e.preventDefault();
+      diImgZoom(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  })();
+
+  function diImgFitView() {
+    const img = document.getElementById('diImgEl');
+    const container = document.getElementById('diImgView');
+    if (!img || !container || !img.naturalWidth || !img.naturalHeight) { diImgReset(); return; }
+    const cW = container.clientWidth  - 16;
+    const cH = container.clientHeight - 16;
+    const pctW = (cW / img.naturalWidth)  * 100;
+    const pctH = (cH / img.naturalHeight) * 100;
+    const fitPct = Math.min(pctW, pctH);
+    let best = 0;
+    for (let i = 0; i < _DI_ZOOM.length; i++) {
+      if (_DI_ZOOM[i] <= fitPct) best = i; else break;
+    }
+    _diZoomIdx = best; _diRot = 0;
+    _diApplyRotate();
+  }
+
+  /* Foto modal */
+  const _MODAL_ZOOM = [25,50,75,100,125,150,200,300,400];
+  let _mZoomIdx = 3, _mRot = 0;
+  function _applyModalTransform() {
+    const img = document.getElementById('diFotoModalImg');
+    const lbl = document.getElementById('diFotoZoomLbl');
+    if (!img) return;
+    const pct = _MODAL_ZOOM[_mZoomIdx]/100;
+    if (lbl) lbl.textContent = _MODAL_ZOOM[_mZoomIdx]+'%';
+    img.style.transform = `rotate(${_mRot}deg) scale(${pct})`;
+  }
+  function diModalImgZoom(d)   { _mZoomIdx = Math.min(_MODAL_ZOOM.length-1, Math.max(0,_mZoomIdx+d)); _applyModalTransform(); }
+  function diModalImgRotate(d) { _mRot = (_mRot+d*90+360)%360; _applyModalTransform(); }
+  function diModalImgReset()   { _mZoomIdx = 3; _mRot = 0; _applyModalTransform(); }
+
+  function diOpenFotoModal() {
+    const src = DiState.activeDraft?.image_url;
+    if (!src) { showToast('Tidak ada foto untuk draft ini','error'); return; }
+    const img = document.getElementById('diFotoModalImg');
+    if (img) img.src = src;
+    _mZoomIdx = 3; _mRot = 0; _applyModalTransform();
+    document.getElementById('diFotoModal').style.display = 'flex';
+  }
+  function diCloseFotoModal() {
+    document.getElementById('diFotoModal').style.display = 'none';
+  }
+
+  /* Brand dropdown — single select, style = Riwayat */
+  function diToggleBrandDd(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('diBrandDd');
+    if (!dd) return;
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+    _diBuildBrandDd();
+    const btn = document.getElementById('diBrandBtn');
+    const rect = btn.getBoundingClientRect();
+    dd.style.left  = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 4) + 'px';
+    dd.style.width = Math.max(rect.width, 200) + 'px';
+    dd.style.display = 'block';
+  }
+  function _diBuildBrandDd() {
+    const dd = document.getElementById('diBrandDd');
+    if (!dd) return;
+    const cur = document.getElementById('diFilterBrand')?.value || '';
+    const row = (id, nama, active) =>
+      `<div onclick="diSelectBrand('${_diEsc(id)}','${_diEsc(nama)}')"
+        style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none;${active?'background:rgba(0,212,255,0.10);font-weight:600':''}"
+        onmouseover="this.style.background='rgba(0,212,255,0.07)'"
+        onmouseout="this.style.background='${active?'rgba(0,212,255,0.10)':''}'">
+        ${_diEsc(nama)}
+      </div>`;
+    dd.innerHTML =
+      row('','🏷 Semua Brand', cur==='') +
+      '<div style="height:1px;background:var(--border);margin:6px 0"></div>' +
+      (window.allBrands||[]).map(b => row(b.id, b.nama, cur===b.id)).join('');
+  }
+  function diSelectBrand(id, nama) {
+    const inp = document.getElementById('diFilterBrand');
+    const lbl = document.getElementById('diBrandLabel');
+    const btn = document.getElementById('diBrandBtn');
+    const dd  = document.getElementById('diBrandDd');
+    if (inp) inp.value = id || '';
+    if (lbl) lbl.textContent = id ? '🏷 ' + nama : '🏷 Semua Brand';
+    if (btn) btn.style.borderColor = id ? 'var(--accent)' : 'var(--border)';
+    if (dd)  dd.style.display = 'none';
+    diRenderList();
+  }
+  window.diToggleBrandDd = diToggleBrandDd;
+  window.diSelectBrand   = diSelectBrand;
+
+  function diToggleClear() {
+    const inp = document.getElementById('diSearch');
+    const btn = document.getElementById('diSearchClear');
+    if (btn) btn.style.display = inp?.value ? 'block' : 'none';
+  }
+  function diClearSearch() {
+    const inp = document.getElementById('diSearch');
+    if (inp) inp.value = '';
+    diToggleClear();
+    diRenderList();
+  }
+  window.diToggleClear  = diToggleClear;
+  window.diClearSearch  = diClearSearch;
+
+  /* Helper */
+  function _diEsc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _diFmt(n) { return 'Rp '+(n||0).toLocaleString('id-ID'); }
+  function _diFmtDate(s) {
+    if (!s) return '—';
+    try { const d = new Date(s.includes('T')?s:s+'T00:00:00'); return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+    catch { return s; }
+  }
+
+  /* Local candidate finder — returns {b, score}[] (unlike findCandidates which strips score) */
+  function diGetCandidates(namaOcr, limit) {
+    if (!limit) limit = 8;
+    const all = window.allBarang || [];
+    const scored = all
+      .map(b => ({ b, score: typeof fuzzyScore === 'function' ? fuzzyScore(namaOcr, b.nama) : 0 }))
+      .filter(x => x.score > 0.05)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+    return scored;
+  }
+
+  /* Init — dipanggil sekali saat tab dibuka pertama kali */
+  async function diInit() {
+    if (!DiState.inited) {
+      DiState.inited = true;
+      if (typeof loadLearnedMappings === 'function') await loadLearnedMappings();
+    }
+    /* Brand dropdown dibangun on-demand oleh _diBuildBrandDd() */
+    /* Init DateFilter — sama seperti Riwayat */
+    if (typeof DateFilter !== 'undefined' && !window.diDf) {
+      window.diDf = DateFilter.create({
+        pickerEl    : 'diDatePicker',
+        triggerBtn  : 'diBtnDateFilter',
+        labelEl     : 'diDateFilterLabel',
+        inputFrom   : 'diFilterFrom',
+        inputTo     : 'diFilterTo',
+        quickPresets: [
+          { preset: 'all',       label: 'Semua Tanggal' },
+          { preset: 'today',     label: 'Hari Ini'      },
+          { preset: 'thismonth', label: 'Bulan Ini'     },
+          { preset: 'lastmonth', label: 'Bulan Lalu'    },
+          { preset: 'thisyear',  label: 'Tahun Ini'     },
+        ],
+        default      : 'all',
+        triggerOnInit: false,
+        onChange     : () => diRenderList(),
+      });
+    }
+    diLoadDrafts();
+  }
+
+  /* Load daftar draft needs_review */
+  async function diLoadDrafts() {
+    const sb = window._sb;
+    document.getElementById('diItems').innerHTML =
+      `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Memuat...</div>`;
+
+    const tab = DiState.activeTab || 'belum';
+    let q = sb.from('invoice_drafts').select('*').order('created_at', { ascending: false });
+    if (tab === 'belum') q = q.is('purchased_at', null).is('discord_rejected_at', null);
+    else if (tab === 'input') q = q.not('purchased_at', 'is', null);
+    else if (tab === 'tolak') q = q.not('discord_rejected_at', 'is', null);
+    const { data, error } = await q;
+
+    if (error) { showToast('Gagal memuat draft: '+error.message,'error'); return; }
+    DiState.allDrafts = data || [];
+
+    /* Muat set nomor faktur yang sudah purchased (lintas tab) untuk badge di list */
+    const { data: pData } = await sb.from('invoice_drafts')
+      .select('ocr_result')
+      .not('purchased_at', 'is', null);
+    DiState.purchasedFakturs = new Set(
+      (pData||[]).map(r => {
+        const o = r.ocr_result||{};
+        return (o.nomor_faktur||o.nomor_invoice||'').trim();
+      }).filter(Boolean)
+    );
+
+    /* Update badge di tab button */
+    const badge = document.getElementById('draftInboxBadge');
+    if (badge) {
+      if (DiState.allDrafts.length) { badge.textContent = DiState.allDrafts.length; badge.style.display = 'inline'; }
+      else badge.style.display = 'none';
+    }
+    diRenderList();
+  }
+
+  function diRenderList() {
+    const q    = (document.getElementById('diSearch')?.value||'').toLowerCase().trim();
+    const bid  = document.getElementById('diFilterBrand')?.value||'';
+    const from = document.getElementById('diFilterFrom')?.value||'';
+    const to   = document.getElementById('diFilterTo')?.value||'';
+    let list   = DiState.allDrafts;
+    if (bid)  list = list.filter(d => d.brand_id === bid);
+    if (from) list = list.filter(d => d.created_at && d.created_at.slice(0,10) >= from);
+    if (to)   list = list.filter(d => d.created_at && d.created_at.slice(0,10) <= to);
+    if (q)    list = list.filter(d => {
+      const o = d.ocr_result||{};
+      return (o.vendor||o.nama_vendor||'').toLowerCase().includes(q)
+          || (o.nomor_faktur||o.nomor_invoice||'').toLowerCase().includes(q);
+    });
+
+    const el = document.getElementById('diItems');
+    if (!list.length) {
+      el.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--muted);font-size:13px"><div style="font-size:28px;margin-bottom:8px;opacity:.6">📭</div>Tidak ada draft</div>`;
+      return;
+    }
+
+    /* Kelompokkan berdasar nomor faktur agar duplikat berurutan */
+    const _fKey = d => { const o=d.ocr_result||{}; return (o.nomor_faktur||o.nomor_invoice||'').trim(); };
+    const groups  = new Map(); // faktur → [draft,...]
+    const noFaktr = [];
+    list.forEach(d => {
+      const f = _fKey(d);
+      if (!f || f==='—') { noFaktr.push(d); return; }
+      if (!groups.has(f)) groups.set(f, []);
+      groups.get(f).push(d);
+    });
+
+    /* Urutan group = kemunculan pertama di list (sorted by created_at desc dari DB) */
+    const seen = new Set();
+    const ordered = [];
+    list.forEach(d => {
+      const f = _fKey(d);
+      if (!f || f==='—') return;
+      if (seen.has(f)) return;
+      seen.add(f);
+      const grp = groups.get(f);
+      /* Dalam satu group: sort by created_at asc, tapi purchased jadi terakhir */
+      grp.sort((a,b) => {
+        const aIn = !!a.purchased_at, bIn = !!b.purchased_at;
+        if (aIn !== bIn) return aIn ? 1 : -1;
+        return new Date(a.created_at) - new Date(b.created_at);
+      });
+      ordered.push(...grp);
+    });
+    ordered.push(...noFaktr);
+
+    /* Hitung ukuran tiap group (lintas allDrafts, bukan hanya current tab) */
+    const _allFakturCount = {};
+    (DiState.allDrafts||[]).forEach(d => {
+      const f = _fKey(d); if (f && f!=='—') _allFakturCount[f] = (_allFakturCount[f]||0)+1;
+    });
+
+    el.innerHTML = ordered.map(d => {
+      const o          = d.ocr_result||{};
+      const v          = o.vendor||o.nama_vendor||'—';
+      const f          = _fKey(d) || '—';
+      const tot        = o.total||(Array.isArray(o.items)?o.items.reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.harga_satuan??i.harga)||0),0):0);
+      const brand      = (window.allBrands||[]).find(b=>b.id===d.brand_id);
+      const brandNama  = brand?.nama||'';
+      const brandColor = brand?.warna||null;
+      const brandStyle = brandColor
+        ? `background:${brandColor};color:${typeof getBadgeTextColor==='function'?getBadgeTextColor(brandColor):'#fff'};`
+        : 'background:rgba(0,212,255,0.08);color:var(--accent);border:1px solid rgba(0,212,255,0.2);';
+      const tglMasuk  = _diFmtDate(d.created_at);
+      const isActive  = d.id === DiState.activeDraft?.id;
+      const grpSize   = _allFakturCount[f] || 1;
+      const isDup          = grpSize > 1;
+      const hasPurchasedDup = !d.purchased_at && f && f!=='—' && (DiState.purchasedFakturs||new Set()).has(f);
+      /* Badge — "sudah input" juga muncul jika ada duplikat di tab Sudah Input */
+      const dupTag = (() => {
+        if (d.purchased_at)   return `<span style="font-size:9px;color:var(--accent2);font-family:var(--mono);white-space:nowrap;flex-shrink:0;background:rgba(56,217,169,0.12);padding:1px 5px;border-radius:4px">✓ sudah input</span>`;
+        if (hasPurchasedDup)  return `<span style="font-size:9px;color:var(--accent3);font-family:var(--mono);white-space:nowrap;flex-shrink:0;background:rgba(247,146,79,0.14);padding:1px 5px;border-radius:4px">⚠ ada yg diinput</span>`;
+        if (isDup && !d.discord_rejected_at) return `<span style="font-size:9px;color:var(--accent3);font-family:var(--mono);white-space:nowrap;flex-shrink:0;background:rgba(247,146,79,0.12);padding:1px 5px;border-radius:4px">⚠ duplikat</span>`;
+        return '';
+      })();
+      const borderLeft = (hasPurchasedDup || (isDup && !d.discord_rejected_at))
+        ? (d.purchased_at ? ';border-left:2px solid rgba(56,217,169,0.5)' : ';border-left:2px solid rgba(247,146,79,0.5)')
+        : '';
+      return `<div class="nav-item${isActive?' active':''}"
+        style="flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:2px${borderLeft}"
+        onclick="diSelectDraft('${d.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:4px">
+          <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${_diEsc(v)}</span>
+          ${dupTag}
+        </div>
+        <div style="display:flex;justify-content:space-between;width:100%;gap:4px">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${_diEsc(f)}</span>
+          <span style="font-size:10px;color:var(--muted);white-space:nowrap;flex-shrink:0">${tglMasuk}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:4px;margin-top:2px">
+          <span style="font-size:11px;color:var(--accent3);font-family:var(--mono);font-weight:500">${tot?_diFmt(tot):''}</span>
+          ${brandNama?`<span class="badge" style="font-size:10px;padding:1px 7px;${brandStyle}">${_diEsc(brandNama)}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* Pilih draft */
+  async function diSelectDraft(id) {
+    const draft = DiState.allDrafts.find(d=>d.id===id);
+    if (!draft) return;
+    DiState.activeDraft = draft;
+    diRenderList();
+
+    /* Tampilkan gambar */
+    document.getElementById('diEmpty').style.display = 'none';
+    const _ctrl = document.getElementById('diImgControls');
+    if (draft.image_url) {
+      const _imgEl    = document.getElementById('diImgEl');
+      const _loadDiv  = document.getElementById('diImgLoading');
+      /* Reset: sembunyikan gambar lama, tampilkan spinner */
+      _imgEl.style.display = 'none';
+      if (_loadDiv) _loadDiv.style.display = 'flex';
+      _imgEl.onload = () => {
+        if (_loadDiv) _loadDiv.style.display = 'none';
+        _imgEl.style.display = 'block';
+        setTimeout(diImgFitView, 0);
+      };
+      _imgEl.onerror = () => {
+        if (_loadDiv) _loadDiv.style.display = 'none';
+        _imgEl.style.display = 'none';
+      };
+      _imgEl.src = draft.image_url;
+      document.getElementById('diImgView').style.display = 'block';
+      document.getElementById('diNoImgMsg').style.display = 'none';
+      if (_ctrl) { _ctrl.style.display = 'flex'; }
+      /* Jika sudah cached */
+      if (_imgEl.complete && _imgEl.naturalWidth) {
+        if (_loadDiv) _loadDiv.style.display = 'none';
+        _imgEl.style.display = 'block';
+        setTimeout(diImgFitView, 0);
+      }
+    } else {
+      document.getElementById('diImgView').style.display = 'none';
+      document.getElementById('diNoImgMsg').style.display = 'flex';
+      if (_ctrl) _ctrl.style.display = 'none';
+    }
+
+    diRenderOcr();
+  }
+
+  /* DEAD CODE START — kept for reference, no longer called */
+  async function _diSelectDraft_old(id) {
+    const draft = DiState.allDrafts.find(d=>d.id===id);
+    if (!draft) return;
+    DiState.activeDraft = draft;
+    diRenderList();
+    const ocr = draft.ocr_result||{};
+    DiState.selectedBrandId = draft.brand_id || null;
+    DiState.items = (ocr.items||[]).map((item,idx) => {
+      const namaOcr = item.nama||item.nama_item||item.deskripsi||'';
+      const learned = typeof findLearnedBarang==='function' ? findLearnedBarang(namaOcr) : null;
+      let barangId='', barangNama='', matchType='none';
+      const cands = diGetCandidates(namaOcr, 8);
+
+      if (learned) {
+        barangId = learned.id; barangNama = learned.nama; matchType = 'learned';
+      } else {
+        const top = cands[0];
+        if (top && top.score >= 0.7) {
+          barangId = top.b.id; barangNama = top.b.nama; matchType = 'exact';
+        } else if (top && top.score >= 0.45) {
+          barangId = top.b.id; barangNama = top.b.nama; matchType = 'fuzzy';
+        }
+      }
+      return {
+        idx, namaOcr,
+        qty:         parseFloat(item.qty)||1,
+        satuan:      item.satuan||'',
+        harga:       parseFloat(item.harga_satuan??item.harga)||0,
+        barangId, barangNama, matchType,
+        isUnmatched: false,
+        searchOpen:  false,
+        searchQuery: '',
+        _cands:      cands,
+      };
+    });
+
+    /* Reset diskon/ongkir dari OCR */
+    DiState.diskonMode = 'nominal';
+    DiState.diskonVal  = Number(ocr.diskon)||0;
+    DiState.ongkirVal  = Number(ocr.ongkir)||0;
+
+    /* Vendor */
+    DiState.vendorNamaOcr      = ocr.vendor||ocr.nama_vendor||'';
+    DiState.vendorSearchOpen   = false;
+    DiState.vendorSearchQuery  = '';
+    const learnedV             = typeof findLearnedVendor==='function' ? findLearnedVendor(DiState.vendorNamaOcr) : null;
+    DiState.selectedVendorId   = learnedV?.id || null;
+    DiState.selectedVendorNama = learnedV?.nama || '';
+    diRenderInfo();
+    diRenderItems();
+    diRenderSummary();
+  }
+
+  /* ─── OCR Panel (simple read-only view) ─── */
+  async function diRenderOcr() {
+    const draft   = DiState.activeDraft;
+    const content = document.getElementById('diOcrContent');
+    const actions = document.getElementById('diOcrActions');
+    if (!draft || !content) return;
+    const ocr   = draft.ocr_result || {};
+    const STATUS = {
+      needs_review: `<span style="background:rgba(247,146,79,0.15);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">⏳ Perlu Review</span>`,
+      confirmed:    `<span style="background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">✓ Confirmed</span>`,
+      rejected:     `<span style="background:rgba(255,77,106,0.12);color:var(--danger);border:1px solid rgba(255,77,106,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">✕ Rejected</span>`,
+    };
+    const items      = ocr.items || [];
+    const total      = Number(ocr.total) || items.reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.harga_satuan??i.harga)||0),0);
+    const vendor     = ocr.vendor || ocr.nama_vendor || '—';
+    const noFaktur   = ocr.nomor_faktur || ocr.nomor_invoice || '—';
+    const tanggal    = _diFmtDate(ocr.tanggal || ocr.tanggal_invoice || ocr.date || '');
+    const brand      = (window.allBrands||[]).find(b=>b.id===draft.brand_id);
+    const brandNama  = brand?.nama || '—';
+    const ppnInc     = ocr.ppn_included !== false;
+    const ppnStr     = ppnInc ? `Inc PPN ${window._ppnRate||11}%` : 'Exc PPN';
+    const row = (label, val) => `<div>
+      <div style="color:var(--muted);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${label}</div>
+      <div style="color:var(--text);font-size:12px;font-weight:500;line-height:1.4">${val}</div>
+    </div>`;
+    content.innerHTML = `
+      <div style="margin-bottom:12px">${STATUS[draft.status]||''}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${row('Vendor', _diEsc(vendor))}
+        ${row('Brand', _diEsc(brandNama))}
+        ${row('No. Faktur', `<span style="font-family:var(--mono);font-weight:400">${_diEsc(noFaktur)}</span>`)}
+        ${row('Tanggal', tanggal)}
+        ${row('Harga', `<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(0,212,255,0.1);color:var(--accent)">${ppnStr}</span>`)}
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px">
+        <div style="color:var(--muted);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Items (${items.length})</div>
+        ${items.length ? items.map(it=>{
+          const nama = it.nama||it.nama_item||it.deskripsi||'—';
+          const qty  = parseFloat(it.qty)||0;
+          const sat  = it.satuan||'';
+          const harga= parseFloat(it.harga_satuan??it.harga)||0;
+          return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="font-size:12px;color:var(--text);margin-bottom:2px;line-height:1.4">${_diEsc(nama)}</div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:11px;color:var(--muted)">${qty} ${_diEsc(sat)}</span>
+              <span style="font-size:11px;color:var(--accent3);font-family:var(--mono)">${_diFmt(qty*harga)}</span>
+            </div>
+          </div>`;
+        }).join('') : '<div style="color:var(--muted);font-size:12px;padding:8px 0">Tidak ada item</div>'}
+      </div>
+      ${total?`<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600">Total</span>
+        <span style="font-size:15px;font-weight:700;color:var(--accent);font-family:var(--mono)">${_diFmt(total)}</span>
+      </div>`:''}
+      <div style="margin-top:12px;font-size:10px;color:var(--muted);font-family:var(--mono)">Masuk: ${_diFmtDate(draft.created_at)}</div>
+      <div id="diDuplikatHint" style="margin-top:10px"></div>
+    `;
+    if (actions) {
+      const activeTab = DiState.activeTab || 'belum';
+      if (activeTab === 'belum') {
+        actions.style.display = 'flex';
+        actions.innerHTML = `
+          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="diKirimKeScanInvoice()">📋 Kirim ke Catat Pembelian</button>
+          <button class="btn btn-ghost is-destructive" style="width:100%;justify-content:center" onclick="diReject()">✕ Tolak Draft</button>`;
+      } else if (activeTab === 'tolak') {
+        actions.style.display = 'flex';
+        actions.innerHTML = `
+          <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="diUnreject()">↩ Batal Tolak</button>
+          <button class="btn btn-ghost is-destructive" style="width:100%;justify-content:center" onclick="diHapusDraft()">🗑 Hapus Invoice</button>`;
+      } else {
+        actions.style.display = 'none';
+      }
+    }
+
+    /* Cek duplikat nomor faktur di invoice_drafts lain */
+    if (noFaktur && noFaktur !== '—') {
+      const hint = document.getElementById('diDuplikatHint');
+      if (!hint) return;
+      hint.innerHTML = '';
+      /* Query dua field: nomor_faktur dan nomor_invoice (OCR pakai berbeda-beda) */
+      const [r1, r2] = await Promise.all([
+        window._sb.from('invoice_drafts')
+          .select('id,ocr_result,brand_id,created_at,status,purchased_at,discord_rejected_at')
+          .filter('ocr_result->>nomor_faktur', 'eq', noFaktur)
+          .neq('id', draft.id),
+        window._sb.from('invoice_drafts')
+          .select('id,ocr_result,brand_id,created_at,status,purchased_at,discord_rejected_at')
+          .filter('ocr_result->>nomor_invoice', 'eq', noFaktur)
+          .neq('id', draft.id),
+      ]);
+      const seen = new Set();
+      const dupRows = [...(r1.data||[]), ...(r2.data||[])].filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id); return true;
+      }).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+
+      if (!dupRows.length) return;
+
+      const diStatus = r => {
+        if (r.purchased_at)          return { lbl:'Sudah Input',  clr:'var(--accent2)' };
+        if (r.discord_rejected_at)   return { lbl:'Ditolak',      clr:'var(--danger)'  };
+        return                               { lbl:'Belum Dicek',  clr:'var(--muted)'   };
+      };
+      const rows = dupRows.map((r, idx) => {
+        const o      = r.ocr_result || {};
+        const vendor = o.vendor || o.nama_vendor || '—';
+        const tgl    = _diFmtDate(r.created_at);
+        const b      = (window.allBrands||[]).find(x=>x.id===r.brand_id);
+        const bNama  = b?.nama || '';
+        const st     = diStatus(r);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px">
+          <span style="font-size:9px;color:${idx===0?'var(--muted)':'var(--accent3)'};font-family:var(--mono);white-space:nowrap;flex-shrink:0">${idx===0?'1st':'+'+(idx+1)}</span>
+          <div style="flex:1;min-width:0">
+            <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_diEsc(vendor)}</div>
+            <div style="color:var(--muted);font-family:var(--mono);font-size:10px">${tgl}${bNama?' · '+_diEsc(bNama):''}</div>
+          </div>
+          <span style="font-size:10px;color:${st.clr};white-space:nowrap;flex-shrink:0">${st.lbl}</span>
+        </div>`;
+      }).join('');
+      hint.innerHTML = `<div style="border:1px solid rgba(247,146,79,0.3);border-radius:8px;overflow:hidden">
+        <div style="background:rgba(247,146,79,0.10);padding:6px 8px;font-size:11px;color:var(--accent3);font-weight:600">
+          ⚠ ${dupRows.length} draft lain dengan nomor faktur sama
+        </div>${rows}</div>`;
+    }
+  }
+
+  function fReviewUlang() {
+    if (!window._scanData) return showToast('Tidak ada data draft untuk di-review', 'error');
+    if (typeof reviewUlangScan === 'function') {
+      reviewUlangScan();
+    } else if (typeof showScanItemsModal === 'function') {
+      showScanItemsModal(window._scanData.items||[], window._scanData.vendor||'', window._scanData.ppn_included!==false);
+    }
+  }
+  window.fReviewUlang = fReviewUlang;
+
+  function diKirimKeScanInvoice() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    const ocr = draft.ocr_result || {};
+
+    /* Set _scanData sesuai format yang dipakai showScanItemsModal */
+    window._scanData = {
+      nomor_faktur: ocr.nomor_faktur || ocr.nomor_invoice || '',
+      tanggal:      ocr.tanggal || ocr.tanggal_invoice || ocr.date || '',
+      vendor:       ocr.vendor || ocr.nama_vendor || '',
+      ppn_included: ocr.ppn_included !== false,
+      items:        ocr.items || [],
+    };
+
+    /* Gunakan image URL draft sebagai sumber gambar modal */
+    window._scanFileUrl  = draft.image_url || '';
+    window._scanFile     = null;
+    window._scanFileType = 'image/jpeg';
+
+    /* Tampilkan fScanPanel sebagai referensi invoice */
+    const scanImg = document.getElementById('fScanImg');
+    const scanInfo = document.getElementById('fScanOcrInfo');
+    const scanPanel = document.getElementById('fScanPanel');
+    if (scanImg && draft.image_url) scanImg.src = draft.image_url;
+    if (scanInfo) {
+      const vendorNama   = ocr.vendor || ocr.nama_vendor || '—';
+      const noFaktur     = ocr.nomor_faktur || ocr.nomor_invoice || '—';
+      const tanggalOcr   = ocr.tanggal || ocr.tanggal_invoice || '—';
+      const tanggalMasuk = _diFmtDate(draft.created_at);
+      const ppnStr       = ocr.ppn_included !== false ? `Inc PPN ${window._ppnRate||11}%` : 'Exc PPN';
+
+      /* Deteksi tahun OCR vs tahun masuk berbeda — kemungkinan OCR salah baca */
+      let tglOcrHtml = `<span>${tanggalOcr}</span>`;
+      try {
+        const yrOcr   = new Date(tanggalOcr).getFullYear();
+        const yrMasuk = new Date(draft.created_at).getFullYear();
+        if (yrOcr && yrMasuk && yrOcr !== yrMasuk) {
+          tglOcrHtml = `<span style="color:var(--accent3)">${tanggalOcr} ⚠</span>
+            <span style="font-size:11px;color:var(--muted)"> (OCR baca tahun ${yrOcr}, masuk ${yrMasuk})</span>`;
+        }
+      } catch(e) {}
+
+      scanInfo.innerHTML =
+        `<b>Vendor:</b> ${vendorNama}<br>` +
+        `<b>No. Faktur:</b> ${noFaktur}<br>` +
+        `<b>Tgl Invoice:</b> ${tglOcrHtml}<br>` +
+        `<b>Tgl Discord:</b> <span style="color:var(--muted)">${tanggalMasuk}</span><br>` +
+        `<b>PPN:</b> ${ppnStr}`;
+    }
+    const scanItemsList = document.getElementById('fScanItemsList');
+    if (scanItemsList && (ocr.items||[]).length) {
+      const formatRpS = v => v ? 'Rp ' + Math.round(v).toLocaleString('id-ID') : '—';
+      scanItemsList.innerHTML =
+        `<div style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px">Daftar Barang OCR</div>` +
+        (ocr.items||[]).map(it => {
+          const nama  = it.nama || it.nama_item || '?';
+          const qty   = it.qty  || 1;
+          const sat   = it.satuan || '';
+          const harga = it.harga_satuan || it.harga || 0;
+          return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;gap:8px">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nama}">${nama}</span>
+            <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${qty}${sat ? ' '+sat : ''}</span>
+            <span style="font-family:var(--mono);color:var(--accent2);white-space:nowrap;min-width:80px;text-align:right">${formatRpS(harga)}</span>
+          </div>`;
+        }).join('');
+    }
+    if (scanPanel) scanPanel.style.display = '';
+
+    /* Simpan draft ID untuk dikonfirmasi setelah simpan */
+    window._activeDraftId = draft.id;
+
+    /* Pindah ke tabForm dulu, lalu buka modal review */
+    switchTab('form');
+
+    if (typeof reviewUlangScan === 'function') {
+      reviewUlangScan();
+    } else if (typeof showScanItemsModal === 'function') {
+      showScanItemsModal(ocr.items || [], ocr.vendor || ocr.nama_vendor || '', ocr.ppn_included !== false);
+    } else {
+      showToast('scan-invoice.js belum dimuat', 'error');
+    }
+
+    /* Force-fill brand dan tanggal (reviewUlangScan skip jika field sudah ada nilai default) */
+    if (draft.brand_id) {
+      const brandEl = document.getElementById('fBrand');
+      if (brandEl && brandEl.value !== draft.brand_id) {
+        brandEl.value = draft.brand_id;
+        if (typeof onFormBrandChange === 'function') onFormBrandChange();
+      }
+    }
+    const tanggalOcr = ocr.tanggal || ocr.tanggal_invoice || ocr.date || '';
+    if (tanggalOcr) {
+      const tanggalEl = document.getElementById('fTanggal');
+      if (tanggalEl) tanggalEl.value = tanggalOcr;
+    }
+  }
+
+  /* Info section (legacy — dipanggil dari _diSelectDraft_old) */
+  function diRenderInfo() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    const ocr = draft.ocr_result||{};
+
+    const STATUS_CHIP = {
+      needs_review: `<span style="background:rgba(247,146,79,0.15);color:var(--accent3);border:1px solid rgba(247,146,79,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">⏳ Perlu Review</span>`,
+      confirmed:    `<span style="background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">✓ Confirmed</span>`,
+      rejected:     `<span style="background:rgba(255,77,106,0.12);color:var(--danger);border:1px solid rgba(255,77,106,0.3);padding:3px 9px;border-radius:10px;font-family:var(--mono);font-size:11px">✕ Rejected</span>`,
+    };
+    const chip = document.getElementById('diStatusChip');
+    if (chip) chip.innerHTML = STATUS_CHIP[draft.status]||'';
+
+    const nomorFaktur = ocr.nomor_faktur||ocr.nomor_invoice||'';
+    const ppnIncluded = ocr.ppn_included !== false;
+    const tanggalOcr  = ocr.tanggal||ocr.tanggal_invoice||ocr.date||ocr.tanggal_faktur||'';
+    const brandList   = window.allBrands || [];
+    const selectedBid = DiState.selectedBrandId;
+    const ppnRate     = window._ppnRate || 11;
+    const masukDate   = _diFmtDate(draft.created_at);
+
+    document.getElementById('diInfoSection').innerHTML = `
+      <div class="field-row">
+        <div class="field">
+          <label>No. Faktur / PO</label>
+          <input type="text" id="diNoFaktur" placeholder="cth: INV-2024-001" value="${_diEsc(nomorFaktur)}"
+            onchange="if(DiState.activeDraft)DiState.activeDraft.ocr_result.nomor_faktur=this.value"/>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            <span>Tanggal</span>
+            <span style="font-size:10px;font-family:var(--mono);color:var(--muted);font-weight:400">Masuk: ${_diEsc(masukDate)}</span>
+          </label>
+          <input type="date" id="diTanggal" value="${_diEsc(tanggalOcr)}"
+            onchange="if(DiState.activeDraft)DiState.activeDraft.ocr_result.tanggal=this.value"/>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            <span>Vendor <span style="color:var(--danger)">*</span></span>
+            ${DiState.vendorNamaOcr ? `<span style="font-size:10px;font-family:var(--mono);color:var(--accent3)">OCR: ${_diEsc(DiState.vendorNamaOcr)}</span>` : ''}
+          </label>
+          <div class="item-search-wrap" style="position:relative" id="diVendorWrap">
+            <div onclick="diToggleVendorSearch()"
+              style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;background:var(--bg);border:1px solid ${DiState.vendorSearchOpen?'var(--accent)':'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color .2s;min-height:38px;user-select:none"
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="if(!DiState.vendorSearchOpen)this.style.borderColor='var(--border)'">
+              <span style="font-size:13px;color:${DiState.selectedVendorId?'var(--text)':'var(--muted)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${DiState.selectedVendorId?_diEsc(DiState.selectedVendorNama):'Pilih vendor...'}</span>
+              <span style="font-size:10px;color:var(--muted);flex-shrink:0;transition:transform .2s;${DiState.vendorSearchOpen?'transform:rotate(180deg)':''}">▾</span>
+            </div>
+            ${DiState.vendorSearchOpen ? `
+            <div style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden" onclick="event.stopPropagation()">
+              <div style="padding:8px 8px 4px">
+                <div style="position:relative">
+                  <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>
+                  <input type="text" id="diVendorSrchInput" placeholder="Cari vendor..." value="${_diEsc(DiState.vendorSearchQuery)}"
+                    autocomplete="off" oninput="diUpdateVendorSearch(this.value)" onclick="event.stopPropagation()" autofocus
+                    style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 10px 8px 32px;outline:none;transition:border-color .2s"
+                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+                </div>
+              </div>
+              <div id="diVendorSrchRes" class="item-dropdown" style="display:block;position:static;max-height:220px;overflow-y:auto;border:none;border-radius:0;box-shadow:none;background:transparent">${_diVendorRows(DiState.vendorSearchQuery)}</div>
+            </div>` : ''}
+          </div>
+        </div>
+        <div class="field">
+          <label>Brand <span style="color:var(--danger)">*</span></label>
+          <select id="diBrandSel" onchange="DiState.selectedBrandId=this.value||null;diRenderSummary()">
+            <option value="">— Pilih Brand —</option>
+            ${brandList.map(b=>`<option value="${_diEsc(b.id)}" ${b.id===selectedBid?'selected':''}>${_diEsc(b.nama)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Status Harga Input</label>
+        <div class="diskon-toggle">
+          <button id="diPpnBtnExc" class="diskon-toggle-btn ${!ppnIncluded?'active':''}" onclick="diSetPPN(false)">Exc PPN</button>
+          <button id="diPpnBtnInc" class="diskon-toggle-btn ${ppnIncluded?'active':''}" onclick="diSetPPN(true)">Inc PPN ${ppnRate}%</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function diOnVendorChange() {
+    DiState.selectedVendorId = document.getElementById('diVendorSel')?.value||null;
+    diRenderInfo();
+  }
+
+  function _diVendorRows(q) {
+    const all = window.allVendors || [];
+    const list = q.trim()
+      ? all.filter(v => v.nama.toLowerCase().includes(q.toLowerCase())).slice(0, 30)
+      : all.slice(0, 30);
+    if (!list.length) return `<div style="padding:14px;font-size:13px;color:var(--muted);text-align:center">Tidak ada vendor</div>`;
+    return list.map(v =>
+      `<div class="item-option" onclick="event.stopPropagation();diSelectVendor('${_diEsc(v.id)}',${JSON.stringify(v.nama).replace(/"/g,'&quot;')})">
+        <div class="item-option-name">${_diEsc(v.nama)}</div>
+      </div>`
+    ).join('');
+  }
+
+  function diToggleVendorSearch() {
+    DiState.vendorSearchOpen  = !DiState.vendorSearchOpen;
+    DiState.vendorSearchQuery = '';
+    diRenderInfo();
+    if (DiState.vendorSearchOpen) setTimeout(() => document.getElementById('diVendorSrchInput')?.focus(), 40);
+  }
+
+  function diUpdateVendorSearch(q) {
+    DiState.vendorSearchQuery = q;
+    const el = document.getElementById('diVendorSrchRes');
+    if (el) el.innerHTML = _diVendorRows(q);
+  }
+
+  function diSelectVendor(id, nama) {
+    DiState.selectedVendorId   = id;
+    DiState.selectedVendorNama = nama;
+    DiState.vendorSearchOpen   = false;
+    DiState.vendorSearchQuery  = '';
+    diRenderInfo();
+  }
+
+  function diSetPPN(inc) {
+    if (!DiState.activeDraft) return;
+    if (!DiState.activeDraft.ocr_result) DiState.activeDraft.ocr_result = {};
+    DiState.activeDraft.ocr_result.ppn_included = inc;
+    diRenderInfo();
+    diRenderSummary();
+  }
+
+  /* Items section */
+  function diRenderItems() {
+    const el   = document.getElementById('diItemsSection');
+    const chip = document.getElementById('diItemCountChip');
+    if (!el) return;
+    if (chip) chip.textContent = `${DiState.items.length} item`;
+    if (!DiState.items.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Tidak ada item dari OCR</div>`;
+      return;
+    }
+    try {
+      const rows = DiState.items.map(diRenderItemRow).join('');
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;padding:3px 6px;gap:5px;border-bottom:1px solid var(--border);margin-bottom:1px">
+          <div style="width:16px;flex-shrink:0"></div>
+          <div style="flex:1;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Barang</div>
+          <div style="width:50px;flex-shrink:0;text-align:right;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Qty</div>
+          <div style="width:80px;flex-shrink:0;text-align:center;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Satuan</div>
+          <div style="width:110px;flex-shrink:0;text-align:right;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Harga</div>
+        </div>
+        <div id="diItemRows">${rows}</div>`;
+    } catch(e) {
+      console.error('[diRenderItems] error:', e);
+      el.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--danger);font-family:var(--mono)">Error render items: ${_diEsc(e.message)}</div>`;
+    }
+  }
+
+  const _DI_ICON  = { learned:'✅', exact:'✅', fuzzy:'🔶', none:'✏️' };
+  const _DI_BADGE = { learned:'<span class="harga-src vendor">learned</span>', exact:'<span class="harga-src vendor">exact</span>', fuzzy:'<span class="harga-src manual">fuzzy</span>', none:'<span class="harga-src fallback">no match</span>' };
+
+  function _diCandRows(item) {
+    const cands    = item._cands || [];
+    const initList = cands.length
+      ? cands
+      : (window.allBarang || []).slice(0, 20).map(b => ({ b, score: 0 }));
+    if (!initList.length)
+      return `<div style="padding:16px;font-size:13px;color:var(--muted);text-align:center">Master barang kosong</div>`;
+    return initList.map(c => {
+      const b = c.b || c;  /* tolerate both {b,score} and plain barang shape */
+      if (!b || !b.id) return '';
+      return `<div class="item-option" onclick="event.stopPropagation();diSelectBarang(${item.idx},'${_diEsc(b.id)}',${JSON.stringify(b.nama||'').replace(/"/g,'&quot;')})">
+        <div class="item-option-name">${_diEsc(b.nama||'')}${c.score?`<span style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:5px">${Math.round(c.score*100)}%</span>`:''}</div>
+        ${b.sku?`<div class="item-option-sub">${_diEsc(b.sku)}${b.satuan?' · '+_diEsc(b.satuan):''}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  function diRenderItemRow(item) {
+    const icon   = _DI_ICON[item.matchType] || '✏️';
+    const badge  = _DI_BADGE[item.matchType] || '';
+    const hargaFmt = (item.harga||0).toLocaleString('id-ID');
+
+    const dropdown = item.searchOpen ? `
+      <div class="item-dropdown" style="position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;border:1px solid rgba(0,212,255,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999" onclick="event.stopPropagation()">
+        <div style="padding:6px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface2);z-index:1">
+          <div class="search-wrap"><span class="search-icon">🔍</span>
+            <input class="search-input" id="diSrch_${item.idx}" placeholder="Cari barang..."
+              oninput="diUpdateItemSearch(${item.idx},this.value)" value="${_diEsc(item.searchQuery)}"
+              onclick="event.stopPropagation()" autofocus/>
+          </div>
+        </div>
+        <div id="diSrchRes_${item.idx}">${_diCandRows(item)}</div>
+      </div>` : '';
+
+    /* Satuan options dari allSatuan */
+    const allSat = window.allSatuan || [];
+    const hasCur = !item.satuan || allSat.some(s => s.nama === item.satuan);
+    const satuanOpts = `<option value="">—</option>`
+      + (!hasCur && item.satuan ? `<option value="${_diEsc(item.satuan)}" selected>${_diEsc(item.satuan)}</option>` : '')
+      + allSat.map(s => `<option value="${_diEsc(s.nama)}" ${s.nama===item.satuan?'selected':''}>${_diEsc(s.nama)}</option>`).join('');
+
+    return `<div id="diRow_${item.idx}" style="padding:5px 6px;border-bottom:1px solid rgba(255,255,255,0.04);${item.searchOpen?'position:relative;z-index:200;':''}">
+      <!-- OCR name + badge -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="font-size:10px;font-family:var(--mono);color:var(--accent3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${_diEsc(item.namaOcr||'—')}</span>
+        ${badge}
+      </div>
+      <!-- Fields row -->
+      <div style="display:flex;align-items:center;gap:5px">
+        <div style="width:16px;flex-shrink:0;text-align:center;font-size:11px">${icon}</div>
+        <div style="flex:1;min-width:0;position:relative">
+          <input type="text" class="search-input" style="padding:4px 22px 4px 8px;font-size:12px;cursor:pointer;width:100%" readonly
+            placeholder="— Pilih barang —"
+            value="${_diEsc(item.barangNama||'')}"
+            onclick="event.stopPropagation();diToggleItemSearch(${item.idx})"/>
+          <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:9px;color:var(--muted)">▼</span>
+          ${dropdown}
+        </div>
+        <input class="item-input" type="text" inputmode="decimal" value="${item.qty}" style="width:50px;flex-shrink:0;text-align:right;padding:4px 6px;font-size:12px"
+          oninput="this.value=this.value.replace(',','.');diUpdateField(${item.idx},'qty',parseFloat(this.value)||0)"
+          onblur="this.value=parseFloat(this.value)||0"/>
+        <select class="item-input" style="width:80px;flex-shrink:0;padding:4px 4px;font-size:12px"
+          onchange="diUpdateField(${item.idx},'satuan',this.value)">${satuanOpts}</select>
+        <input class="item-input" type="text" id="diHarga_${item.idx}" value="Rp ${hargaFmt}" style="width:110px;flex-shrink:0;text-align:right;padding:4px 6px;font-size:12px"
+          onfocus="this.value=(${item.harga}||0).toString();this.select()"
+          onblur="const v=parseFloat(this.value.replace(/[^\\d.]/g,''))||0;diUpdateField(${item.idx},'harga',v);this.value='Rp '+v.toLocaleString('id-ID')"/>
+      </div>
+      ${item.barangNama ? `<div style="font-size:10px;color:var(--muted);font-family:var(--mono);padding-left:21px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_diEsc(item.barangNama)}</div>` : ''}
+    </div>`;
+  }
+
+  function diToggleItemSearch(idx) {
+    DiState.items.forEach((it,i)=>{ if(i!==idx) it.searchOpen=false; });
+    DiState.items[idx].searchOpen = !DiState.items[idx].searchOpen;
+    diRenderItems();
+    if (DiState.items[idx].searchOpen)
+      setTimeout(()=>document.getElementById(`diSrch_${idx}`)?.focus(), 40);
+  }
+
+  function diUpdateItemSearch(idx, query) {
+    DiState.items[idx].searchQuery = query;
+    const results = query.trim()
+      ? (window.allBarang||[]).filter(b=>b.nama.toLowerCase().includes(query.toLowerCase()))
+          .map(b=>({ b, score: typeof fuzzyScore==='function'?fuzzyScore(DiState.items[idx].namaOcr,b.nama):0 }))
+          .sort((a,b)=>b.score-a.score).slice(0,20)
+      : (DiState.items[idx]._cands.length ? DiState.items[idx]._cands : (window.allBarang||[]).slice(0,20).map(b=>({b,score:0})));
+    const el = document.getElementById(`diSrchRes_${idx}`);
+    if (!el) return;
+    el.innerHTML = results.length
+      ? results.map(c=>`<div class="item-option" onclick="event.stopPropagation();diSelectBarang(${idx},'${_diEsc(c.b.id)}',${JSON.stringify(c.b.nama).replace(/"/g,'&quot;')})">
+          <div class="item-option-name">${_diEsc(c.b.nama)}${c.score?`<span style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:5px">${Math.round(c.score*100)}%</span>`:''}</div>
+          ${c.b.sku?`<div class="item-option-sub">${_diEsc(c.b.sku)}${c.b.satuan?' · '+_diEsc(c.b.satuan):''}</div>`:''}
+        </div>`).join('')
+      : `<div style="padding:14px;font-size:13px;color:var(--muted);text-align:center">Tidak ada hasil</div>`;
+  }
+
+  function diSelectBarang(idx, barangId, barangNama) {
+    const it = DiState.items[idx];
+    it.barangId = barangId; it.barangNama = barangNama;
+    it.matchType = 'exact'; it.isUnmatched = false;
+    it.searchOpen = false; it.searchQuery = '';
+    diRenderItems(); diRenderSummary();
+  }
+
+  function diToggleUnmatched(idx, checked) {
+    DiState.items[idx].isUnmatched = checked;
+    if (checked) { DiState.items[idx].barangId=''; DiState.items[idx].matchType='none'; }
+    diRenderItems(); diRenderSummary();
+  }
+
+  function diUpdateField(idx, field, val) {
+    DiState.items[idx][field] = val;
+    const sub = document.getElementById(`diSub_${idx}`);
+    if (sub) { const it=DiState.items[idx]; sub.textContent=_diFmt(it.qty*it.harga); }
+    diRenderSummary();
+  }
+
+  function diSetDiskon(v)    { DiState.diskonVal = parseFloat(String(v).replace(',','.')) || 0; _diUpdateCalc(); }
+  function diSetDiskonMode(m){ DiState.diskonMode = m; diRenderSummary(); }
+  function diSetOngkir(v)    { DiState.ongkirVal  = parseFloat(String(v).replace(',','.')) || 0; _diUpdateCalc(); }
+
+  /* Update hanya bagian kalkulasi — tidak re-render input (jaga focus) */
+  function _diUpdateCalc() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    const ocr     = draft.ocr_result||{};
+    const ppnRate = (window._ppnRate||11)/100;
+    const ppnInc  = ocr.ppn_included !== false;
+    const subtotal= DiState.items.reduce((s,i)=>s+i.qty*i.harga,0);
+    const subEx   = ppnInc ? subtotal/(1+ppnRate) : subtotal;
+    const ppnAmt  = subEx * ppnRate;
+    const diskon  = DiState.diskonMode==='pct' ? subEx*(DiState.diskonVal/100) : DiState.diskonVal;
+    const ongkir  = DiState.ongkirVal;
+    const total   = subEx + ppnAmt - diskon + ongkir;
+
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('_diCalcSubEx',  _diFmt(Math.round(subEx)));
+    set('_diCalcPpn',    _diFmt(Math.round(ppnAmt)));
+    set('_diCalcDiskon', diskon ? '− '+_diFmt(Math.round(diskon)) : 'Rp 0');
+    set('_diCalcOngkir', ongkir ? '+ '+_diFmt(Math.round(ongkir)) : 'Rp 0');
+    set('_diCalcTotal',  _diFmt(Math.round(total)));
+
+    const warn = document.getElementById('_diCalcWarn');
+    const unresolved = DiState.items.filter(i=>!i.barangId&&!i.isUnmatched).length;
+    if (warn) { warn.textContent = unresolved ? `⚠ ${unresolved} item belum dipilih` : ''; warn.style.display = unresolved ? '' : 'none'; }
+  }
+
+  /* Summary — render full (saat pilih draft baru atau toggle diskon mode) */
+  function diRenderSummary() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    const ocr     = draft.ocr_result||{};
+    const ppnRate = (window._ppnRate||11)/100;
+    const ppnInc  = ocr.ppn_included !== false;
+    const subtotal= DiState.items.reduce((s,i)=>s+i.qty*i.harga,0);
+    const subEx   = ppnInc ? subtotal/(1+ppnRate) : subtotal;
+    const ppnAmt  = subEx * ppnRate;
+    const diskon  = DiState.diskonMode==='pct' ? subEx*(DiState.diskonVal/100) : DiState.diskonVal;
+    const ongkir  = DiState.ongkirVal;
+    const total   = subEx + ppnAmt - diskon + ongkir;
+    const unresolved = DiState.items.filter(i=>!i.barangId&&!i.isUnmatched).length;
+    const isDone  = draft.status==='confirmed'||draft.status==='rejected';
+    const ppnPct  = Math.round(ppnRate*100);
+
+    document.getElementById('diSummary').innerHTML = `
+      <!-- Diskon -->
+      <div class="field" style="margin-bottom:10px">
+        <label>Diskon</label>
+        <div class="diskon-toggle">
+          <div class="diskon-toggle-btn ${DiState.diskonMode!=='pct'?'active':''}" onclick="diSetDiskonMode('nominal')">Rp</div>
+          <div class="diskon-toggle-btn ${DiState.diskonMode==='pct'?'active':''}" onclick="diSetDiskonMode('pct')">%</div>
+        </div>
+        <input type="text" inputmode="decimal" id="_diInpDiskon"
+          value="${DiState.diskonVal||''}" placeholder="0"
+          style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"
+          oninput="diSetDiskon(this.value)" onfocus="this.select()"/>
+      </div>
+
+      <!-- Ongkir -->
+      <div class="field" style="margin-bottom:14px">
+        <label>Ongkos Kirim (Rp)</label>
+        <input type="text" inputmode="decimal" id="_diInpOngkir"
+          value="${DiState.ongkirVal||''}" placeholder="0"
+          style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);width:100%;outline:none;text-align:right;"
+          oninput="diSetOngkir(this.value)" onfocus="this.select()"/>
+      </div>
+
+      <div class="summary-divider"></div>
+
+      ${ppnInc ? `
+      <div class="summary-row">
+        <span class="summary-key">Subtotal (inc PPN ${ppnPct}%)</span>
+        <span class="summary-val">${_diFmt(Math.round(subtotal))}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-key">PPN termasuk (${ppnPct}%)</span>
+        <span class="summary-val" style="color:var(--muted)">− ${_diFmt(Math.round(ppnAmt))}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-key">Exc PPN</span>
+        <span class="summary-val" id="_diCalcSubEx">${_diFmt(Math.round(subEx))}</span>
+      </div>
+      ` : `
+      <div class="summary-row">
+        <span class="summary-key">Subtotal (exc PPN)</span>
+        <span class="summary-val" id="_diCalcSubEx">${_diFmt(Math.round(subEx))}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-key">+ PPN (${ppnPct}%)</span>
+        <span class="summary-val" style="color:var(--accent2)" id="_diCalcPpn">+ ${_diFmt(Math.round(ppnAmt))}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-key">Subtotal inc PPN (${ppnPct}%)</span>
+        <span class="summary-val">${_diFmt(Math.round(subEx+ppnAmt))}</span>
+      </div>
+      `}
+      <div class="summary-row">
+        <span class="summary-key">Diskon</span>
+        <span class="summary-val" style="color:var(--accent3)" id="_diCalcDiskon">${diskon ? '− '+_diFmt(Math.round(diskon)) : 'Rp 0'}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-key">Ongkos Kirim</span>
+        <span class="summary-val" id="_diCalcOngkir">${ongkir ? '+ '+_diFmt(Math.round(ongkir)) : 'Rp 0'}</span>
+      </div>
+
+      <div class="summary-divider"></div>
+
+      <div class="summary-row" style="padding:10px 0">
+        <span style="font-size:15px;font-weight:600">Total</span>
+        <span class="summary-total" id="_diCalcTotal">${_diFmt(Math.round(total))}</span>
+      </div>
+
+      ${unresolved ? `<div style="font-size:11px;color:var(--danger);font-family:var(--mono);text-align:right;margin-bottom:8px" id="_diCalcWarn">⚠ ${unresolved} item belum dipilih</div>` : `<div id="_diCalcWarn" style="display:none"></div>`}
+
+      <div class="summary-divider"></div>
+
+      ${!isDone ? `
+        <button class="btn btn-primary" style="width:100%;font-size:15px;margin-top:8px;justify-content:center" onclick="diConfirm()">✓ Konfirmasi → Pembelian</button>
+        <button class="btn btn-ghost is-destructive" style="width:100%;margin-top:8px;justify-content:center" onclick="diReject()">✕ Tolak Draft</button>
+      ` : `
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono);text-align:center;padding:12px 0">Draft sudah ${draft.status}.</div>
+      `}
+    `;
+  }
+
+  /* Konfirmasi — simpan ke riwayat_beli + riwayat_harga + update draft */
+  async function diConfirm() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    if (!DiState.selectedVendorId) { showToast('Pilih vendor terlebih dahulu','error'); return; }
+    const unresolved = DiState.items.filter(i=>!i.barangId&&!i.isUnmatched);
+    if (unresolved.length) { showToast(`${unresolved.length} item belum dipilih barangnya`,'error'); return; }
+
+    const sb      = window._sb;
+    const ocr     = draft.ocr_result||{};
+    const ppnRate = (window._ppnRate||11)/100;
+    const ppnIncluded = ocr.ppn_included !== false;
+    const { data: {user} } = await sb.auth.getUser();
+    const tanggal = ocr.tanggal||ocr.tanggal_invoice||new Date().toISOString().slice(0,10);
+    const subtotal = DiState.items.reduce((s,i)=>s+i.qty*i.harga,0);
+    const subEx    = ppnIncluded ? subtotal/(1+ppnRate) : subtotal;
+    const ppnAmt   = subEx * ppnRate;
+    const diskon   = DiState.diskonMode==='pct' ? subEx*(DiState.diskonVal/100) : DiState.diskonVal;
+    const ongkir   = DiState.ongkirVal;
+    const total    = Math.round(subEx + ppnAmt - diskon + ongkir);
+
+    try {
+      /* 1. riwayat_beli */
+      const { data: beli, error: beliErr } = await sb.from('riwayat_beli').insert({
+        tanggal, nomor_faktur: ocr.nomor_faktur||ocr.nomor_invoice||null,
+        vendor_id: DiState.selectedVendorId, brand_id: DiState.selectedBrandId||draft.brand_id||null,
+        catatan: null, status: 'selesai',
+        ppn_included: ppnIncluded, diskon, diskon_mode:'nominal', diskon_pct:0, ongkir,
+        subtotal: Math.round(subEx+ppnAmt), total, updated_at: new Date().toISOString(),
+      }).select().single();
+      if (beliErr) throw beliErr;
+
+      /* 2. riwayat_beli_items */
+      const itemPayloads = DiState.items.map(item => {
+        const hExc = ppnIncluded ? Math.round(item.harga/(1+ppnRate)) : item.harga;
+        const hInc = ppnIncluded ? item.harga : Math.round(item.harga*(1+ppnRate));
+        return {
+          beli_id: beli.id, brand_id: DiState.selectedBrandId||draft.brand_id||null,
+          barang_id:     item.isUnmatched ? null : (item.barangId||null),
+          nama:          item.barangNama || item.namaOcr,
+          sku:           item.isUnmatched ? '' : ((window.allBarang||[]).find(b=>b.id===item.barangId)?.sku||''),
+          satuan:        item.satuan||'',
+          qty:           item.qty,
+          harga_satuan:  hExc,
+          harga_exc_ppn: hExc,
+          harga_inc_ppn: hInc,
+          ppn_included:  ppnIncluded,
+          subtotal:      item.qty * hExc,
+          is_unmatched:  item.isUnmatched||false,
+          unmatched_nama: item.isUnmatched ? item.namaOcr : null,
+        };
+      });
+      const { error: itemErr } = await sb.from('riwayat_beli_items').insert(itemPayloads);
+      if (itemErr) throw itemErr;
+
+      /* 3. riwayat_harga — hanya item yg punya barang_id */
+      const hargaPayloads = DiState.items
+        .filter(item => !item.isUnmatched && item.barangId)
+        .map(item => {
+          const hExc = ppnIncluded ? Math.round(item.harga/(1+ppnRate)) : item.harga;
+          const hInc = ppnIncluded ? item.harga : Math.round(item.harga*(1+ppnRate));
+          return {
+            barang_id: item.barangId, barang_nama: item.barangNama,
+            vendor_id: DiState.selectedVendorId, brand_id: DiState.selectedBrandId||draft.brand_id||null,
+            harga: hExc, harga_exc_ppn: hExc, harga_inc_ppn: hInc,
+            ppn_included: ppnIncluded, qty: item.qty, tanggal,
+            sumber: 'pembelian', beli_id: beli.id,
+          };
+        });
+      if (hargaPayloads.length) {
+        const { error: hErr } = await sb.from('riwayat_harga').insert(hargaPayloads);
+        if (hErr) console.warn('[diConfirm] riwayat_harga gagal:', hErr.message);
+      }
+
+      /* 4. UPDATE invoice_drafts */
+      const { error: draftErr } = await sb.from('invoice_drafts').update({
+        status: 'confirmed', reviewed_by: user?.id||null,
+        reviewed_at: new Date().toISOString(), riwayat_beli_id: beli.id,
+      }).eq('id', draft.id);
+      if (draftErr) throw draftErr;
+
+      /* 5. Simpan learned mappings */
+      for (const item of DiState.items) {
+        if (!item.isUnmatched && item.barangId && item.namaOcr)
+          if (typeof saveLearnedMapping==='function') await saveLearnedMapping(item.namaOcr, item.barangId);
+      }
+      if (DiState.vendorNamaOcr && DiState.selectedVendorId)
+        if (typeof saveLearnedVendor==='function') await saveLearnedVendor(DiState.vendorNamaOcr, DiState.selectedVendorId);
+
+      /* Invalidate cache harga */
+      window._invalidateHargaCache?.();
+
+      showToast('✓ Draft dikonfirmasi — pembelian disimpan', 'success');
+      DiState.activeDraft.status = 'confirmed';
+      DiState.activeDraft.riwayat_beli_id = beli.id;
+      diRenderSummary();
+      /* Hapus dari list & reload */
+      DiState.allDrafts = DiState.allDrafts.filter(d=>d.id!==draft.id);
+      diRenderList();
+      /* Update badge */
+      const badge = document.getElementById('draftInboxBadge');
+      if (badge) {
+        if (DiState.allDrafts.length) badge.textContent = DiState.allDrafts.length;
+        else badge.style.display = 'none';
+      }
+
+    } catch(e) {
+      showToast('Gagal konfirmasi: '+(e.message||e), 'error');
+    }
+  }
+
+  /* Tolak draft */
+
+  function diSwitchTab(tab) {
+    DiState.activeTab = tab;
+    ['belum','input','tolak'].forEach(t => {
+      const btn = document.getElementById('diTab_'+t);
+      if (!btn) return;
+      const active = t === tab;
+      btn.style.color       = active ? 'var(--accent)' : 'var(--muted)';
+      btn.style.borderBottom = active ? '2px solid var(--accent)' : '2px solid transparent';
+      btn.style.fontWeight  = active ? '600' : '500';
+    });
+    DiState.activeDraft = null;
+    document.getElementById('diEmpty').style.display    = 'flex';
+    document.getElementById('diImgView').style.display  = 'none';
+    document.getElementById('diNoImgMsg').style.display = 'none';
+    const _c = document.getElementById('diImgControls');
+    if (_c) _c.style.display = 'none';
+    const oa = document.getElementById('diOcrActions');
+    if (oa) oa.style.display = 'none';
+    document.getElementById('diOcrContent').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;text-align:center;padding-top:40px">Pilih draft untuk lihat hasil OCR</div>';
+    diLoadDrafts();
+  }
+  window.diSwitchTab = diSwitchTab;
+
+  async function diReject() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    if (!confirm('Tolak draft ini dari Automation Discord?\n\nDraft tetap ada di halaman Invoice Drafts untuk finance.')) return;
+    const { error } = await window._sb.from('invoice_drafts').update({
+      discord_rejected_at: new Date().toISOString(),
+    }).eq('id', draft.id);
+    if (error) { showToast('Gagal tolak: '+error.message,'error'); return; }
+    showToast('Draft ditolak dari Automation Discord','success');
+    DiState.allDrafts = DiState.allDrafts.filter(d=>d.id!==draft.id);
+    diRenderList();
+    const badge = document.getElementById('draftInboxBadge');
+    if (badge) {
+      if (DiState.allDrafts.length) badge.textContent = DiState.allDrafts.length;
+      else badge.style.display = 'none';
+    }
+    document.getElementById('diEmpty').style.display    = 'flex';
+    document.getElementById('diImgView').style.display  = 'none';
+    document.getElementById('diNoImgMsg').style.display = 'none';
+    const oa = document.getElementById('diOcrActions');
+    if (oa) oa.style.display = 'none';
+    document.getElementById('diOcrContent').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;text-align:center;padding-top:40px">Pilih draft untuk lihat hasil OCR</div>';
+    DiState.activeDraft = null;
+  }
+
+  function _diResetRightPanel() {
+    document.getElementById('diEmpty').style.display    = 'flex';
+    document.getElementById('diImgView').style.display  = 'none';
+    document.getElementById('diNoImgMsg').style.display = 'none';
+    const _l = document.getElementById('diImgLoading');
+    if (_l) _l.style.display = 'none';
+    const _imgEl = document.getElementById('diImgEl');
+    if (_imgEl) { _imgEl.onload = null; _imgEl.onerror = null; _imgEl.src = ''; _imgEl.style.display = 'none'; }
+    const _c = document.getElementById('diImgControls');
+    if (_c) _c.style.display = 'none';
+    const oa = document.getElementById('diOcrActions');
+    if (oa) oa.style.display = 'none';
+    document.getElementById('diOcrContent').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;text-align:center;padding-top:40px">Pilih draft untuk lihat hasil OCR</div>';
+    DiState.activeDraft = null;
+  }
+
+  async function diUnreject() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    const { error } = await window._sb.from('invoice_drafts')
+      .update({ discord_rejected_at: null })
+      .eq('id', draft.id);
+    if (error) { showToast('Gagal batal tolak: '+error.message,'error'); return; }
+    showToast('Draft dikembalikan ke Belum Dicek','success');
+    DiState.allDrafts = DiState.allDrafts.filter(d=>d.id!==draft.id);
+    diRenderList();
+    _diResetRightPanel();
+    diLoadDrafts();
+  }
+
+  async function diHapusDraft() {
+    const draft = DiState.activeDraft;
+    if (!draft) return;
+    if (!confirm('Hapus invoice draft ini secara permanen?\n\nTindakan ini tidak bisa dibatalkan.')) return;
+    if (draft.image_url) {
+      try {
+        const urlObj = new URL(draft.image_url);
+        const pathParts = urlObj.pathname.split('/storage/v1/object/public/');
+        if (pathParts[1]) {
+          const [bucket, ...rest] = pathParts[1].split('/');
+          await window._sb.storage.from(bucket).remove([rest.join('/')]);
+        }
+      } catch(e) {}
+    }
+    const { error } = await window._sb.from('invoice_drafts').delete().eq('id', draft.id);
+    if (error) { showToast('Gagal hapus: '+error.message,'error'); return; }
+    showToast('Invoice draft dihapus','success');
+    DiState.allDrafts = DiState.allDrafts.filter(d=>d.id!==draft.id);
+    diRenderList();
+    _diResetRightPanel();
+  }
+
+  /* Close dropdowns on outside click */
+  document.addEventListener('click', e => {
+    /* Brand dropdown */
+    const dd = document.getElementById('diBrandDd');
+    if (dd && dd.style.display !== 'none') {
+      if (!e.target.closest?.('#diBrandBtn') && !e.target.closest?.('#diBrandDd'))
+        dd.style.display = 'none';
+    }
+    /* Vendor search */
+    if (DiState.vendorSearchOpen) {
+      const insideV = !!e.target.closest?.('#diVendorWrap');
+      if (!insideV) { DiState.vendorSearchOpen=false; DiState.vendorSearchQuery=''; diRenderInfo(); }
+    }
+    /* Item barang search */
+    const hasOpen = DiState.items.some(i=>i.searchOpen);
+    if (!hasOpen) return;
+    const inside = e.composedPath?.()?.some(n=>n.id==='diItemsSection') || !!e.target.closest?.('#diItemsSection');
+    if (inside) return;
+    DiState.items.forEach(i=>{ i.searchOpen=false; });
+    diRenderItems();
+  });
+
+  /* Expose draft tab functions */
+  window.diInit=diInit; window.diLoadDrafts=diLoadDrafts; window.diRenderList=diRenderList;
+  window.diSelectDraft=diSelectDraft; window.diRenderOcr=diRenderOcr; window.diKirimKeScanInvoice=diKirimKeScanInvoice;
+  window.diOnVendorChange=diOnVendorChange; window.diSetPPN=diSetPPN;
+  window.diSetDiskon=diSetDiskon; window.diSetDiskonMode=diSetDiskonMode; window.diSetOngkir=diSetOngkir;
+  window.diToggleVendorSearch=diToggleVendorSearch; window.diUpdateVendorSearch=diUpdateVendorSearch; window.diSelectVendor=diSelectVendor;
+  window.diToggleItemSearch=diToggleItemSearch; window.diUpdateItemSearch=diUpdateItemSearch;
+  window.diSelectBarang=diSelectBarang; window.diToggleUnmatched=diToggleUnmatched;
+  window.diUpdateField=diUpdateField; window.diConfirm=diConfirm; window.diReject=diReject;
+  window.diUnreject=diUnreject; window.diHapusDraft=diHapusDraft;
+  window.diImgZoom=diImgZoom; window.diImgRotate=diImgRotate; window.diImgReset=diImgReset;
+  window.diOpenFotoModal=diOpenFotoModal; window.diCloseFotoModal=diCloseFotoModal;
+  window.diModalImgZoom=diModalImgZoom; window.diModalImgRotate=diModalImgRotate; window.diModalImgReset=diModalImgReset;
 
   /* Expose */
   window.switchTab=switchTab; window.onBrandChange=onBrandChange;
