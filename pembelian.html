@@ -2431,7 +2431,7 @@
     document.getElementById('konversiHargaPopup')?.remove();
 
     const rows = document.querySelectorAll('#itemList .item-row');
-    const hargaInput = rows[idx]?.querySelector('input.item-input[inputmode="numeric"]');
+    const hargaInput = rows[idx]?.querySelectorAll('input.item-input[inputmode="decimal"]')?.[1];
     if (!hargaInput) return;
 
     const rect = hargaInput.getBoundingClientRect();
@@ -2492,8 +2492,8 @@
     items[idx].harga_src    = 'manual';
     const rows = document.querySelectorAll('#itemList .item-row');
     if (rows[idx]) {
-      const inp = rows[idx].querySelector('input.item-input[inputmode="numeric"]');
-      if (inp) inp.value = newHarga ? 'Rp ' + Math.round(newHarga).toLocaleString('id-ID') : '';
+      const inp = rows[idx].querySelectorAll('input.item-input[inputmode="decimal"]')?.[1];
+      if (inp) inp.value = newHarga ? 'Rp ' + newHarga.toLocaleString('id-ID', {minimumFractionDigits:0, maximumFractionDigits:2}) : '';
       const sub = rows[idx].querySelector('.item-subtotal');
       if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));
     }

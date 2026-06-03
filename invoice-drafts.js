@@ -10,16 +10,14 @@ let _draftRotate  = 0;
 
 // ── State ─────────────────────────────────────────────────────────
 const DraftState = {
-  allDrafts:        [],
-  activeDraft:      null,
-  allVendor:        [],
-  vendorMap:        {},
-  vendorBankAccts:  [],
-  items:            [],  // [{idx, namaOcr, namaEdit, qty, satuan, harga}]
-  selectedVendorId: null,
-  selectedBankId:   null,
-  vendorNamaOcr:    '',
-  vendorNamaEdit:   '',
+  allDrafts:       [],
+  activeDraft:     null,
+  vendorBankAccts: [],
+  items:           [],  // [{idx, namaOcr, namaEdit, qty, satuan, harga}]
+  selectedBankId:  null,
+  vendorNamaOcr:   '',
+  vendorNamaEdit:  '',
+  tanggalEdit:     '',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -116,9 +114,7 @@ function draftImgReset() {
 
 // ── Master data (vendor only) ─────────────────────────────────────
 async function loadMasterData() {
-  const { data: vRows } = await window._sb.from('vendor').select('id,nama').eq('aktif', true).order('nama');
-  DraftState.allVendor = vRows || [];
-  DraftState.vendorMap = Object.fromEntries(DraftState.allVendor.map(v => [v.id, v]));
+  // vendor dropdown removed
 }
 
 async function loadBrands() {
@@ -303,11 +299,11 @@ async function selectDraft(id) {
   }));
 
   // Vendor: tampilkan OCR text, user pilih manual
-  DraftState.vendorNamaOcr    = ocr.vendor || ocr.nama_vendor || '';
-  DraftState.vendorNamaEdit   = DraftState.vendorNamaOcr;
-  DraftState.selectedVendorId = null;
-  DraftState.vendorBankAccts  = [];
-  DraftState.selectedBankId   = null;
+  DraftState.vendorNamaOcr   = ocr.vendor || ocr.nama_vendor || '';
+  DraftState.vendorNamaEdit  = DraftState.vendorNamaOcr;
+  DraftState.tanggalEdit     = ocr.tanggal || ocr.tanggal_invoice || '';
+  DraftState.vendorBankAccts = [];
+  DraftState.selectedBankId  = null;
 
   renderInfoSection();
   renderItemsSection();
@@ -334,13 +330,11 @@ function renderInfoSection() {
   const draft = DraftState.activeDraft;
   if (!draft) return;
   const ocr = draft.ocr_result || {};
-  const vid = DraftState.selectedVendorId;
 
   const chip = document.getElementById('draftStatusChip');
   if (chip) chip.innerHTML = _STATUS_CHIP[draft.status] || '';
 
   const nomorFaktur = ocr.nomor_faktur || ocr.nomor_invoice || '';
-  const ppnIncluded = ocr.ppn_included !== false;
 
   const bankHTML = DraftState.vendorBankAccts.length
     ? `<select id="bankSelect" onchange="DraftState.selectedBankId=this.value">
@@ -350,7 +344,7 @@ function renderInfoSection() {
            </option>`
         ).join('')}
        </select>`
-    : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 0">${vid ? 'Tidak ada rekening terdaftar' : 'Pilih vendor terlebih dahulu'}</div>`;
+    : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 0">Tidak ada rekening terdaftar</div>`;
 
   // Cek duplikat nomor faktur (async)
   if (nomorFaktur) {
@@ -381,8 +375,11 @@ function renderInfoSection() {
       </div>
       <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Tanggal</div>
-        <div style="font-size:13px;font-family:var(--mono);color:var(--text);font-weight:500">${escHtml(ocr.tanggal || ocr.tanggal_invoice || '—')}</div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Tanggal Invoice</div>
+        <input type="date" id="tanggalInvoiceInput"
+               value="${escHtml(DraftState.tanggalEdit)}"
+               onchange="DraftState.tanggalEdit=this.value"
+               style="font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 7px;cursor:pointer"/>
       </div>
       <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
       <div>
@@ -424,14 +421,10 @@ function renderInfoSection() {
       <div class="field" style="margin-bottom:0">
         <label style="margin-bottom:4px">Vendor</label>
         ${DraftState.vendorNamaOcr ? `<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);margin-bottom:6px">OCR: ${escHtml(DraftState.vendorNamaOcr)}</div>` : ''}
-        <input type="text" id="vendorInput" list="vendorDatalist"
+        <input type="text" id="vendorInput"
                placeholder="Ketik nama vendor..."
                value="${escHtml(DraftState.vendorNamaEdit)}"
-               oninput="onVendorInputChange(this.value)"
-               onblur="onVendorInputBlur()"/>
-        <datalist id="vendorDatalist">
-          ${DraftState.allVendor.map(v => `<option value="${escHtml(v.nama)}"></option>`).join('')}
-        </datalist>
+               onchange="DraftState.vendorNamaEdit=this.value"/>
       </div>
       <div class="field" style="margin-bottom:0">
         <label style="margin-bottom:4px">Rekening Tujuan</label>
@@ -439,31 +432,14 @@ function renderInfoSection() {
       </div>
     </div>
 
-    <!-- PPN toggle -->
-    <div>
-      <label style="display:block;font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">
-        Status Harga <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--accent3)">(koreksi jika salah)</span>
-      </label>
-      <div class="diskon-toggle" style="max-width:280px">
-        <button class="diskon-toggle-btn ${!ppnIncluded ? 'active' : ''}" onclick="setDraftPPN(false)">Exc PPN</button>
-        <button class="diskon-toggle-btn ${ppnIncluded  ? 'active' : ''}" onclick="setDraftPPN(true)">Inc PPN ${(window._ppnRate || 11)}%</button>
-      </div>
-    </div>
   `;
 }
 
-function setDraftPPN(included) {
-  if (!DraftState.activeDraft) return;
-  if (!DraftState.activeDraft.ocr_result) DraftState.activeDraft.ocr_result = {};
-  DraftState.activeDraft.ocr_result.ppn_included = included;
-  renderInfoSection();
-  renderSummarySection();
-}
+// setDraftPPN removed
 
 function updateBankSection() {
   const container = document.getElementById('bankSelectContainer');
   if (!container) return;
-  const vid = DraftState.selectedVendorId;
   const bankHTML = DraftState.vendorBankAccts.length
     ? `<select id="bankSelect" onchange="DraftState.selectedBankId=this.value">
         ${DraftState.vendorBankAccts.map(a =>
@@ -472,38 +448,11 @@ function updateBankSection() {
            </option>`
         ).join('')}
        </select>`
-    : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 0">${vid ? 'Tidak ada rekening terdaftar' : 'Pilih vendor terlebih dahulu'}</div>`;
+    : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 0">Tidak ada rekening terdaftar</div>`;
   container.innerHTML = bankHTML;
 }
 
-async function onVendorInputChange(val) {
-  DraftState.vendorNamaEdit = val;
-  const matched = DraftState.allVendor.find(v => v.nama.toLowerCase() === val.toLowerCase().trim());
-  if (matched) {
-    if (DraftState.selectedVendorId !== matched.id) {
-      DraftState.selectedVendorId = matched.id;
-      DraftState.vendorBankAccts  = [];
-      DraftState.selectedBankId   = null;
-      await loadVendorBankAccts(matched.id);
-      updateBankSection();
-    }
-  } else {
-    if (DraftState.selectedVendorId !== null) {
-      DraftState.selectedVendorId = null;
-      DraftState.vendorBankAccts  = [];
-      DraftState.selectedBankId   = null;
-      updateBankSection();
-    }
-  }
-}
-
-function onVendorInputBlur() {
-  const val = document.getElementById('vendorInput')?.value || '';
-  DraftState.vendorNamaEdit = val;
-}
-
-window.onVendorInputChange = onVendorInputChange;
-window.onVendorInputBlur   = onVendorInputBlur;
+// onVendorInputChange / onVendorInputBlur removed
 
 // ── Items section (raw editable) ──────────────────────────────────
 function renderItemsSection() {
@@ -666,8 +615,8 @@ async function confirmDraft() {
   const draft = DraftState.activeDraft;
   if (!draft) return;
 
-  if (!DraftState.selectedVendorId) {
-    showToast('Pilih vendor terlebih dahulu', 'error'); return;
+  if (!DraftState.vendorNamaEdit.trim()) {
+    showToast('Nama vendor wajib diisi', 'error'); return;
   }
 
   const sb          = window._sb;
@@ -680,7 +629,7 @@ async function confirmDraft() {
   const diskon      = Number(ocr.diskon) || 0;
   const ongkir      = Number(ocr.ongkir) || 0;
   const total       = Math.round(subEx + ppnAmt - diskon + ongkir);
-  const tanggal     = ocr.tanggal || ocr.tanggal_invoice || new Date().toISOString().slice(0, 10);
+  const tanggal     = DraftState.tanggalEdit || new Date().toISOString().slice(0, 10);
   const { data: { user } } = await sb.auth.getUser();
 
   try {
@@ -688,7 +637,7 @@ async function confirmDraft() {
     const { data: beli, error: beliErr } = await sb.from('riwayat_beli').insert({
       tanggal,
       nomor_faktur: ocr.nomor_faktur || ocr.nomor_invoice || null,
-      vendor_id:    DraftState.selectedVendorId,
+      vendor_id:    null,
       brand_id:     draft.brand_id,
       catatan:      null,
       status:       'selesai',
@@ -727,7 +676,7 @@ async function confirmDraft() {
     // 3. payment_requests
     const { error: payErr } = await sb.from('payment_requests').insert({
       riwayat_beli_id: beli.id,
-      vendor_id:       DraftState.selectedVendorId,
+      vendor_id:       null,
       brand_id:        draft.brand_id,
       amount:          total,
       status_payment:  'pending',
