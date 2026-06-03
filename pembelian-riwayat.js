@@ -568,9 +568,19 @@ function openEdit(id) {
   document.getElementById('eFaktur').value    = r.nomor_faktur || '';
   document.getElementById('eCatatan').value   = r.catatan || '';
   document.getElementById('eStatus').value    = r.status || 'selesai';
-  document.getElementById('eDiskon').value    = r.diskon || 0;
-  document.getElementById('eOngkir').value    = r.ongkir || 0;
+  const _fmt = (n) => n ? 'Rp ' + Number(n).toLocaleString('id-ID', {minimumFractionDigits:0,maximumFractionDigits:2}) : '';
+  document.getElementById('eDiskon').value    = _fmt(r.diskon);
+  document.getElementById('eOngkir').value    = _fmt(r.ongkir);
   document.getElementById('editError').classList.remove('show');
+
+  /* Brand select — populate + set current value */
+  const eFBrand = document.getElementById('eFBrand');
+  if (eFBrand) {
+    eFBrand.innerHTML = '<option value="">— Pilih Brand —</option>' +
+      (window.allBrands || []).map(b =>
+        `<option value="${b.id}" ${b.id === r.brand_id ? 'selected' : ''}>${b.nama}</option>`
+      ).join('');
+  }
 
   /* Tanggal — r.tanggal is already 'YYYY-MM-DD' */
   document.getElementById('eFTanggal').value = r.tanggal || '';
@@ -648,9 +658,11 @@ function renderEditItems() {
           style="width:60px" title="Qty"/>
         <span class="td-satuan" style="white-space:nowrap">${item.satuan||''}</span>
       </div>
-      <input class="item-input" type="number" min="0" step="any"
-        value="${displayHarga}"
-        oninput="onEditHargaInput(${i}, parseFloat(this.value)||0)"
+      <input class="item-input" type="text" inputmode="decimal"
+        value="${displayHarga ? 'Rp ' + displayHarga.toLocaleString('id-ID', {minimumFractionDigits:0,maximumFractionDigits:2}) : ''}"
+        onfocus="_rpFocus(this)"
+        oninput="_onRpInput(this);onEditHargaInput(${i}, window._parseRpRaw(this.value))"
+        onblur="_fmtRpBlur(this);onEditHargaInput(${i}, window._parseRpRaw(this.value))"
         title="Harga satuan (Rp)"/>
       <div class="item-subtotal">${formatRpShort(subtotal)}</div>
       <button class="item-del" onclick="editItems.splice(${i},1);renderEditItems();updateEditSummary()" title="Hapus">✕</button>
@@ -680,8 +692,8 @@ function updateEditSummary() {
   const subtotalInc = isInc
     ? subtotalDisplay
     : Math.round(subtotalDisplay * (1 + ppnRate));
-  const diskon  = parseFloat(document.getElementById('eDiskon').value) || 0;
-  const ongkir  = parseFloat(document.getElementById('eOngkir').value) || 0;
+  const diskon  = window._parseRpRaw ? window._parseRpRaw(document.getElementById('eDiskon').value) : (parseFloat(document.getElementById('eDiskon').value) || 0);
+  const ongkir  = window._parseRpRaw ? window._parseRpRaw(document.getElementById('eOngkir').value) : (parseFloat(document.getElementById('eOngkir').value) || 0);
   const total   = Math.max(0, subtotalInc - diskon + ongkir);
   document.getElementById('eTotalDisplay').textContent = formatRp(total);
   return { subtotalDisplay, subtotalExc, subtotalInc, diskon, ongkir, total };
@@ -709,10 +721,14 @@ async function saveEdit() {
 
   try {
     /* Update main purchase */
-    const { error: updateErr } = await window._sb.from('riwayat_beli').update({
+    const eFBrandEl = document.getElementById('eFBrand');
+  const editBrandId = eFBrandEl ? (eFBrandEl.value || null) : null;
+
+  const { error: updateErr } = await window._sb.from('riwayat_beli').update({
       tanggal,
       nomor_faktur: faktur,
       vendor_id:    vendor,
+      brand_id:     editBrandId,
       catatan,
       status,
       diskon,
@@ -882,6 +898,7 @@ window.onRSearch          = onRSearch;
 window.toggleExpand       = toggleExpand;
 window.openDetail         = openDetail;
 window.closeDetail        = closeDetail;
+window.onEditBrandChange = function() { /* brand change — vendor list stays as-is for now */ };
 window.openEdit           = openEdit;
 window.closeEdit          = closeEdit;
 window.setEditPPN         = setEditPPN;

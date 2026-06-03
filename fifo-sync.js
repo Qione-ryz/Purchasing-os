@@ -65,6 +65,9 @@ function _invalidateFifoCache(barangIds) {
     _fifoCache.result    = {};
     _fifoCache.beliTotal = {};
     _fifoCache.competing = {};
+    // FIX #1: clear in-memory selesai set juga agar item yang beli-nya dihapus
+    // bisa masuk kembali sebagai competitor di run berikutnya
+    if (global._fifoSelesaiSet) global._fifoSelesaiSet.clear();
     return;
   }
   barangIds.forEach(id => {
@@ -73,6 +76,18 @@ function _invalidateFifoCache(barangIds) {
     delete _fifoCache.beliTotal[id];
     delete _fifoCache.competing[id];
   });
+  // FIX #1: Hapus item dari _fifoSelesaiSet yang barang_id-nya di-invalidate.
+  // Perlu map item_id → barang_id. Kita scan dari cache result yang tersisa
+  // (sudah terhapus di atas, jadi tidak bisa langsung).
+  // Solusi: simpan mapping item_id → barang_id di cache terpisah.
+  if (global._fifoSelesaiSet && global._fifoItemBarangMap) {
+    for (const [itemId, barangId] of global._fifoItemBarangMap.entries()) {
+      if (barangIds.includes(barangId)) {
+        global._fifoSelesaiSet.delete(itemId);
+        global._fifoItemBarangMap.delete(itemId);
+      }
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -123,8 +138,18 @@ async function _runFifoSync(barangIds, opts) {
 
   // 'fifo_selesai' = otomatis di-set FIFO saat item penuh → excluded seperti 'selesai' manual
   const _isDoneStatus = s => s === 'selesai' || s === 'fifo_selesai';
+
+  // FIX #1: Track item yang sudah penuh di in-memory (_fifoSelesaiSet) dari run sebelumnya.
+  // Ini mencegah race condition di mana DB update async belum commit tapi FIFO sudah run lagi.
+  // Item yang masuk _fifoSelesaiSet diperlakukan seolah status_item = 'fifo_selesai' tanpa
+  // harus menunggu DB confirm.
+  if (!global._fifoSelesaiSet) global._fifoSelesaiSet = new Set();
+  const _fifoSelesaiSet = global._fifoSelesaiSet;
+
   const fifoCompetitors = (allCompetingItems || []).filter(ci =>
-    !manuallyLinkedItemIds.has(ci.id) && !_isDoneStatus(ci.status_item || 'pending')
+    !manuallyLinkedItemIds.has(ci.id) &&
+    !_isDoneStatus(ci.status_item || 'pending') &&
+    !_fifoSelesaiSet.has(ci.id)   // FIX #1: exclude item yang sudah penuh di run sebelumnya
   );
 
   // 3. Ambil total qty pembelian FIFO
@@ -284,9 +309,20 @@ async function _runFifoSync(barangIds, opts) {
         );
         val = adaBeli ? hasil[ci.id] : undefined;
       } else {
-        // Pending: SELALU pakai hasil FIFO (0 kalau tidak ter-alokasi).
-        // Mencegah stale qty_terpenuhi tertinggal setelah beli dihapus.
-        val = hasil[ci.id];
+        // Pending: pakai hasil FIFO, TAPI jangan reset ke 0 jika item sudah pernah penuh di DB.
+        // FIX #2: wasAlreadyFull guard — mencegah flip-flop saat pool beli berubah sementara
+        // atau ada race condition antara FIFO run dan DB write.
+        // Jika FIFO tidak mengalokasikan apapun (hasil = 0) tapi DB qty_terpenuhi sudah >= kebutuhan,
+        // pertahankan nilai DB sampai ada sinyal eksplisit (beli dihapus → invalidate cache).
+        const kebutuhanCi = (ci.qty_order || 0) * (ci.faktor_konversi || 1);
+        const wasAlreadyFull = kebutuhanCi > 0 && (ci.qty_terpenuhi || 0) >= kebutuhanCi;
+        const fifoQty = hasil[ci.id];
+        if (wasAlreadyFull && (fifoQty === 0 || fifoQty === undefined)) {
+          // Pertahankan qty lama — FIFO tidak punya alokasi baru yang valid
+          val = ci.qty_terpenuhi;
+        } else {
+          val = fifoQty;
+        }
       }
       fifoResultMap[ci.id] = val;
       if (val !== undefined) newResultPerBarang[barangId][ci.id] = val;
@@ -300,11 +336,16 @@ async function _runFifoSync(barangIds, opts) {
     _fifoCache.beliTotal[id] = beliTotalPerBarang[id] || 0;
   });
 
-  // 5. Update DB di background untuk item FIFO yang qty-nya berubah.
+  // 5. Update DB untuk item FIFO yang qty-nya berubah.
   //    Jika item baru PENUH via FIFO → set status_item='fifo_selesai' untuk lock permanen.
-  //    Pada run berikutnya item ini excluded dari kompetitor → alokasi stabil multi-user.
+  //    FIX #3: Kumpulkan semua promise DB update dan await sebelum return.
+  //    Ini mencegah _refreshDetailBody() membaca DB sebelum fifo_selesai ter-commit.
+  //    FIX #1 (lanjutan): item yang nowFull langsung masuk _fifoSelesaiSet in-memory,
+  //    sehingga run berikutnya exclude mereka tanpa harus tunggu DB confirm.
   const adaData = Object.keys(beliTotalPerBarang).length > 0;
   if (adaData) {
+    const dbUpdatePromises = [];
+
     fifoCompetitors
       .filter(ci => barangIdsToCalc.includes(ci.barang_id))
       .forEach(ci => {
@@ -317,15 +358,30 @@ async function _runFifoSync(barangIds, opts) {
 
         if (!qtyChanged && !nowFull) return;
 
+        // FIX #1: tandai in-memory segera — sebelum DB commit
+        if (nowFull) {
+          _fifoSelesaiSet.add(ci.id);
+          // Simpan mapping item_id → barang_id agar invalidate bisa cleanup
+          if (!global._fifoItemBarangMap) global._fifoItemBarangMap = new Map();
+          global._fifoItemBarangMap.set(ci.id, ci.barang_id);
+        }
+
         const updatePayload = { qty_terpenuhi: newQty };
         if (nowFull) updatePayload.status_item = 'fifo_selesai';
 
-        _sb.from('order_items')
-          .update(updatePayload)
-          .eq('id', ci.id)
-          .then(() => {})
-          .catch(e => console.warn('fifo update failed:', ci.id, e));
+        // FIX #3: await semua DB update sebelum return
+        dbUpdatePromises.push(
+          _sb.from('order_items')
+            .update(updatePayload)
+            .eq('id', ci.id)
+            .then(() => {})
+            .catch(e => console.warn('fifo update failed:', ci.id, e))
+        );
       });
+
+    if (dbUpdatePromises.length > 0) {
+      await Promise.all(dbUpdatePromises);
+    }
   }
 
   return { fifoResultMap, beliTotalPerBarang, allCompetingItems: allCompetingItems || [] };
