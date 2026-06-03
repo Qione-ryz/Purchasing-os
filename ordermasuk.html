@@ -3183,8 +3183,9 @@ async function initNotifOrderMasuk() {
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'orders' },
-      (payload) => {
+      async (payload) => {
         const order   = payload.new;
+        if (!Object.keys(brands).length) await loadBrands();
         const brand   = brands[order.brand_id] || 'Brand';
         const pemesan = order.pemesan || order.created_by || 'Tim';
         showToast('success', `🛒 Order baru: [${brand}] dari ${pemesan}`);

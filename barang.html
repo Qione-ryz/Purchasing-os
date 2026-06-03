@@ -1209,15 +1209,16 @@
         });
       });
 
-      /* Urutkan terlama -> terbaru untuk proses dedup */
-      allRows.sort((a,b) => a.tanggal_js - b.tanggal_js);
+      /* Urutkan terbaru -> terlama untuk proses dedup (ambil entry terbaru jika ada duplikat) */
+      allRows.sort((a,b) => b.tanggal_js - a.tanggal_js);
 
-      /* Filter: per vendor, sembunyikan duplikat harga yang sama — hanya tampilkan yang PERTAMA (terlama).
-         Juga skip harga 0. */
+      /* Filter: per vendor+harga+tahun-bulan — hanya hide duplikat di bulan yang sama.
+         Harga sama di bulan berbeda tetap tampil masing-masing. Skip harga 0. */
       const seenHargaPerVendor = {};
       const filteredRows = allRows.filter(entry => {
         if (!entry.hargaInc || entry.hargaInc === 0) return false; // skip harga 0
-        const key = `${entry.vendorKey}__${entry.hargaInc}`;
+        const ym = `${entry.tanggal_js.getFullYear()}-${entry.tanggal_js.getMonth()}`;
+        const key = `${entry.vendorKey}__${entry.hargaInc}__${ym}`;
         if (seenHargaPerVendor[key]) return false;
         seenHargaPerVendor[key] = true;
         return true;
