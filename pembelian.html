@@ -2274,7 +2274,7 @@
         } else {
           setDiskonMode('rp');
           document.getElementById('fDiskon').value = cached.nilai;
-          showToast(`💡 Diskon Rp ${cached.nilai.toLocaleString('id-ID')} diambil dari riwayat pembelian sebelumnya`, 'success');
+          showToast(`💡 Diskon Rp ${cached.nilai.toLocaleString('id-ID',{maximumFractionDigits:0})} diambil dari riwayat pembelian sebelumnya`, 'success');
         }
       } else {
         document.getElementById('fDiskon').value = 0;
@@ -2377,7 +2377,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:4px">
           <input class="item-input" type="text" inputmode="decimal"
-            value="${item.harga_satuan ? 'Rp ' + item.harga_satuan.toLocaleString('id-ID', {minimumFractionDigits:0,maximumFractionDigits:2}) : ''}"
+            value="${item.harga_satuan ? 'Rp ' + item.harga_satuan.toLocaleString('id-ID',{maximumFractionDigits:0}) : ''}"
             onfocus="_rpFocus(this)"
             oninput="_onRpInput(this);updateItemHarga(${i}, _parseRpRaw(this.value))"
             onblur="_fmtRpBlur(this);updateItemHarga(${i}, _parseRpRaw(this.value))"
@@ -2444,7 +2444,7 @@
     const harga = item.harga_satuan;
     popup.innerHTML = `
       <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px">
-        Rp <strong style="color:var(--text)">${Math.round(harga).toLocaleString('id-ID')}</strong> dibagi berapa?
+        Rp <strong style="color:var(--text)">${Math.round(harga).toLocaleString('id-ID',{maximumFractionDigits:0})}</strong> dibagi berapa?
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
         <span style="font-size:13px;color:var(--muted)">÷</span>
@@ -2457,7 +2457,7 @@
             const d = parseFloat(this.value)||1;
             const res = ${harga} / d;
             const rounded = Math.round(res * 1000) / 1000;
-            document.getElementById('konversiPreview').textContent = 'Rp ' + rounded.toLocaleString('id-ID', {maximumFractionDigits:3});
+            document.getElementById('konversiPreview').textContent = 'Rp ' + rounded.toLocaleString('id-ID',{maximumFractionDigits:0});
           "/>
         <span style="font-size:11px;color:var(--muted)">=</span>
         <span id="konversiPreview" style="font-size:13px;font-family:var(--mono);
@@ -2493,7 +2493,7 @@
     const rows = document.querySelectorAll('#itemList .item-row');
     if (rows[idx]) {
       const inp = rows[idx].querySelectorAll('input.item-input[inputmode="decimal"]')?.[1];
-      if (inp) inp.value = newHarga ? 'Rp ' + newHarga.toLocaleString('id-ID', {minimumFractionDigits:0, maximumFractionDigits:2}) : '';
+      if (inp) inp.value = newHarga ? 'Rp ' + newHarga.toLocaleString('id-ID',{maximumFractionDigits:0}) : '';
       const sub = rows[idx].querySelector('.item-subtotal');
       if (sub) sub.textContent = formatRpShort(_itemSubtotal(items[idx]));
     }
@@ -2586,7 +2586,7 @@
   /* Blur: format ke "Rp 10.000,50" */
   window._fmtRpBlur = function(el) {
     const v = window._parseRpRaw(el.value);
-    el.value = v ? 'Rp ' + v.toLocaleString('id-ID', {minimumFractionDigits:0, maximumFractionDigits:2}) : '';
+    el.value = v ? 'Rp ' + v.toLocaleString('id-ID',{maximumFractionDigits:0}) : '';
   };
 
   /* Saat focus: strip format Rp/titik ribuan → tampil angka mentah, koma=desimal */
@@ -2654,7 +2654,7 @@
       const v = parseFloat(raw.replace(',','.')) || 0;
       if (!v) { el.value = ''; updateSummary(); return; }
       // Format: "15,5%" — pakai koma desimal
-      el.value = v.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + '%';
+      el.value = v.toLocaleString('id-ID',{maximumFractionDigits:0}) + '%';
       updateSummary();
       return;
     }
@@ -2663,7 +2663,7 @@
     // raw saat typing: "10000,56" (koma=desimal, tidak ada titik ribuan)
     const v = parseFloat(raw.replace(',','.')) || 0;
     if (!v) { el.value = ''; updateSummary(); return; }
-    el.value = 'Rp ' + v.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    el.value = 'Rp ' + v.toLocaleString('id-ID',{maximumFractionDigits:0});
     updateSummary();
   };
 
@@ -2708,7 +2708,7 @@
     /* Diskon & total dihitung dari incAmt */
     const diskonRp  = getDiskonRp(incAmt);
     const diskonVal = parseFloat(document.getElementById('fDiskon').value.replace('%','').replace(',','.')) || 0;
-    const _fmtDiskonRp = n => n ? 'Rp ' + n.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) : 'Rp 0';
+    const _fmtDiskonRp = n => n ? 'Rp ' + n.toLocaleString('id-ID',{maximumFractionDigits:0}) : 'Rp 0';
     const diskonLabel = diskonMode === 'pct'
       ? `- ${diskonVal}% (${_fmtDiskonRp(diskonRp)})`
       : `- ${_fmtDiskonRp(diskonRp)}`;
@@ -2866,7 +2866,7 @@
       if (hargaErr) throw hargaErr;
 
       window._invalidateHargaCache();
-      logActivity('tambah', 'pembelian', faktur || `${tanggal} - ${(window.vendorMap||{})[vendorId]||vendorId}`, `${items.length} item · Rp ${total.toLocaleString('id-ID')}`);
+      logActivity('tambah', 'pembelian', faktur || `${tanggal} - ${(window.vendorMap||{})[vendorId]||vendorId}`, `${items.length} item · Rp ${total.toLocaleString('id-ID',{maximumFractionDigits:0})}`);
       showToast(`✓ Pembelian disimpan · ${items.length} item · ${formatRp(total)}`, 'success');
 
       /* Jika berasal dari Automation Discord, tandai 'purchased' di DB.
@@ -2932,7 +2932,7 @@
       const rows = data.map((r, idx) => {
         const vendor  = (window.vendorMap||{})[r.vendor_id] || '—';
         const tgl     = r.tanggal || '—';
-        const total   = r.total ? 'Rp ' + Math.round(r.total).toLocaleString('id-ID') : '—';
+        const total   = r.total ? 'Rp ' + Math.round(r.total).toLocaleString('id-ID',{maximumFractionDigits:0}) : '—';
         const stLabel = STATUS_LABEL[r.status] || r.status || '—';
         const stColor = STATUS_COLOR[r.status] || 'var(--muted)';
         const urutan  = idx === 0 ? 'Pertama diinput' : 'Duplikat';
@@ -3564,18 +3564,21 @@
   }
   window.getBadgeTextColor = getBadgeTextColor;
 
+  function fmtInt(n) {
+    return Math.round(n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
   function formatRp(n) {
     if (!n) return 'Rp 0';
-    return 'Rp ' + n.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    return 'Rp ' + fmtInt(n);
   }
   function formatRpShort(n) {
     if (!n) return 'Rp 0';
     if (n >= 1_000_000) {
       const jt = n / 1_000_000;
       const s = Number.isInteger(jt) ? jt : parseFloat(jt.toFixed(2));
-      return 'Rp ' + s.toLocaleString('id-ID') + ' jt';
+      return 'Rp ' + s.toLocaleString('id-ID',{maximumFractionDigits:0}) + ' jt';
     }
-    return 'Rp ' + n.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    return 'Rp ' + fmtInt(n);
   }
 
   let toastTimer;
@@ -3881,7 +3884,7 @@
 
   /* Helper */
   function _diEsc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function _diFmt(n) { return 'Rp '+(n||0).toLocaleString('id-ID'); }
+  function _diFmt(n) { return 'Rp '+(n||0).toLocaleString('id-ID',{maximumFractionDigits:0}); }
   function _diFmtDate(s) {
     if (!s) return '—';
     try { const d = new Date(s.includes('T')?s:s+'T00:00:00'); return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
@@ -4353,7 +4356,7 @@
     }
     const scanItemsList = document.getElementById('fScanItemsList');
     if (scanItemsList && (ocr.items||[]).length) {
-      const formatRpS = v => v ? 'Rp ' + Math.round(v).toLocaleString('id-ID') : '—';
+      const formatRpS = v => v ? 'Rp ' + Math.round(v).toLocaleString('id-ID',{maximumFractionDigits:0}) : '—';
       scanItemsList.innerHTML =
         `<div style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px">Daftar Barang OCR</div>` +
         (ocr.items||[]).map(it => {
@@ -4581,7 +4584,7 @@
   function diRenderItemRow(item) {
     const icon   = _DI_ICON[item.matchType] || '✏️';
     const badge  = _DI_BADGE[item.matchType] || '';
-    const hargaFmt = (item.harga||0).toLocaleString('id-ID');
+    const hargaFmt = (item.harga||0).toLocaleString('id-ID',{maximumFractionDigits:0});
 
     const dropdown = item.searchOpen ? `
       <div class="item-dropdown" style="position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;border:1px solid rgba(0,212,255,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999" onclick="event.stopPropagation()">
@@ -4626,7 +4629,7 @@
           onchange="diUpdateField(${item.idx},'satuan',this.value)">${satuanOpts}</select>
         <input class="item-input" type="text" id="diHarga_${item.idx}" value="Rp ${hargaFmt}" style="width:110px;flex-shrink:0;text-align:right;padding:4px 6px;font-size:12px"
           onfocus="this.value=(${item.harga}||0).toString();this.select()"
-          onblur="const v=parseFloat(this.value.replace(/[^\\d.]/g,''))||0;diUpdateField(${item.idx},'harga',v);this.value='Rp '+v.toLocaleString('id-ID')"/>
+          onblur="const v=parseFloat(this.value.replace(/[^\\d.]/g,''))||0;diUpdateField(${item.idx},'harga',v);this.value='Rp '+v.toLocaleString('id-ID',{maximumFractionDigits:0})"/>
       </div>
       ${item.barangNama ? `<div style="font-size:10px;color:var(--muted);font-family:var(--mono);padding-left:21px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_diEsc(item.barangNama)}</div>` : ''}
     </div>`;
