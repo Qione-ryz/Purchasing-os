@@ -10,14 +10,18 @@
   <script src="sidebar.js"></script>
   <style>
     /* Status tab filter */
-    .status-tab{background:none;border:none;cursor:pointer;padding:5px 12px;border-radius:7px;font-size:12px;font-family:var(--sans);color:var(--muted);transition:all .15s ease;white-space:nowrap}
+    .status-tab{background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:7px;font-size:12px;font-family:var(--sans);color:var(--muted);transition:all .15s ease;white-space:nowrap;font-weight:500}
     .status-tab:hover{color:var(--text);background:rgba(255,255,255,0.06)}
-    .status-tab.active{background:var(--surface2);color:var(--text);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,.25)}
-    body.light-mode .status-tab.active{background:var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+    .status-tab.active{background:var(--accent);color:#000;font-weight:700;box-shadow:0 0 12px rgba(0,212,255,0.3)}
+    body.light-mode .status-tab.active{background:var(--accent);color:#000;box-shadow:0 0 12px rgba(0,212,255,0.25)}
 
     /* Mobile: drawer pattern untuk draft list */
     .draft-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:140;backdrop-filter:blur(2px)}
     .draft-drawer-overlay.show{display:block}
+    /* Lock viewport — no page scroll */
+    body, .main { min-height: unset !important; height: 100vh !important; overflow: hidden !important; }
+    .main { display: flex; flex-direction: column; }
+
     @media(max-width:768px){
       #btnOpenDraftDrawer{display:inline-flex !important}
       #draftListPanel{position:fixed !important;top:var(--topbar-h,60px);left:0;bottom:0;width:88vw;max-width:340px;z-index:150;background:var(--surface);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.5)}
@@ -71,11 +75,21 @@
   </div>
 
   <div class="draft-drawer-overlay" id="draftDrawerOverlay" onclick="document.getElementById('draftListPanel').classList.remove('drawer-open');this.classList.remove('show')"></div>
-  <div class="content" style="padding:0;height:calc(100dvh - var(--topbar-h,60px));overflow:hidden">
+  <div class="content" style="padding:0;flex:1;min-height:0;overflow:hidden;position:relative">
+    <!-- Brand Selection Screen -->
+    <div id="brandSelectScreen" style="position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px">
+      <div style="text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🏷️</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Pilih Brand</div>
+        <div style="font-size:13px;color:var(--muted)">Invoice draft akan ditampilkan berdasarkan brand yang dipilih</div>
+      </div>
+      <div id="brandSelectGrid" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:700px"></div>
+    </div>
+
     <div id="draftsLayout" style="display:flex;height:100%">
 
       <!-- LEFT: Draft list -->
-      <div id="draftListPanel" style="width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+      <div id="draftListPanel" style="width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0">
         <div style="padding:10px;border-bottom:1px solid var(--border);flex-shrink:0">
           <div class="search-wrap" style="position:relative">
             <span class="search-icon">🔍</span>
@@ -83,10 +97,11 @@
           </div>
         </div>
         <div id="draftItems" style="flex:1;overflow-y:auto;padding:8px"></div>
+        <div id="draftPagin" style="flex-shrink:0;display:none;align-items:center;justify-content:space-between;padding:8px 10px;border-top:1px solid var(--border);gap:6px"></div>
       </div>
 
       <!-- RIGHT: Review panel -->
-      <div id="reviewPanel" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div id="reviewPanel" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
         <div id="emptyReview" style="flex:1;display:flex;align-items:center;justify-content:center">
           <div class="empty-state" style="text-align:center;color:var(--muted);padding:40px">
             <div style="font-size:48px;margin-bottom:16px">📋</div>
@@ -96,20 +111,22 @@
         <div id="reviewContent" style="display:none;flex:1;overflow:hidden;flex-direction:row">
           <!-- Image viewer -->
           <div id="imgViewerPanel" style="width:45%;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);flex-shrink:0">
-            <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;background:var(--surface2);flex-shrink:0">
-              <span style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:500">Foto Invoice</span>
-              <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
-                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgRotate(-1)" title="Putar Kiri" style="width:28px;height:28px;padding:0">↺</button>
-                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgZoom(-1)" title="Zoom Out" style="width:28px;height:28px;padding:0">−</button>
-                <span id="draftZoomLabel" style="font-family:var(--mono);font-size:11px;color:var(--accent);min-width:42px;text-align:center;font-weight:600">100%</span>
-                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgZoom(1)" title="Zoom In" style="width:28px;height:28px;padding:0">+</button>
-                <button class="btn btn-ghost btn-icon btn-sm" onclick="draftImgRotate(1)" title="Putar Kanan" style="width:28px;height:28px;padding:0">↻</button>
-                <button class="btn btn-ghost btn-icon btn-sm is-destructive" onclick="draftImgReset()" title="Reset Zoom & Putar" style="width:28px;height:28px;padding:0">⊙</button>
-              </div>
+            <div style="padding:5px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:3px;background:var(--surface2);flex-shrink:0;justify-content:flex-end">
+              <span style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-right:auto;opacity:.7">🖱 Drag geser &nbsp;·&nbsp; Ctrl+Scroll zoom</span>
+              <button onclick="draftImgRotate(-1)" title="Putar kiri" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↺</button>
+              <span id="draftRotateLbl" style="font-size:10px;font-family:var(--mono);color:var(--muted);min-width:26px;text-align:center">0°</span>
+              <button onclick="draftImgRotate(1)" title="Putar kanan" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↻</button>
+              <div style="width:1px;height:16px;background:var(--border);margin:0 2px"></div>
+              <button onclick="draftImgZoom(-1)" title="Zoom out" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+              <span id="draftZoomLabel" style="font-size:11px;font-family:var(--mono);color:var(--muted);min-width:34px;text-align:center">75%</span>
+              <button onclick="draftImgZoom(1)" title="Zoom in" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">＋</button>
+              <button onclick="draftImgReset()" title="Reset zoom & rotate" style="padding:0 7px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-size:10px;font-family:var(--mono)">⟳</button>
             </div>
-            <div id="draftImgContainer" style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px">
-              <div id="draftImgInner" style="min-width:100%;position:relative">
-                <img id="draftImgEl" src="" alt="Invoice" style="display:block;border-radius:4px;width:100%;max-width:100%;transition:transform .15s" draggable="false"/>
+            <div id="draftImgContainer" style="flex:1;position:relative;overflow:hidden;background:var(--bg)">
+              <div id="draftImgView" style="position:absolute;inset:0;overflow:auto;cursor:grab;user-select:none">
+                <div id="draftImgInner" style="display:block;padding:8px;box-sizing:border-box">
+                  <img id="draftImgEl" src="" alt="Invoice" style="display:block;border-radius:4px;" draggable="false"/>
+                </div>
               </div>
             </div>
           </div>
@@ -120,7 +137,7 @@
             <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px">
 
               <!-- Card: Informasi Invoice -->
-              <div class="card">
+              <div class="card" style="overflow:visible">
                 <div class="card-header">
                   <span class="card-title">Informasi Invoice</span>
                   <span id="draftStatusChip" style="font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:10px"></span>

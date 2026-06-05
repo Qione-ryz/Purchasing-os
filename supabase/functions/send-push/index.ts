@@ -71,10 +71,10 @@ Deno.serve(async (req: Request) => {
     if (record.brand_id) {
       const { data: brandData } = await sb
         .from('brands')
-        .select('name')
+        .select('nama')
         .eq('id', record.brand_id)
         .single();
-      if (brandData?.name) brandName = brandData.name;
+      if (brandData?.nama) brandName = brandData.nama;
     }
 
     // ── Susun payload notifikasi ──────────────────────────────────

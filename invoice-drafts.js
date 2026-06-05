@@ -5,7 +5,7 @@
 
 // ── Zoom ──────────────────────────────────────────────────────────
 const DRAFT_ZOOM_LEVELS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
-let _draftZoomIdx = 3;
+let _draftZoomIdx = 2;  // default 75%
 let _draftRotate  = 0;
 
 // ── State ─────────────────────────────────────────────────────────
@@ -18,6 +18,10 @@ const DraftState = {
   vendorNamaOcr:   '',
   vendorNamaEdit:  '',
   tanggalEdit:     '',
+  nomorFakturEdit: '',
+  subtotalEdit:    0,
+  ppnEdit:         0,
+  grandTotalEdit:  0,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -31,6 +35,16 @@ function formatDate(s) {
     const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
     return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   } catch { return s; }
+}
+
+function getBadgeTextColor(hex) {
+  if (!hex || !hex.startsWith('#')) return '#ffffff';
+  try {
+    const r = parseInt(hex.slice(1,3),16)/255;
+    const g = parseInt(hex.slice(3,5),16)/255;
+    const b = parseInt(hex.slice(5,7),16)/255;
+    return (0.2126*r + 0.7152*g + 0.0722*b) > 0.4 ? '#1a1a1a' : '#ffffff';
+  } catch(e) { return '#ffffff'; }
 }
 
 function escHtml(s) {
@@ -56,43 +70,57 @@ function hideLoader() {
 
 // ── Image viewer ──────────────────────────────────────────────────
 function _applyDraftTransform() {
-  const img   = document.getElementById('draftImgEl');
-  const inner = document.getElementById('draftImgInner');
+  const img       = document.getElementById('draftImgEl');
+  const inner     = document.getElementById('draftImgInner');
+  const container = document.getElementById('draftImgView');
   if (!img || !inner) return;
 
-  const pct      = DRAFT_ZOOM_LEVELS[_draftZoomIdx] / 100;
+  const pct     = DRAFT_ZOOM_LEVELS[_draftZoomIdx] / 100;
   const sideways = _draftRotate === 90 || _draftRotate === 270;
-  const lbl      = document.getElementById('draftZoomLabel');
-  if (lbl) lbl.textContent = DRAFT_ZOOM_LEVELS[_draftZoomIdx] + '%';
+  const natW    = img.naturalWidth  || 1;
+  const natH    = img.naturalHeight || 1;
+
+  const zoomLbl = document.getElementById('draftZoomLabel');
+  if (zoomLbl) zoomLbl.textContent = DRAFT_ZOOM_LEVELS[_draftZoomIdx] + '%';
+  const rotLbl = document.getElementById('draftRotateLbl');
+  if (rotLbl) rotLbl.textContent = _draftRotate + '°';
 
   if (sideways) {
-    const cw    = (document.getElementById('draftImgContainer')?.clientWidth || 400) - 24;
-    const natW  = img.naturalWidth  || img.offsetWidth  || 400;
-    const natH  = img.naturalHeight || img.offsetHeight || 600;
-    const scale = (cw / natH) * pct;
-    inner.style.width    = (natH * scale) + 'px';
-    inner.style.height   = (natW * scale) + 'px';
-    inner.style.position = 'relative';
-    img.style.position   = 'absolute';
-    img.style.top        = ((natH * scale - natH * scale / pct * pct) / 2 + (natH * scale - natW * scale) / 2) + 'px';
-    img.style.left       = '0';
-    img.style.width      = natW + 'px';
-    img.style.height     = natH + 'px';
-    img.style.maxWidth   = 'none';
-    img.style.transform  = `rotate(${_draftRotate}deg) scale(${scale})`;
+    const cW      = container ? Math.max(100, container.clientWidth - 16) : 400;
+    const renderW = Math.round(cW * pct);
+    const renderH = Math.round(renderW * natH / natW);
+    inner.style.cssText = [
+      'width:'  + renderH + 'px',
+      'height:' + renderW + 'px',
+      'padding:0',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'overflow:visible',
+      'box-sizing:content-box',
+      'flex-shrink:0',
+      'margin:8px auto',
+    ].join(';') + ';';
+    img.style.width           = renderW + 'px';
+    img.style.height          = renderH + 'px';
+    img.style.maxWidth        = 'none';
     img.style.transformOrigin = 'center center';
+    img.style.transform       = 'rotate(' + _draftRotate + 'deg)';
+    img.style.flexShrink      = '0';
+    img.style.display         = 'block';
   } else {
-    inner.style.width    = '';
-    inner.style.height   = '';
-    inner.style.position = '';
-    img.style.position   = '';
-    img.style.top        = '';
-    img.style.left       = '';
-    img.style.width      = '';
-    img.style.height     = '';
-    img.style.maxWidth   = '100%';
-    img.style.transform  = `rotate(${_draftRotate}deg) scale(${pct})`;
-    img.style.transformOrigin = 'top center';
+    const cW   = container ? Math.max(100, container.clientWidth) : 400;
+    const pad  = 16;
+    const imgW = Math.round((cW - pad) * pct);
+    const innerW = Math.max(cW, imgW + pad);
+    inner.style.cssText = 'display:block;padding:8px;box-sizing:border-box;width:' + innerW + 'px;';
+    img.style.width           = imgW + 'px';
+    img.style.height          = 'auto';
+    img.style.maxWidth        = 'none';
+    img.style.transformOrigin = 'center center';
+    img.style.transform       = 'rotate(' + _draftRotate + 'deg)';
+    img.style.flexShrink      = '';
+    img.style.display         = 'block';
   }
 }
 
@@ -107,10 +135,50 @@ function draftImgRotate(dir) {
 }
 
 function draftImgReset() {
-  _draftZoomIdx = 3;
+  _draftZoomIdx = 2;  // 75%
   _draftRotate  = 0;
   _applyDraftTransform();
 }
+
+// ── Drag-to-pan + Ctrl+Scroll zoom ────────────────────────────────
+(function initDraftImgInteraction() {
+  function setup() {
+    const view = document.getElementById('draftImgView');
+    if (!view || view._draftInteractionReady) return;
+    view._draftInteractionReady = true;
+
+    let _dragging = false, _sx = 0, _sy = 0, _sl = 0, _st = 0;
+
+    view.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      _dragging = true;
+      _sx = e.clientX; _sy = e.clientY;
+      _sl = view.scrollLeft; _st = view.scrollTop;
+      view.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!_dragging) return;
+      view.scrollLeft = _sl - (e.clientX - _sx);
+      view.scrollTop  = _st - (e.clientY - _sy);
+    });
+    window.addEventListener('mouseup', () => {
+      if (_dragging) { _dragging = false; view.style.cursor = 'grab'; }
+    });
+
+    view.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      draftImgZoom(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+}());
 
 // ── Master data (vendor only) ─────────────────────────────────────
 async function loadMasterData() {
@@ -119,6 +187,7 @@ async function loadMasterData() {
 
 async function loadBrands() {
   const { data } = await window._sb.from('brands').select('*').order('nama');
+  window.allBrands = data || [];
   const inlineSel  = document.getElementById('filterBrand');
   const sidebarSel = document.getElementById('brandSelect');
   (data || []).forEach(b => {
@@ -132,7 +201,32 @@ async function loadBrands() {
   if (inlineSel)  inlineSel.value  = 'all';
   if (sidebarSel) sidebarSel.value = 'all';
   _updateBrandLabel();
+  _renderBrandSelectGrid();
 }
+
+function _renderBrandSelectGrid() {
+  const grid = document.getElementById('brandSelectGrid');
+  if (!grid) return;
+  grid.innerHTML = (window.allBrands || []).map(b => {
+    const color = b.warna || '#4f8ef7';
+    return `<div onclick="selectBrandAndLoad('${b.id}')"
+      style="display:flex;align-items:center;gap:14px;padding:20px 28px;background:var(--surface);border:1px solid var(--border);border-radius:14px;cursor:pointer;min-width:200px;transition:all .15s"
+      onmouseover="this.style.borderColor='${color}';this.style.background='${color}18';this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)';this.style.transform='translateY(0)'">
+      <div style="width:16px;height:16px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 10px ${color}88"></div>
+      <span style="font-size:16px;font-weight:600;color:var(--text)">${b.nama}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectBrandAndLoad(brandId) {
+  const inlineSel = document.getElementById('filterBrand');
+  if (inlineSel) inlineSel.value = brandId;
+  localStorage.setItem('draftActiveBrand', brandId);
+  document.getElementById('brandSelectScreen').style.display = 'none';
+  onFilterBrandChange();
+}
+window.selectBrandAndLoad = selectBrandAndLoad;
 
 function _updateBrandLabel() {
   const sel = document.getElementById('filterBrand');
@@ -146,6 +240,13 @@ function onFilterBrandChange() {
   const sel = document.getElementById('filterBrand');
   const sidebarSel = document.getElementById('brandSelect');
   if (sidebarSel && sel) sidebarSel.value = sel.value;
+  if (sel?.value && sel.value !== 'all') {
+    localStorage.setItem('draftActiveBrand', sel.value);
+    const screen = document.getElementById('brandSelectScreen');
+    if (screen) screen.style.display = 'none';
+  } else {
+    localStorage.removeItem('draftActiveBrand');
+  }
   _updateBrandLabel();
   loadDrafts();
 }
@@ -169,12 +270,21 @@ window.refreshDraftsData = async function() {
   const origHTML = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = '⟳ Memuat...'; }
   try {
+    const savedBrand = localStorage.getItem('draftActiveBrand');
     ['filterBrand','brandSelect'].forEach(id => {
       const bs = document.getElementById(id);
       if (bs) { const first = bs.querySelector('option'); bs.innerHTML = ''; if (first) bs.appendChild(first); }
     });
     await loadMasterData();
     await loadBrands();
+    // Restore brand filter setelah brand options dimuat ulang
+    if (savedBrand) {
+      ['filterBrand','brandSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = savedBrand;
+      });
+      _updateBrandLabel();
+    }
     await loadDrafts();
     showToast('✓ Data diperbarui', 'success');
   } catch (e) {
@@ -200,10 +310,28 @@ async function loadDrafts() {
   if (error) { showToast('Gagal memuat draft: ' + error.message, 'error'); return; }
 
   DraftState.allDrafts = data || [];
+
+  // Cek duplikat nomor_faktur dari SEMUA invoice_drafts di database
+  const { data: allRows } = await sb.from('invoice_drafts').select('ocr_result');
+  const _fc = {};
+  (allRows || []).forEach(row => {
+    const f = ((row.ocr_result || {}).nomor_faktur || '').trim();
+    if (f) _fc[f] = (_fc[f] || 0) + 1;
+  });
+  window._dupFakturs = new Set(Object.keys(_fc).filter(k => _fc[k] > 1));
+
+  _draftListPage = 1;
   renderDraftList();
 }
 
-function filterDraftList() { renderDraftList(); }
+let _draftListPage = 1;
+const DRAFT_LIST_PER = 20;
+
+function filterDraftList() {
+  _draftListPage = 1;
+  renderDraftList();
+  document.getElementById('draftItems')?.scrollTo({ top: 0 });
+}
 
 const _STATUS_BADGE = {
   needs_review: `<span class="badge badge-orange" style="font-size:10px;white-space:nowrap">Perlu Review</span>`,
@@ -233,32 +361,74 @@ function renderDraftList() {
     el.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--muted);font-size:13px"><div style="font-size:28px;margin-bottom:8px;opacity:.6">📭</div>Tidak ada draft</div>`;
     return;
   }
-  el.innerHTML = drafts.map(d => {
+
+  const total = drafts.length;
+  const pages = Math.ceil(total / DRAFT_LIST_PER);
+  _draftListPage = Math.min(_draftListPage, pages);
+  const start = (_draftListPage - 1) * DRAFT_LIST_PER;
+  const paged = drafts.slice(start, start + DRAFT_LIST_PER);
+
+
+  el.innerHTML = paged.map(d => {
     const ocr    = d.ocr_result || {};
     const vendor = ocr.vendor || ocr.nama_vendor || '—';
     const faktur = ocr.nomor_faktur || ocr.nomor_invoice || '—';
+    const brand      = d.brands?.nama || '';
+    const brandColor = (window.allBrands||[]).find(b => b.id === d.brand_id)?.warna || '#4f8ef7';
     const totalNum = ocr.total || (Array.isArray(ocr.items)
       ? ocr.items.reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.harga_satuan ?? it.harga) || 0), 0)
       : 0);
-    const total    = totalNum ? formatRp(totalNum) : '—';
+    const tot      = totalNum ? formatRp(totalNum) : '—';
     const date     = formatDate(d.created_at);
     const badge    = _STATUS_BADGE[d.status] || '';
     const isActive = d.id === DraftState.activeDraft?.id;
+    const fKey  = faktur.trim();
+    const isDup = fKey && fKey !== '—' && window._dupFakturs?.has(fKey);
+    const dupBadge = isDup ? `<span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent3);background:rgba(247,146,79,0.12);border:1px solid rgba(247,146,79,0.25);border-radius:4px;padding:1px 5px;white-space:nowrap;flex-shrink:0">⚠ duplikat</span>` : '';
     return `<div class="nav-item${isActive ? ' active' : ''}"
-      style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:4px"
+      style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:4px${isDup ? ';border-left:2px solid rgba(247,146,79,0.5)' : ''}"
       onclick="selectDraft('${d.id}')">
-      <div style="display:flex;justify-content:space-between;width:100%;gap:6px">
+      <div style="display:flex;justify-content:space-between;width:100%;gap:6px;align-items:center">
         <span style="font-size:13px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(vendor)}</span>
         ${badge}
       </div>
-      <div style="display:flex;justify-content:space-between;width:100%;gap:6px">
+      <div style="display:flex;justify-content:space-between;width:100%;gap:6px;align-items:center">
         <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(faktur)}</span>
         <span style="font-size:11px;color:var(--muted);white-space:nowrap">${date}</span>
       </div>
-      <span style="font-size:11px;color:var(--accent3);font-family:'DM Mono',monospace">${total}</span>
+      <div style="display:flex;justify-content:space-between;width:100%;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--accent3);font-family:'DM Mono',monospace">${tot}</span>
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          ${brand ? `<span class="badge" style="background:${brandColor};color:${getBadgeTextColor(brandColor)};padding:3px 10px;font-size:11px;font-weight:500">${escHtml(brand)}</span>` : ''}
+          ${dupBadge}
+        </div>
+      </div>
     </div>`;
   }).join('');
+
+  // Pagination bar (terpisah dari scroll area)
+  const pagin = document.getElementById('draftPagin');
+  if (pagin) {
+    if (pages > 1) {
+      pagin.style.display = 'flex';
+      pagin.innerHTML = `
+        <button onclick="_draftGoPage(${_draftListPage - 1})" ${_draftListPage <= 1 ? 'disabled' : ''}
+          style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:${_draftListPage <= 1 ? '.3' : '1'}">‹</button>
+        <span style="flex:1;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${start + 1}–${Math.min(start + DRAFT_LIST_PER, total)} / ${total}</span>
+        <button onclick="_draftGoPage(${_draftListPage + 1})" ${_draftListPage >= pages ? 'disabled' : ''}
+          style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:${_draftListPage >= pages ? '.3' : '1'}">›</button>`;
+    } else {
+      pagin.style.display = 'none';
+    }
+  }
 }
+
+function _draftGoPage(p) {
+  _draftListPage = p;
+  renderDraftList();
+  document.getElementById('draftItems')?.scrollTo({ top: 0 });
+}
+window._draftGoPage = _draftGoPage;
 
 // ── Select draft ──────────────────────────────────────────────────
 async function selectDraft(id) {
@@ -277,13 +447,15 @@ async function selectDraft(id) {
   const rc = document.getElementById('reviewContent');
   rc.style.display = 'flex';
 
-  _draftZoomIdx = 3; _draftRotate = 0;
+  _draftZoomIdx = 2; _draftRotate = 0;
   const img = document.getElementById('draftImgEl');
+  const view = document.getElementById('draftImgView');
   if (img) {
     img.style.transform = '';
     img.onload = () => _applyDraftTransform();
     img.src = draft.image_url || '';
     img.style.display = draft.image_url ? 'block' : 'none';
+    if (view) view.scrollLeft = 0, view.scrollTop = 0;
   }
 
   const ocr = draft.ocr_result || {};
@@ -302,8 +474,24 @@ async function selectDraft(id) {
   DraftState.vendorNamaOcr   = ocr.vendor || ocr.nama_vendor || '';
   DraftState.vendorNamaEdit  = DraftState.vendorNamaOcr;
   DraftState.tanggalEdit     = ocr.tanggal || ocr.tanggal_invoice || '';
+  DraftState.nomorFakturEdit = ocr.nomor_faktur || ocr.nomor_invoice || '';
+  DraftState.subtotalEdit    = Number(ocr.subtotal)                         || 0;
+  DraftState.ppnEdit         = Number(ocr.ppn_amount ?? ocr.ppn)            || 0;
+  DraftState.grandTotalEdit  = Number(ocr.grand_total)                      || 0;
   DraftState.vendorBankAccts = [];
   DraftState.selectedBankId  = null;
+
+  // Deteksi tahun terlalu jauh di belakang (≥1 tahun)
+  DraftState._tanggalTahunLama = false;
+  DraftState._tanggalAsliStr   = '';
+  if (DraftState.tanggalEdit) {
+    const parsed = new Date(DraftState.tanggalEdit);
+    const now    = new Date();
+    if (!isNaN(parsed) && (now.getFullYear() - parsed.getFullYear()) >= 1) {
+      DraftState._tanggalTahunLama = true;
+      DraftState._tanggalAsliStr   = DraftState.tanggalEdit;
+    }
+  }
 
   renderInfoSection();
   renderItemsSection();
@@ -346,92 +534,61 @@ function renderInfoSection() {
        </select>`
     : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:8px 0">Tidak ada rekening terdaftar</div>`;
 
-  // Cek duplikat nomor faktur (async)
-  if (nomorFaktur) {
-    Promise.all([
-      window._sb.from('invoice_drafts').select('id').eq('ocr_result->>nomor_faktur', nomorFaktur).neq('id', draft.id),
-      window._sb.from('riwayat_beli').select('id').eq('nomor_faktur', nomorFaktur),
-    ]).then(([{data: dDup}, {data: rDup}]) => {
-      const el    = document.getElementById('duplikatWarning');
-      if (!el) return;
-      const total = (dDup?.length || 0) + (rDup?.length || 0);
-      if (total > 0) {
-        el.innerHTML = `<div style="padding:7px 12px;background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);border-radius:7px;font-size:11px;font-family:var(--mono);color:var(--danger)">⚠ Nomor faktur <b>${escHtml(nomorFaktur)}</b> sudah ada — periksa duplikat</div>`;
-        el.style.display = 'block';
-      } else {
-        el.style.display = 'none';
-      }
-    }).catch(() => {});
-  }
+
+  const _inp = (style='') => `background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);outline:none;padding:6px 10px;width:100%;box-sizing:border-box;font-size:13px;${style}`;
+
+  const brandNama  = draft.brands?.nama || '';
+  const brandWarna = (window.allBrands||[]).find(b => b.id === draft.brand_id)?.warna || '#4f8ef7';
 
   document.getElementById('infoSection').innerHTML = `
-    <!-- Meta banner -->
-    <div style="margin-bottom:14px;padding:10px 14px;background:var(--surface2);
-                border:1px solid var(--border);border-radius:var(--radius-sm);
-                display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <!-- Brand -->
+    ${brandNama ? `<div style="margin-bottom:10px"><span class="badge" style="background:${brandWarna};color:${getBadgeTextColor(brandWarna)};padding:4px 14px;font-size:13px;font-weight:600">${escHtml(brandNama)}</span></div>` : ''}
+
+    <!-- Row 1: No Faktur + Tanggal + Meta -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">No. Faktur</div>
-        <div style="font-size:13px;font-family:var(--mono);color:var(--accent);font-weight:600">${escHtml(nomorFaktur || '—')}</div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">No. Faktur</div>
+        <input type="text" id="nomorFakturInput"
+          value="${escHtml(DraftState.nomorFakturEdit)}"
+          placeholder="Nomor faktur..."
+          onchange="DraftState.nomorFakturEdit=this.value"
+          style="${_inp('color:var(--accent);font-weight:600')}"/>
       </div>
-      <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
       <div>
         <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Tanggal Invoice</div>
         <input type="date" id="tanggalInvoiceInput"
-               value="${escHtml(DraftState.tanggalEdit)}"
-               onchange="DraftState.tanggalEdit=this.value"
-               style="font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 7px;cursor:pointer"/>
+          value="${escHtml(DraftState.tanggalEdit)}"
+          onchange="DraftState.tanggalEdit=this.value;DraftState._tanggalTahunLama=false;document.getElementById('tanggalTahunLamaWarn')?.remove()"
+          style="${_inp(`border-color:${DraftState._tanggalTahunLama ? 'rgba(247,146,79,0.6)' : 'var(--border)'}`)};cursor:pointer"/>
+        ${DraftState._tanggalTahunLama ? `<div id="tanggalTahunLamaWarn" style="margin-top:4px;padding:4px 8px;background:rgba(247,146,79,0.08);border:1px solid rgba(247,146,79,0.3);border-radius:5px;font-size:10px;font-family:var(--mono);color:rgba(247,146,79,0.9)">⚠ Tahun <strong>${new Date(DraftState._tanggalAsliStr).getFullYear()}</strong> — periksa ulang</div>` : ''}
       </div>
-      <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
-      <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Masuk</div>
-        <div style="font-size:13px;font-family:var(--mono);color:var(--muted)">${formatDate(draft.created_at)}</div>
-      </div>
-      <div style="width:1px;height:24px;background:var(--border);flex-shrink:0;margin-left:auto"></div>
-      <div style="text-align:right">
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Sumber</div>
-        <div style="font-size:12px;font-family:var(--mono);color:var(--accent3);font-weight:500">${escHtml(draft.source || 'discord')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Masuk</div>
+          <div style="font-size:12px;font-family:var(--mono);color:var(--muted);padding:7px 0">${formatDate(draft.created_at)}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Sumber</div>
+          <div style="font-size:12px;font-family:var(--mono);color:var(--accent3);font-weight:500;padding:7px 0">${escHtml(draft.source || 'discord')}</div>
+        </div>
       </div>
     </div>
 
-    <!-- Duplikat warning -->
-    <div id="duplikatWarning" style="display:none;margin-bottom:10px"></div>
-
-    <!-- Nominal OCR (subtotal / ppn / grand total dari invoice) -->
-    ${(ocr.subtotal || ocr.ppn_amount || ocr.ppn || ocr.grand_total) ? `
-    <div style="margin-bottom:14px;padding:10px 14px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.12);border-radius:var(--radius-sm)">
-      <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Nominal dari Invoice (OCR)</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        ${ocr.subtotal ? `<div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-bottom:2px">Subtotal</div>
-          <div style="font-size:12px;font-family:var(--mono);color:var(--text);font-weight:500">${formatRp(Number(ocr.subtotal))}</div>
-        </div>` : ''}
-        ${(ocr.ppn_amount || ocr.ppn) ? `<div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-bottom:2px">PPN</div>
-          <div style="font-size:12px;font-family:var(--mono);color:var(--text);font-weight:500">${formatRp(Number(ocr.ppn_amount || ocr.ppn))}</div>
-        </div>` : ''}
-        ${ocr.grand_total ? `<div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-bottom:2px">Grand Total</div>
-          <div style="font-size:12px;font-family:var(--mono);color:var(--accent2);font-weight:600">${formatRp(Number(ocr.grand_total))}</div>
-        </div>` : ''}
-      </div>
-    </div>` : ''}
-
-    <!-- Vendor + Rekening -->
-    <div class="field-row" style="margin-bottom:14px">
+    <!-- Row 2: Vendor + Rekening -->
+    <div class="field-row" style="margin-bottom:10px">
       <div class="field" style="margin-bottom:0">
         <label style="margin-bottom:4px">Vendor</label>
-        ${DraftState.vendorNamaOcr ? `<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);margin-bottom:6px">OCR: ${escHtml(DraftState.vendorNamaOcr)}</div>` : ''}
+        ${DraftState.vendorNamaOcr ? `<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);margin-bottom:4px">OCR: ${escHtml(DraftState.vendorNamaOcr)}</div>` : ''}
         <input type="text" id="vendorInput"
-               placeholder="Ketik nama vendor..."
-               value="${escHtml(DraftState.vendorNamaEdit)}"
-               onchange="DraftState.vendorNamaEdit=this.value"/>
+          placeholder="Ketik nama vendor..."
+          value="${escHtml(DraftState.vendorNamaEdit)}"
+          onchange="DraftState.vendorNamaEdit=this.value"/>
       </div>
       <div class="field" style="margin-bottom:0">
         <label style="margin-bottom:4px">Rekening Tujuan</label>
         <div id="bankSelectContainer">${bankHTML}</div>
       </div>
     </div>
-
   `;
 }
 
@@ -492,7 +649,7 @@ function renderItemRow(item) {
     <div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.04)">
       <div style="font-size:10px;font-family:var(--mono);color:var(--accent3);margin-bottom:3px">📄 ${escHtml(item.namaOcr || '—')}</div>
       <div style="display:flex;align-items:center;gap:6px">
-        <input class="item-input" type="text" style="flex:1;min-width:0" value="${escHtml(item.namaEdit)}" placeholder="Nama barang"
+        <input class="item-input" type="text" style="flex:1;min-width:0;text-align:left" value="${escHtml(item.namaEdit)}" placeholder="Nama barang"
           onchange="updateItemField(${item.idx},'namaEdit',this.value)"/>
         <input class="item-input" type="text" inputmode="decimal" value="${item.qty}" style="width:64px;flex-shrink:0;text-align:right"
           oninput="this.value=this.value.replace(',','.');updateItemField(${item.idx},'qty',parseFloat(this.value)||0)"
@@ -536,47 +693,133 @@ function updateItemField(idx, field, val) {
 function renderSummarySection() {
   const draft = DraftState.activeDraft;
   if (!draft) return;
-  const ocr = draft.ocr_result || {};
-
-  const subtotal    = DraftState.items.reduce((s, i) => s + i.qty * i.harga, 0);
-  const ppnRate     = (window._ppnRate || 11) / 100;
-  const ppnIncluded = ocr.ppn_included !== false;
-  const subEx       = ppnIncluded ? subtotal / (1 + ppnRate) : subtotal;
-  const ppnAmt      = subEx * ppnRate;
-  const diskon      = Number(ocr.diskon) || 0;
-  const ongkir      = Number(ocr.ongkir) || 0;
-  const total       = subEx + ppnAmt - diskon + ongkir;
-  const isDone      = draft.status === 'confirmed' || draft.status === 'rejected';
+  const isDone = draft.status === 'confirmed' || draft.status === 'rejected';
+  const _inp   = (style='') => `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);outline:none;padding:10px 14px;width:100%;box-sizing:border-box;font-size:15px;font-weight:600;${style}`;
 
   document.getElementById('summarySection').innerHTML = `
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
-      <div style="display:flex;gap:18px;flex-wrap:wrap;flex:1;min-width:0">
-        <div>
-          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Subtotal (exc PPN)</div>
-          <div style="font-size:13px;font-family:var(--mono);margin-top:2px">${formatRp(Math.round(subEx))}</div>
-        </div>
-        <div>
-          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px">+ PPN ${Math.round(ppnRate*100)}%</div>
-          <div style="font-size:13px;font-family:var(--mono);color:var(--accent2);margin-top:2px">${formatRp(Math.round(ppnAmt))}</div>
-        </div>
-        <div style="padding-left:18px;border-left:1px solid var(--border)">
-          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Total</div>
-          <div class="summary-total" style="font-size:22px;margin-top:2px">${formatRp(Math.round(total))}</div>
-        </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Subtotal (exc. PPN)</div>
+        <input type="number" min="0" step="1"
+          value="${DraftState.subtotalEdit || ''}" placeholder="0"
+          onchange="DraftState.subtotalEdit=Number(this.value)"
+          style="${_inp()}"/>
       </div>
-      ${!isDone
-        ? `<div style="display:flex;gap:8px;flex-wrap:wrap">
-             <button class="btn btn-ghost is-destructive" onclick="openRejectModal()">✕ Tolak</button>
-             <button class="btn btn-primary" onclick="confirmDraft()">✓ Konfirmasi → Pembayaran</button>
-           </div>`
-        : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-             <span style="font-size:12px;color:var(--muted);padding:8px 12px">Draft sudah ${draft.status}.</span>
-             ${draft.status === 'confirmed'
-               ? `<button class="btn btn-ghost is-destructive" style="font-size:12px" onclick="undoConfirmDraft()">↩ Batal Konfirmasi</button>`
-               : ''}
-           </div>`}
-    </div>`;
+      <div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">PPN</div>
+        <input type="number" min="0" step="1"
+          value="${DraftState.ppnEdit || ''}" placeholder="0"
+          onchange="DraftState.ppnEdit=Number(this.value)"
+          style="${_inp()}"/>
+      </div>
+      <div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Grand Total</div>
+        <input type="number" min="0" step="1"
+          value="${DraftState.grandTotalEdit || ''}" placeholder="0"
+          onchange="DraftState.grandTotalEdit=Number(this.value)"
+          style="${_inp('color:var(--accent2);font-weight:600')}"/>
+      </div>
+    </div>
+    ${!isDone
+      ? `<div style="display:flex;gap:8px;justify-content:flex-end">
+           <button class="btn btn-ghost is-destructive" onclick="openRejectModal()">✕ Tolak</button>
+           <button class="btn btn-primary" onclick="confirmDraft()">✓ Konfirmasi → Pembayaran</button>
+         </div>`
+      : `<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end">
+           <span style="font-size:12px;color:var(--muted)">Draft sudah ${draft.status}.</span>
+           ${draft.status === 'confirmed'
+             ? `<button class="btn btn-ghost is-destructive" style="font-size:12px" onclick="undoConfirmDraft()">↩ Batal Konfirmasi</button>`
+             : ''}
+         </div>`}
+  `;
 }
+
+// ── Duplikat check — port dari pembelian.html (proven working) ────
+let _dupCheckTimer = null;
+function checkDuplikatDraft(val) {
+  clearTimeout(_dupCheckTimer);
+  const v = (val || '').trim();
+  const hint = document.getElementById('duplikatWarning');
+  if (!hint) return;
+  if (!v) { hint.innerHTML = ''; hint.style.display = 'none'; return; }
+  hint.innerHTML = '';
+
+  _dupCheckTimer = setTimeout(async () => {
+    const draftId = DraftState.activeDraft?.id;
+    const [r1, r2, r3] = await Promise.all([
+      window._sb.from('invoice_drafts')
+        .select('id,ocr_result,brand_id,created_at,status,purchased_at,discord_rejected_at')
+        .filter('ocr_result->>nomor_faktur', 'eq', v)
+        .neq('id', draftId),
+      window._sb.from('invoice_drafts')
+        .select('id,ocr_result,brand_id,created_at,status,purchased_at,discord_rejected_at')
+        .filter('ocr_result->>nomor_invoice', 'eq', v)
+        .neq('id', draftId),
+      window._sb.from('riwayat_beli')
+        .select('id,tanggal,nomor_faktur,total,status')
+        .eq('nomor_faktur', v),
+    ]);
+
+    const seen = new Set();
+    const dupDrafts = [...(r1.data||[]), ...(r2.data||[])].filter(r => {
+      if (seen.has(r.id)) return false; seen.add(r.id); return true;
+    }).sort((a,b) => new Date(a.created_at)-new Date(b.created_at));
+    const dupBeli = r3.data || [];
+
+    const hintEl = document.getElementById('duplikatWarning');
+    if (!hintEl) return;
+    if (!dupDrafts.length && !dupBeli.length) { hintEl.innerHTML = ''; hintEl.style.display = 'none'; return; }
+
+    const stDraft = r => {
+      if (r.purchased_at)        return { lbl:'Sudah Input',  clr:'var(--accent2)' };
+      if (r.discord_rejected_at) return { lbl:'Ditolak',      clr:'var(--danger)'  };
+      return                            { lbl:'Belum Dicek',  clr:'var(--muted)'   };
+    };
+    const stBeli = r => ({
+      selesai: { lbl:'✓ Selesai', clr:'var(--accent2)' },
+      pending: { lbl:'⏳ Pending', clr:'var(--accent3)' },
+      batal:   { lbl:'✕ Batal',   clr:'var(--danger)'  },
+    }[r.status] || { lbl:r.status||'—', clr:'var(--muted)' });
+
+    const draftRows = dupDrafts.map((r, idx) => {
+      const o      = r.ocr_result || {};
+      const vendor = o.vendor || o.nama_vendor || '—';
+      const tgl    = formatDate(r.created_at);
+      const bNama  = (window.allBrands||[]).find(x=>x.id===r.brand_id)?.nama || '';
+      const st     = stDraft(r);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px">
+        <span style="font-size:9px;color:${idx===0?'var(--muted)':'var(--accent3)'};font-family:var(--mono);white-space:nowrap;flex-shrink:0">${idx===0?'1st':'+'+(idx+1)}</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(vendor)}</div>
+          <div style="color:var(--muted);font-family:var(--mono);font-size:10px">${tgl}${bNama?' · '+escHtml(bNama):''}</div>
+        </div>
+        <span style="font-size:10px;color:${st.clr};white-space:nowrap;flex-shrink:0">${st.lbl}</span>
+      </div>`;
+    }).join('');
+
+    const beliRows = dupBeli.map(r => {
+      const st  = stBeli(r);
+      const tot = r.total ? formatRp(Math.round(r.total)) : '—';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px">
+        <span style="font-size:9px;color:var(--accent2);font-family:var(--mono);white-space:nowrap;flex-shrink:0">riwayat</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:var(--text);font-weight:500">${r.tanggal || '—'}</div>
+        </div>
+        <div style="font-family:var(--mono);color:var(--accent2);font-size:11px;white-space:nowrap">${tot}</div>
+        <span style="font-size:10px;color:${st.clr};white-space:nowrap;flex-shrink:0">${st.lbl}</span>
+      </div>`;
+    }).join('');
+
+    const total = dupDrafts.length + dupBeli.length;
+    hintEl.innerHTML = `<div style="border:1px solid rgba(247,146,79,0.3);border-radius:8px;overflow:hidden">
+      <div style="background:rgba(247,146,79,0.10);padding:6px 10px;font-size:11px;font-family:var(--mono);color:var(--accent3);font-weight:600">
+        ⚠ ${total} entri dengan nomor faktur yang sama
+      </div>${draftRows}${beliRows}
+    </div>`;
+    hintEl.style.display = 'block';
+  }, 400);
+}
+window.checkDuplikatDraft = checkDuplikatDraft;
 
 // ── Reject modal ──────────────────────────────────────────────────
 function openRejectModal() {
@@ -636,7 +879,7 @@ async function confirmDraft() {
     // 1. riwayat_beli
     const { data: beli, error: beliErr } = await sb.from('riwayat_beli').insert({
       tanggal,
-      nomor_faktur: ocr.nomor_faktur || ocr.nomor_invoice || null,
+      nomor_faktur: DraftState.nomorFakturEdit || ocr.nomor_faktur || ocr.nomor_invoice || null,
       vendor_id:    null,
       brand_id:     draft.brand_id,
       catatan:      null,
@@ -761,5 +1004,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   catch (e) { console.error('[invoice-drafts] loadBrands gagal:', e); }
 
   hideLoader();
-  loadDrafts();
+
+  // Cek apakah ada brand tersimpan dari sesi sebelumnya
+  const savedBrand = localStorage.getItem('draftActiveBrand');
+  const screen = document.getElementById('brandSelectScreen');
+  if (savedBrand) {
+    const inlineSel = document.getElementById('filterBrand');
+    if (inlineSel) inlineSel.value = savedBrand;
+    if (screen) screen.style.display = 'none';
+    loadDrafts();
+  } else {
+    // Tampilkan brand selection screen — jangan load drafts dulu
+    if (screen) screen.style.display = 'flex';
+  }
 });

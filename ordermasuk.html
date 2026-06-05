@@ -81,7 +81,17 @@
         <option value="pending">Pending</option>
         <option value="partial">Partial</option>
         <option value="selesai">Selesai</option>
+        <option value="ordered">Dipesan</option>
       </select>
+
+      <button id="viewToggleBtn" onclick="toggleViewMode()"
+        title="Toggle: grouped order / flat item list"
+        style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--mono);white-space:nowrap;transition:all .15s"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="if(PageState.viewMode==='grouped'){this.style.borderColor='var(--border)';this.style.color='var(--muted)'}else{this.style.borderColor='var(--accent)';this.style.color='var(--accent)'}">
+        <span id="viewToggleIcon">📦</span>
+        <span id="viewToggleLabel">Per Order</span>
+      </button>
     </div>
     <!-- hidden select for compat -->
     <select id="filterBrand" style="display:none"><option value="">Semua Brand</option></select>
@@ -90,7 +100,7 @@
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead>
+          <thead id="orderThead">
             <tr>
               <th>Order ID</th>
               <th>Brand</th>
@@ -435,6 +445,10 @@ const PageState = {
   waOrderItems:   [],
   waManualVendorItemsMap: {},
   cancelItemState: null, // {itemId, orderId, nama}
+  viewMode:        'grouped', // 'grouped' | 'flat'
+  allItemRows:     [],   // semua order_items dari DB (untuk flat view)
+  flatSortKey:     'status', // 'status' | 'nama' | 'harga' | 'progress'
+  flatSortDir:     'asc',
 };
 window.PageState = PageState;
 
@@ -460,6 +474,8 @@ Object.defineProperties(window, {
   _waOrderItems:  { get: () => PageState.waOrderItems,   set: v => { PageState.waOrderItems = v; },   configurable: true },
   _waManualVendorItemsMap: { get: () => PageState.waManualVendorItemsMap, set: v => { PageState.waManualVendorItemsMap = v; }, configurable: true },
   _cancelItemState:{ get: () => PageState.cancelItemState, set: v => { PageState.cancelItemState = v; }, configurable: true },
+  _viewMode:       { get: () => PageState.viewMode,        set: v => { PageState.viewMode = v; },        configurable: true },
+  _allItemRows:    { get: () => PageState.allItemRows,      set: v => { PageState.allItemRows = v; },     configurable: true },
 });
 
 const PER_PAGE = 15;
@@ -859,8 +875,9 @@ function updateBrandFilterUI() {
     countEl.style.display = 'none';
     filterBtn.classList.remove('has-selection');
   } else {
+    const _bn = brands[_selectedBrands[0]] || '1 brand';
     label.textContent = _selectedBrands.length === 1
-      ? (brands[_selectedBrands[0]] || '1 brand')
+      ? (_bn.length > 14 ? _bn.slice(0, 13) + '…' : _bn)
       : `${_selectedBrands.length} brand`;
     countEl.textContent  = _selectedBrands.length;
     countEl.style.display = 'inline';
@@ -924,13 +941,13 @@ async function loadAll() {
       try {
         allItemRows = await _inBatch(
           'order_items',
-          'id,order_id,barang_id,nama_barang,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
+          'id,order_id,barang_id,nama_barang,satuan,satuan_db,harga_estimasi,qty_order,qty_terpenuhi,faktor_konversi,status_item,is_custom',
           'order_id', orderIds
         );
         if (!allItemRows.length) {
           allItemRows = await _inBatch(
             'order_items',
-            'id,order_id,barang_id,nama_barang,qty_order,qty_terpenuhi,faktor_konversi',
+            'id,order_id,barang_id,nama_barang,satuan,harga_estimasi,qty_order,qty_terpenuhi,faktor_konversi',
             'order_id', orderIds
           );
         }
@@ -947,6 +964,8 @@ async function loadAll() {
           : (window.resolveNamaBarang({ barang_id: it.barang_id, nama: it.nama_barang }) || it.nama_barang)
       }));
     }
+
+    PageState.allItemRows = allItemRows; // simpan untuk flat view
 
     // Hitung progressMap dari allItemRows (sama seperti sebelumnya)
     (allItemRows || []).forEach(it => {
@@ -1266,7 +1285,13 @@ function applyFilters() {
     // Multi-brand filter
     if (_selectedBrands.length > 0 && !_selectedBrands.includes(o.brand_id)) return false;
     // Status filter (hanya di mode aktif)
-    if (!_showCancelled && status && o.status !== status) return false;
+    if (!_showCancelled && status) {
+      if (status === 'ordered') {
+        // Filter order yang punya ≥1 item dengan status_item 'ordered'
+        const hasOrdered = (PageState.allItemRows).some(it => it.order_id === o.id && it.status_item === 'ordered');
+        if (!hasOrdered) return false;
+      } else if (o.status !== status) return false;
+    }
     // Search
     if (q) {
       const brandNama   = (brands[o.brand_id]||'').toLowerCase();
@@ -1385,6 +1410,8 @@ function _extractOrderBy(catatan) {
 }
 
 function renderTable() {
+  if (PageState.viewMode === 'flat') { renderFlatItems(); return; }
+
   const tbody = document.getElementById('orderTbody');
   const total = filtered.length;
   const start = (currentPage-1)*PER_PAGE;
@@ -1431,6 +1458,152 @@ function renderTable() {
         </td>
       </tr>
     `;
+  }).join('');
+
+  renderPagination(total);
+}
+
+function toggleViewMode() {
+  PageState.viewMode = PageState.viewMode === 'grouped' ? 'flat' : 'grouped';
+  const isFlat = PageState.viewMode === 'flat';
+  const btn = document.getElementById('viewToggleBtn');
+  document.getElementById('viewToggleIcon').textContent = isFlat ? '📋' : '📦';
+  document.getElementById('viewToggleLabel').textContent = isFlat ? 'Flat Items' : 'Per Order';
+  if (btn) {
+    btn.style.borderColor = isFlat ? 'var(--accent)' : 'var(--border)';
+    btn.style.color       = isFlat ? 'var(--accent)' : 'var(--muted)';
+  }
+  // Update thead
+  const thead = document.getElementById('orderThead');
+  if (thead) {
+    thead.innerHTML = isFlat
+      ? `<tr>
+          <th data-sort="nama" onclick="setFlatSort('nama')" style="cursor:pointer;user-select:none">Barang <span class="sort-ind"></span></th>
+          <th>Satuan</th>
+          <th data-sort="harga" onclick="setFlatSort('harga')" style="cursor:pointer;user-select:none">Est. Harga <span class="sort-ind"></span></th>
+          <th data-sort="status" onclick="setFlatSort('status')" style="cursor:pointer;user-select:none">Status <span class="sort-ind"></span></th>
+          <th data-sort="progress" onclick="setFlatSort('progress')" style="cursor:pointer;user-select:none">Progress <span class="sort-ind"></span></th>
+          <th style="text-align:right">Aksi</th>
+        </tr>`
+      : `<tr>
+          <th>Order ID</th>
+          <th>Brand</th>
+          <th>Pemesan</th>
+          <th>Tgl Masuk</th>
+          <th>Progress</th>
+          <th>Status</th>
+          <th style="text-align:right">Aksi</th>
+        </tr>`;
+  }
+  PageState.currentPage = 1;
+  renderTable();
+}
+
+function _flatItemStatus(it) {
+  const status = it.status_item || 'pending';
+  if (status === 'cancelled') return 'cancelled';
+  if (status === 'selesai' || status === 'fifo_selesai') return 'selesai';
+  const faktor = it.faktor_konversi || 1;
+  const hasFaktor = it.satuan_db && faktor > 1;
+  const qtyTerpenuhiOrder = hasFaktor ? ((it.qty_terpenuhi || 0) / faktor) : (it.qty_terpenuhi || 0);
+  const pct = it.qty_order > 0 ? (qtyTerpenuhiOrder / it.qty_order) : 0;
+  if (pct >= 1) return 'selesai';
+  if (status === 'ordered') return 'ordered';
+  if (pct > 0) return 'partial';
+  return 'pending';
+}
+const _FLAT_STATUS_RANK = { pending:0, ordered:1, partial:2, selesai:3, cancelled:4 };
+
+function setFlatSort(key) {
+  if (PageState.flatSortKey === key) {
+    PageState.flatSortDir = PageState.flatSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    PageState.flatSortKey = key;
+    PageState.flatSortDir = 'asc';
+  }
+  PageState.currentPage = 1;
+  renderFlatItems();
+}
+window.setFlatSort = setFlatSort;
+
+function _updateFlatSortIndicators() {
+  const thead = document.getElementById('orderThead');
+  if (!thead) return;
+  const key = PageState.flatSortKey || 'status';
+  const dir = PageState.flatSortDir || 'asc';
+  thead.querySelectorAll('th[data-sort]').forEach(th => {
+    const ind = th.querySelector('.sort-ind');
+    if (!ind) return;
+    if (th.dataset.sort === key) {
+      ind.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+      ind.style.color = 'var(--accent)';
+      th.style.color = 'var(--accent)';
+    } else {
+      ind.textContent = '';
+      th.style.color = '';
+    }
+  });
+}
+
+function renderFlatItems() {
+  const tbody = document.getElementById('orderTbody');
+  const orderMap = {};
+  (PageState.allOrders).forEach(o => { orderMap[o.id] = o; });
+
+  const filteredIds = new Set((PageState.filtered).map(o => o.id));
+  const statusFilter = document.getElementById('filterStatus')?.value || '';
+  const rows = (PageState.allItemRows).filter(it => {
+    if (!filteredIds.has(it.order_id)) return false;
+    if (statusFilter && _flatItemStatus(it) !== statusFilter) return false;
+    return true;
+  });
+
+  const sortKey = PageState.flatSortKey || 'status';
+  const sortDir = PageState.flatSortDir || 'asc';
+  const dir = sortDir === 'desc' ? -1 : 1;
+  const tieRecent = (a, b) => {
+    const oa = orderMap[a.order_id]?.created_at || '';
+    const ob = orderMap[b.order_id]?.created_at || '';
+    return ob.localeCompare(oa);
+  };
+  const _progPct = (it) => {
+    const f = it.faktor_konversi || 1;
+    const has = it.satuan_db && f > 1;
+    const qt = has ? ((it.qty_terpenuhi || 0) / f) : (it.qty_terpenuhi || 0);
+    return it.qty_order > 0 ? (qt / it.qty_order) : 0;
+  };
+  if (sortKey === 'status') {
+    rows.sort((a, b) => {
+      const ra = _FLAT_STATUS_RANK[_flatItemStatus(a)] ?? 99;
+      const rb = _FLAT_STATUS_RANK[_flatItemStatus(b)] ?? 99;
+      if (ra !== rb) return dir * (ra - rb);
+      return tieRecent(a, b);
+    });
+  } else if (sortKey === 'nama') {
+    rows.sort((a, b) => dir * (a.nama_barang || '').localeCompare(b.nama_barang || '', 'id'));
+  } else if (sortKey === 'harga') {
+    rows.sort((a, b) => dir * ((a.harga_estimasi || 0) - (b.harga_estimasi || 0)));
+  } else if (sortKey === 'progress') {
+    rows.sort((a, b) => dir * (_progPct(a) - _progPct(b)));
+  }
+  _updateFlatSortIndicators();
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Tidak ada item ditemukan</div></div></td></tr>`;
+    document.getElementById('paginationWrap').style.display = 'none';
+    return;
+  }
+
+  const total = rows.length;
+  const start = (PageState.currentPage - 1) * PER_PAGE;
+  const page  = rows.slice(start, start + PER_PAGE);
+
+  tbody.innerHTML = page.map(it => {
+    const o = orderMap[it.order_id] || {};
+    const brandNama = brands[o.brand_id] || '—';
+    const shortId   = (o.id || '').substring(0, 8).toUpperCase();
+    const extraBarangInfo = `<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:3px;display:flex;align-items:center;gap:5px">${_buildBrandTag(o.brand_id, brandNama)}<span style="color:var(--accent);opacity:0.7">#${shortId}</span></div>`;
+    return _renderItemRow(it, o, extraBarangInfo);
   }).join('');
 
   renderPagination(total);
@@ -2032,17 +2205,7 @@ function _updateTableRowProgress(orderId, o, itemsArr) {
 
 // _refreshRowBadge — didefinisikan di bawah dekat _recalcOrderStatus
 
-function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
-  vendorPerBarang = vendorPerBarang || {};
-  bestVendorPerBarang = bestVendorPerBarang || {};
-  const brandNama = brands[o.brand_id]||'—';
-  const statusBadge = _buildStatusBadge(o);
-
-  let totalEst = 0;
-  items.forEach(it => { if(it.harga_estimasi) totalEst += it.harga_estimasi * it.qty_order; });
-
-  // ── Helper render satu baris item ──
-  function renderItemRow(it) {
+function _renderItemRow(it, o, extraBarangInfo = '') {
     const faktor    = it.faktor_konversi || 1;
     const hasFaktor = it.satuan_db && faktor > 1;
     const qtyTerpenuhiOrder = hasFaktor ? (it.qty_terpenuhi / faktor) : it.qty_terpenuhi;
@@ -2165,6 +2328,7 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
         <div style="font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${isCancelled?';text-decoration:line-through;color:var(--muted)':''}" title="${(it.nama_barang||'').replace(/"/g,'&quot;')}">${it.nama_barang}${it.is_custom?'<span class="custom-tag">custom</span>':''}</div>
         ${cancelledKet}
         ${beliLink}
+        ${extraBarangInfo}
       </td>
       <td class="col-satuan" style="font-family:var(--mono);font-size:11px;color:var(--muted);vertical-align:middle;white-space:nowrap">${satuanLabel}</td>
       <td class="col-harga" style="font-family:var(--mono);font-size:12px;vertical-align:middle;white-space:nowrap">
@@ -2174,7 +2338,19 @@ function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
       <td class="col-progress" style="vertical-align:middle">${progressCell}</td>
       <td class="col-aksi" style="text-align:right;vertical-align:middle">${aksiCell}</td>
     </tr>`;
-  }
+}
+
+function buildDetailModal(o, items, vendorPerBarang, bestVendorPerBarang) {
+  vendorPerBarang = vendorPerBarang || {};
+  bestVendorPerBarang = bestVendorPerBarang || {};
+  const brandNama = brands[o.brand_id]||'—';
+  const statusBadge = _buildStatusBadge(o);
+
+  let totalEst = 0;
+  items.forEach(it => { if(it.harga_estimasi) totalEst += it.harga_estimasi * it.qty_order; });
+
+  // ── Helper render satu baris item ──
+  const renderItemRow = (it) => _renderItemRow(it, o);
 
   // ── Group items per vendor — logika cerdas dengan dedup ──
   // Step 1: Assign setiap item ke bestVendorPerBarang (vendor 1 bulan terakhir + termurah)

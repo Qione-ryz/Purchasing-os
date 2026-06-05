@@ -139,8 +139,9 @@ async function fetchRiwayatPage() {
 
   try {
     const search  = document.getElementById('rSearch').value.toLowerCase().trim();
-    const sortCol = rSortField === 'tanggal' ? 'tanggal'
-                  : rSortField === 'total'   ? 'total'
+    const sortCol = rSortField === 'tanggal'    ? 'tanggal'
+                  : rSortField === 'total'      ? 'total'
+                  : rSortField === 'created_at' ? 'created_at'
                   : 'tanggal';
 
     let display, totalCount;
@@ -349,8 +350,23 @@ function renderRPagin(total) {
 /* ── rSortBy ── */
 function rSortBy(field) {
   if (rSortField === field) rSortDir = rSortDir === 'asc' ? 'desc' : 'asc';
-  else { rSortField = field; rSortDir = field === 'tanggal' ? 'desc' : 'asc'; }
+  else { rSortField = field; rSortDir = (field === 'tanggal' || field === 'created_at') ? 'desc' : 'asc'; }
+  _updateRSortIndicators();
   rPage = 1; fetchRiwayatPage();
+}
+
+function _updateRSortIndicators() {
+  ['tanggal','nomor_faktur','vendor_nama','brand_id','total','status','created_at'].forEach(f => {
+    const span = document.getElementById('rsort-' + f);
+    if (span) span.textContent = rSortField === f ? (rSortDir === 'asc' ? '▲' : '▼') : '↕';
+  });
+  const btn = document.getElementById('btnSortDiinput');
+  if (btn) {
+    const active = rSortField === 'created_at';
+    btn.style.cssText = active
+      ? 'white-space:nowrap;border-color:#00d4ff;color:#00d4ff;background:rgba(0,212,255,0.12);font-weight:600'
+      : 'white-space:nowrap;color:var(--muted)';
+  }
 }
 
 
@@ -893,7 +909,8 @@ async function exportRiwayat() {
 window.loadRiwayat        = loadRiwayat;
 window.renderRiwayat      = renderRiwayat;
 window.fetchRiwayatPage   = fetchRiwayatPage;
-window.rSortBy            = rSortBy;
+window.rSortBy                  = rSortBy;
+window._updateRSortIndicators   = _updateRSortIndicators;
 window.onRSearch          = onRSearch;
 window.toggleExpand       = toggleExpand;
 window.openDetail         = openDetail;

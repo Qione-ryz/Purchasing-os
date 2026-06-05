@@ -1546,7 +1546,8 @@ tr.so-separator-row > td {
 .om-filter-bar { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; margin-bottom:20px; background:none; border:none; padding:0; grid-template-columns:none; }
 .om-filter-bar .search-wrap { flex:1; min-width:0; position:relative; }
 .om-filter-bar .search-input { padding-left:38px; width:100%; }
-.om-filter-bar .brand-filter-wrap { flex-shrink:0; width:180px; }
+.om-filter-bar .brand-filter-wrap { flex-shrink:0; width:180px; min-width:0; }
+.om-filter-bar #brandFilterLabel { min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .om-filter-bar .filter-select { flex-shrink:0; width:160px; }
 
 /* Stat strip */

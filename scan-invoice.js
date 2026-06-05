@@ -1348,15 +1348,21 @@ function renderBarangDropdown(i, candidates) {
   const drop  = document.getElementById(`scanDrop_${i}`);
   const input = document.getElementById(`scanSuggest_${i}`);
   if (!drop) return;
+  const query = input?.value?.trim() || "";
+  const createBtn = `<div onmousedown="openScanCreateBarang(${i},'${query.replace(/'/g,"\\'")}')"
+    style="padding:9px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--accent2);font-weight:600;transition:background .15s"
+    onmouseover="this.style.background='rgba(56,217,169,0.08)'" onmouseout="this.style.background=''">
+    <span style="font-size:15px;line-height:1">＋</span> Tambah barang baru${query ? ` "<span style="font-family:var(--mono)">${query}</span>"` : ""}
+  </div>`;
   if (!candidates.length) {
-    drop.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:var(--muted)">Tidak ada barang ditemukan</div>`;
+    drop.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:var(--muted)">Tidak ada barang ditemukan</div>${createBtn}`;
   } else {
     drop.innerHTML = candidates.map(b => `
       <div class="scan-suggest-opt" onmousedown="selectScanBarang(${i}, '${b.id}')">
         <div class="scan-suggest-opt-name">${b.nama}</div>
         <div class="scan-suggest-opt-sub">${[b.sku, b.satuan].filter(Boolean).join(" · ")}</div>
       </div>
-    `).join("");
+    `).join("") + createBtn;
   }
   drop.classList.add("open");
   positionDropdown(drop, input);
@@ -1393,6 +1399,102 @@ function selectScanBarang(i, barangId) {
   closeScanDropdowns();
 }
 window.selectScanBarang = selectScanBarang;
+
+// ── Tambah barang baru dari scan modal ──
+function openScanCreateBarang(i, prefillNama) {
+  const drop = document.getElementById(`scanDrop_${i}`);
+  if (!drop) return;
+
+  // Kumpulkan satuan unik dari master untuk datalist
+  const satuanSet = [...new Set((window.allBarang || []).map(b => b.satuan).filter(Boolean))].sort();
+
+  drop.innerHTML = `
+    <div style="padding:14px;min-width:260px" onmousedown="event.stopPropagation()">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Tambah Barang Baru</div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">NAMA BARANG</label>
+        <input id="scanNewBarangNama_${i}" value="${prefillNama.replace(/"/g,'&quot;')}"
+          placeholder="Nama barang..."
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 10px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')scanCreateBarangSubmit(${i})" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">SATUAN</label>
+          <input id="scanNewBarangSatuan_${i}" placeholder="pcs / kg / box..."
+            list="scanSatuanList_${i}"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 10px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+            onkeydown="if(event.key==='Enter')scanCreateBarangSubmit(${i})" />
+          <datalist id="scanSatuanList_${i}">${satuanSet.map(s=>`<option value="${s}">`).join("")}</datalist>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">KATEGORI <span style="opacity:.5">(opsional)</span></label>
+          <input id="scanNewBarangKategori_${i}" placeholder="Makanan, dll..."
+            list="scanKategoriList_${i}"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 10px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+            onkeydown="if(event.key==='Enter')scanCreateBarangSubmit(${i})" />
+          <datalist id="scanKategoriList_${i}">${[...new Set((window.allBarang||[]).map(b=>b.kategori).filter(Boolean))].map(k=>`<option value="${k}">`).join("")}</datalist>
+        </div>
+      </div>
+      <div id="scanCreateBarangErr_${i}" style="font-size:11px;color:var(--danger);margin-bottom:8px;display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button onmousedown="closeScanDropdowns()"
+          style="flex:1;padding:7px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer">
+          Batal
+        </button>
+        <button onmousedown="scanCreateBarangSubmit(${i})"
+          style="flex:2;padding:7px;background:rgba(56,217,169,0.15);border:1px solid rgba(56,217,169,0.3);border-radius:6px;color:var(--accent2);font-size:12px;font-weight:600;cursor:pointer">
+          ＋ Simpan Barang
+        </button>
+      </div>
+    </div>`;
+  drop.classList.add("open");
+  setTimeout(() => document.getElementById(`scanNewBarangNama_${i}`)?.focus(), 50);
+}
+window.openScanCreateBarang = openScanCreateBarang;
+
+async function scanCreateBarangSubmit(i) {
+  const nama     = document.getElementById(`scanNewBarangNama_${i}`)?.value?.trim();
+  const satuan   = document.getElementById(`scanNewBarangSatuan_${i}`)?.value?.trim();
+  const kategori = document.getElementById(`scanNewBarangKategori_${i}`)?.value?.trim();
+  const errEl    = document.getElementById(`scanCreateBarangErr_${i}`);
+
+  if (!nama)   { if(errEl){errEl.textContent='Nama barang wajib diisi';errEl.style.display='block';} return; }
+  if (!satuan) { if(errEl){errEl.textContent='Satuan wajib diisi';errEl.style.display='block';} return; }
+  if (errEl) errEl.style.display = 'none';
+
+  const brandId = document.getElementById('brandSelect')?.value ||
+                  localStorage.getItem('activeBrand') || null;
+
+  try {
+    const payload = { nama, satuan, is_active: true };
+    if (kategori) payload.kategori = kategori;
+    if (brandId && brandId !== 'all') payload.brand_id = brandId;
+
+    const { data, error } = await window._sb.from('barang').insert(payload).select().single();
+    if (error) throw error;
+
+    // Tambahkan brand relation jika ada
+    if (brandId && brandId !== 'all') {
+      await window._sb.from('barang_brands').insert({ barang_id: data.id, brand_id: brandId }).select();
+    }
+
+    // Refresh cache lokal
+    if (window.allBarang) window.allBarang.unshift(data);
+
+    closeScanDropdowns();
+    selectScanBarang(i, data.id);
+
+    if (typeof showToast === 'function') showToast(`✓ Barang "${nama}" ditambahkan`, 'success');
+    if (typeof logActivity === 'function') logActivity('tambah', 'barang', nama, `Dibuat dari scan invoice`);
+  } catch(e) {
+    if(errEl){errEl.textContent='Gagal: '+e.message;errEl.style.display='block';}
+  }
+}
+window.scanCreateBarangSubmit = scanCreateBarangSubmit;
 
 // Simpan faktor satuan yang dipilih user — dipakai saat "Tambahkan ke Form"
 let _scanSatuanFaktor = {}; // { i: faktor saat ini }

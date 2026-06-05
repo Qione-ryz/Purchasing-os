@@ -11,13 +11,16 @@
   <script src="sidebar.js"></script>
   <style>
     /* SETTINGS LAYOUT */
-    .settings-grid { display:grid; grid-template-columns:200px 1fr; gap:20px; align-items:start; }
-    .settings-nav { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:sticky; top:88px; }
-    .settings-nav-item { display:flex; align-items:center; gap:10px; padding:13px 16px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); border-bottom:1px solid var(--border); transition:background .15s,color .15s; }
-    .settings-nav-item:last-child { border-bottom:none; }
+    .settings-grid { display:grid; grid-template-columns:220px 1fr; gap:20px; align-items:start; }
+    .settings-nav { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); position:sticky; top:88px; padding:8px; }
+    .settings-nav-group { margin-bottom:4px; }
+    .settings-nav-group:last-child { margin-bottom:0; }
+    .settings-nav-divider { height:1px; background:var(--border); margin:6px 4px; }
+    .settings-nav-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:6px 10px 2px; opacity:.6; }
+    .settings-nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); border-radius:8px; margin-bottom:1px; transition:background .15s,color .15s; }
     .settings-nav-item:hover { background:var(--surface2); color:var(--text); }
-    .settings-nav-item.active { background:rgba(0,212,255,0.08); color:var(--accent); border-left:2px solid var(--accent); }
-    .settings-nav-icon { font-size:16px; }
+    .settings-nav-item.active { background:rgba(0,212,255,0.1); color:var(--accent); font-weight:600; }
+    .settings-nav-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
 
     /* PANELS */
     .panel { display:none; }
@@ -35,7 +38,19 @@
     .brand-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
     .brand-info-name { font-size:14px; font-weight:600; }
     .brand-info-id { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
+    .brand-stats { display:flex; align-items:center; gap:10px; margin-top:4px; }
+    .brand-stat { font-size:11px; color:var(--muted); }
     .brand-right { display:flex; align-items:center; gap:8px; }
+    .satuan-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+    .satuan-chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); transition:border-color .15s,background .15s; }
+    .satuan-chip:hover { border-color:rgba(0,212,255,0.3); background:var(--surface2); }
+    .satuan-chip span { font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .satuan-chip-actions { display:flex; gap:4px; flex-shrink:0; }
+    .satuan-chip-btn { background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; display:flex; align-items:center; border-radius:5px; transition:color .15s,background .15s; }
+    .satuan-chip-btn:hover { color:var(--accent); background:rgba(0,212,255,0.08); }
+    .satuan-chip-btn.del:hover { color:var(--danger); background:rgba(255,77,106,0.08); }
+    @media(max-width:768px){ .satuan-grid{ grid-template-columns:repeat(3,1fr); } }
+    @media(max-width:480px){ .satuan-grid{ grid-template-columns:repeat(2,1fr); } }
 
     /* BRAND COLOR PICKER */
     .color-picker-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
@@ -65,14 +80,6 @@
     @media (max-width:900px) { .settings-grid { grid-template-columns:1fr; } .settings-nav { position:static; display:flex; overflow-x:auto; } .settings-nav-item { white-space:nowrap; border-bottom:none; border-right:1px solid var(--border); } .settings-nav-item:last-child { border-right:none; } .settings-nav-item.active { border-left:none; border-bottom:2px solid var(--accent); } }
     @media (max-width:768px) { .field-row { grid-template-columns:1fr; } }
 
-    /* HAPUS DATA PANEL — komponen berulang */
-    .hapus-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
-    .hapus-brand-wrap { flex:1; min-width:160px; }
-    .hapus-brand-wrap label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; display:block; margin-bottom:6px; }
-    .hapus-brand-wrap select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:13px; padding:9px 12px; outline:none; }
-    .hapus-info { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
-    .hapus-reset-warning { font-size:13px; color:var(--muted); padding:12px; background:rgba(248,113,113,0.06); border-radius:8px; border:1px solid rgba(248,113,113,0.2); }
-    .hapus-reset-btns { display:flex; gap:10px; flex-wrap:wrap; }
 
     /* PROFILE */
     .profile-name  { font-size:18px; font-weight:700; }
@@ -86,26 +93,36 @@
     .import-card-sub   { font-size:12px; color:var(--muted); margin-top:3px; }
 
     /* THEME OPTIONS */
-    .theme-opt { padding:16px; border-radius:10px; cursor:pointer; text-align:center; transition:all .2s; }
-    .theme-opt-icon  { font-size:24px; margin-bottom:8px; }
+    .theme-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .theme-opt { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:10px; cursor:pointer; transition:all .2s; border:1px solid var(--border); background:var(--bg); }
+    .theme-opt:hover { background:var(--surface2); border-color:rgba(0,212,255,0.25); }
+    .theme-opt.active { border:2px solid var(--accent); background:rgba(0,212,255,0.05); }
+    .theme-opt-icon  { font-size:26px; line-height:1; flex-shrink:0; }
+    .theme-opt-body  { flex:1; }
     .theme-opt-label { font-size:13px; font-weight:600; }
-    .theme-opt-sub   { font-size:11px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
+    .theme-opt-sub   { font-size:11px; color:var(--muted); margin-top:2px; }
+    .theme-opt-check { width:18px; height:18px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:10px; color:#000; font-weight:700; flex-shrink:0; opacity:0; transition:opacity .2s; }
+    .theme-opt.active .theme-opt-check { opacity:1; }
 
     /* PPN */
-    .ppn-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:18px; font-weight:600; padding:10px 14px; outline:none; transition:border-color .2s; }
-    .ppn-input:focus { border-color:var(--accent); }
-    .ppn-badge { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--accent2); }
-    .ppn-hint  { margin-top:12px; font-size:12px; color:var(--muted); font-family:var(--mono); padding:8px 12px; background:var(--bg); border-radius:6px; border:1px solid var(--border); }
+    .ppn-row { display:flex; align-items:center; gap:12px; }
+    .ppn-input-wrap { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:0 14px; transition:border-color .2s; }
+    .ppn-input-wrap:focus-within { border-color:var(--accent); }
+    .ppn-input { width:80px; background:transparent; border:none; color:var(--text); font-family:var(--mono); font-size:20px; font-weight:700; padding:10px 0; outline:none; }
+    .ppn-input-unit { font-family:var(--mono); font-size:16px; color:var(--muted); }
+    .ppn-badge { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--accent); background:rgba(0,212,255,0.1); padding:3px 10px; border-radius:20px; border:1px solid rgba(0,212,255,0.2); }
+    .ppn-hint  { margin-top:12px; font-size:12px; color:var(--muted); padding:8px 12px; background:var(--bg); border-radius:6px; border:1px solid var(--border); }
+    .ppn-field-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:8px; display:block; }
 
     /* SISTEM INFO */
-    .sysinfo-list { display:flex; flex-direction:column; gap:10px; font-size:13px; }
-    .sysinfo-row  { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+    .sysinfo-list { display:flex; flex-direction:column; font-size:13px; }
+    .sysinfo-row  { display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--border); gap:16px; }
     .sysinfo-row:last-child { border-bottom:none; }
-    .sysinfo-key  { color:var(--muted); }
-    .sysinfo-val  { font-family:var(--mono); }
-    .sysinfo-val.feature { font-size:11px; color:var(--accent2); }
+    .sysinfo-key  { color:var(--muted); flex-shrink:0; }
+    .sysinfo-val  { font-family:var(--mono); font-size:13px; text-align:right; }
+    .sysinfo-val.feature { font-size:11px; color:var(--accent2); text-align:right; }
 
-    /* DANGER ZONE ACTION ROW */
+    /* DANGER ZONE */
     .dz-action-title { font-size:14px; font-weight:500; }
     .dz-action-sub   { font-size:12px; color:var(--muted); margin-top:3px; }
 
@@ -114,11 +131,17 @@
     .assign-opt-sub   { font-size:11px; color:var(--muted); margin-top:1px; }
     .assign-section-label { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:14px; }
 
-    /* LOG TABLE (JS-generated) */
-    .log-date   { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
-    .log-user   { font-weight:500; font-size:13px; }
-    .log-email  { font-size:11px; color:var(--muted); font-family:var(--mono); }
-    .log-detail { font-size:12px; color:var(--muted); font-family:var(--mono); }
+    /* LOG TABLE */
+    .log-date-sep td { background:var(--bg); padding:6px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); border-bottom:1px solid var(--border); }
+    .log-time   { font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; }
+    .log-user   { font-weight:600; font-size:13px; line-height:1.3; }
+    .log-email  { font-size:10px; color:var(--muted); opacity:.65; margin-top:2px; }
+    .log-detail { font-size:12px; color:var(--muted); font-family:var(--mono); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .log-item   { font-size:13px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .log-badges { display:flex; gap:8px; align-items:center; white-space:nowrap; }
+    tr.log-tambah td:first-child { border-left:3px solid var(--accent3); }
+    tr.log-edit   td:first-child { border-left:3px solid var(--accent); }
+    tr.log-hapus  td:first-child { border-left:3px solid var(--danger); }
 
     /* KODE ORDER INFO — notice box */
     .kode-notice { background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.15); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--accent); font-family:var(--mono); margin-bottom:16px; }
@@ -203,38 +226,42 @@
 
       <!-- SETTINGS NAV -->
       <div class="settings-nav">
-        <div class="settings-nav-item active" onclick="switchPanel('brands')">
+        <div class="settings-nav-label">Master Data</div>
+        <div class="settings-nav-item active" data-panel="brands" onclick="switchPanel('brands')">
           <span class="settings-nav-icon">🏷️</span> Brand
         </div>
-        <div class="settings-nav-item" onclick="switchPanel('barang-store')">
+        <div class="settings-nav-item" data-panel="barang-store" onclick="switchPanel('barang-store')">
           <span class="settings-nav-icon">📦</span> Barang Store
         </div>
-        <div class="settings-nav-item" onclick="switchPanel('users')">
-          <span class="settings-nav-icon">👥</span> Pengguna
-        </div>
-        <div class="settings-nav-item" onclick="switchPanel('kode-order')">
-          <span class="settings-nav-icon">🔑</span> Kode Order
-        </div>
-        <div class="settings-nav-item" onclick="switchPanel('profile')">
-          <span class="settings-nav-icon">👤</span> Profil Saya
-        </div>
-        <div class="settings-nav-item" onclick="switchPanel('import')">
-          <span class="settings-nav-icon">📥</span> Import Data
-        </div>
-        <div class="settings-nav-item" onclick="switchPanel('satuan')">
+        <div class="settings-nav-item" data-panel="satuan" onclick="switchPanel('satuan')">
           <span class="settings-nav-icon">📐</span> Satuan
         </div>
-        <div class="settings-nav-item" onclick="switchPanel('kategori')">
+        <div class="settings-nav-item" data-panel="kategori" onclick="switchPanel('kategori')">
           <span class="settings-nav-icon">🗂️</span> Kategori
         </div>
-        <div class="settings-nav-item" onclick="switchPanel('system')">
+
+        <div class="settings-nav-divider"></div>
+        <div class="settings-nav-label">Akun & Akses</div>
+        <div class="settings-nav-item" data-panel="users" onclick="switchPanel('users')">
+          <span class="settings-nav-icon">👥</span> Pengguna
+        </div>
+        <div class="settings-nav-item" data-panel="kode-order" onclick="switchPanel('kode-order')">
+          <span class="settings-nav-icon">🔑</span> Kode Order
+        </div>
+        <div class="settings-nav-item" data-panel="profile" onclick="switchPanel('profile')">
+          <span class="settings-nav-icon">👤</span> Profil Saya
+        </div>
+
+        <div class="settings-nav-divider"></div>
+        <div class="settings-nav-label">Sistem</div>
+        <div class="settings-nav-item" data-panel="import" onclick="switchPanel('import')">
+          <span class="settings-nav-icon">📥</span> Import Data
+        </div>
+        <div class="settings-nav-item" data-panel="system" onclick="switchPanel('system')">
           <span class="settings-nav-icon">⚙️</span> Sistem
         </div>
-        <div class="settings-nav-item" onclick="switchPanel('log')">
+        <div class="settings-nav-item" data-panel="log" onclick="switchPanel('log')">
           <span class="settings-nav-icon">📋</span> Log Aktivitas
-        </div>
-        <div class="settings-nav-item" onclick="switchPanel('hapus')">
-          <span class="settings-nav-icon">🗑️</span> Hapus Data
         </div>
       </div>
       <div>
@@ -396,21 +423,6 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Undang Pengguna Baru</div>
-                <div class="card-desc">Bagikan link pendaftaran ke rekan kerja</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="invite-link-box">
-                <span id="inviteLink" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
-                <button class="btn btn-ghost btn-sm" onclick="copyInviteLink()" style="flex-shrink:0">Salin</button>
-              </div>
-              <div class="field-hint" style="margin-top:8px">Pengguna yang mendaftar lewat link ini akan otomatis mendapat role "staff". Admin bisa mengubah role setelahnya.</div>
-            </div>
-          </div>
         </div>
 
         <!-- ═══════════════════════════════ KODE ORDER ═══════════════════════════════ -->
@@ -511,6 +523,10 @@
                   <span class="import-card-icon">📈</span>
                   <div><div class="import-card-title">Import Harga</div><div class="import-card-sub">Upload riwayat harga</div></div>
                 </a>
+                <a href="import.html?type=pastry" class="import-card">
+                  <span class="import-card-icon">🥐</span>
+                  <div><div class="import-card-title">Import Pastry</div><div class="import-card-sub">Upload daftar produk pastry</div></div>
+                </a>
               </div>
             </div>
           </div>
@@ -555,16 +571,22 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Tema Tampilan</div></div>
             <div class="card-body">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div id="themeOptDark" onclick="setTheme('dark')" class="theme-opt" style="border:2px solid var(--accent);background:rgba(0,212,255,0.05)">
+              <div class="theme-grid">
+                <div id="themeOptDark" onclick="setTheme('dark')" class="theme-opt active">
                   <div class="theme-opt-icon">🌙</div>
-                  <div class="theme-opt-label">Dark</div>
-                  <div class="theme-opt-sub">Mode gelap (default)</div>
+                  <div class="theme-opt-body">
+                    <div class="theme-opt-label">Dark</div>
+                    <div class="theme-opt-sub">Mode gelap (default)</div>
+                  </div>
+                  <div class="theme-opt-check">✓</div>
                 </div>
-                <div id="themeOptLight" onclick="setTheme('light')" class="theme-opt" style="border:1px solid var(--border)">
+                <div id="themeOptLight" onclick="setTheme('light')" class="theme-opt">
                   <div class="theme-opt-icon">☀️</div>
-                  <div class="theme-opt-label">Light</div>
-                  <div class="theme-opt-sub">Mode terang</div>
+                  <div class="theme-opt-body">
+                    <div class="theme-opt-label">Light</div>
+                    <div class="theme-opt-sub">Mode terang</div>
+                  </div>
+                  <div class="theme-opt-check">✓</div>
                 </div>
               </div>
             </div>
@@ -580,18 +602,16 @@
               <span id="ppnCurrentBadge" class="ppn-badge">—%</span>
             </div>
             <div class="card-body">
-              <div style="display:flex;align-items:center;gap:12px">
-                <div style="flex:1">
-                  <label class="ppn-field-label">Persentase PPN (%)</label>
-                  <input type="number" id="ppnInput" min="0" max="99" step="0.1" value="11" class="ppn-input"
-                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+              <label class="ppn-field-label">Persentase PPN</label>
+              <div class="ppn-row">
+                <div class="ppn-input-wrap">
+                  <input type="number" id="ppnInput" min="0" max="99" step="0.1" value="11" class="ppn-input"/>
+                  <span class="ppn-input-unit">%</span>
                 </div>
-                <button class="btn btn-primary" onclick="savePPN()" style="white-space:nowrap;align-self:flex-end">Simpan PPN</button>
+                <button class="btn btn-primary" onclick="savePPN()">Simpan PPN</button>
               </div>
-              <div class="ppn-hint">
-                ℹ Perubahan PPN disimpan di database dan berlaku untuk semua pengguna secara real-time. Tidak perlu edit kode.
-              </div>
-              <div id="ppnHistory" style="margin-top:14px"></div>
+              <div class="ppn-hint">ℹ Perubahan PPN disimpan di database dan berlaku untuk semua pengguna secara real-time.</div>
+              <div id="ppnHistory" style="margin-top:12px"></div>
             </div>
           </div>
 
@@ -670,99 +690,6 @@
           </div>
         </div>
 
-        <!-- ═══════════════════════════════ HAPUS DATA ═══════════════════════════════ -->
-        <div class="panel" id="panel-hapus">
-
-          <!-- Hapus Barang per Brand -->
-          <div class="danger-zone card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Hapus Barang berdasarkan Brand</div>
-                <div class="card-desc">Hapus semua barang yang terdaftar di brand tertentu</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="hapus-row">
-                <div class="hapus-brand-wrap">
-                  <label>Pilih Brand</label>
-                  <select id="hapusBarangBrand">
-                    <option value="">— Pilih Brand —</option>
-                  </select>
-                </div>
-                <button class="btn btn-danger" onclick="hapusBarangByBrand()" style="white-space:nowrap">🗑 Hapus Barang</button>
-              </div>
-              <div id="hapusBarangInfo" class="hapus-info"></div>
-            </div>
-          </div>
-
-          <!-- Hapus Vendor per Brand -->
-          <div class="danger-zone card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Hapus Vendor berdasarkan Brand</div>
-                <div class="card-desc">Hapus semua vendor yang terdaftar di brand tertentu</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="hapus-row">
-                <div class="hapus-brand-wrap">
-                  <label>Pilih Brand</label>
-                  <select id="hapusVendorBrand">
-                    <option value="">— Pilih Brand —</option>
-                  </select>
-                </div>
-                <button class="btn btn-danger" onclick="hapusVendorByBrand()" style="white-space:nowrap">🗑 Hapus Vendor</button>
-              </div>
-              <div id="hapusVendorInfo" class="hapus-info"></div>
-            </div>
-          </div>
-
-          <!-- Hapus Riwayat Pembelian per Brand -->
-          <div class="danger-zone card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Hapus Riwayat Pembelian berdasarkan Brand</div>
-                <div class="card-desc">Hapus semua transaksi pembelian di brand tertentu</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="hapus-row">
-                <div class="hapus-brand-wrap">
-                  <label>Pilih Brand</label>
-                  <select id="hapusBelisBrand">
-                    <option value="">— Pilih Brand —</option>
-                  </select>
-                </div>
-                <button class="btn btn-danger" onclick="hapusBelisByBrand()" style="white-space:nowrap">🗑 Hapus Pembelian</button>
-              </div>
-              <div id="hapusBeliInfo" class="hapus-info"></div>
-            </div>
-          </div>
-
-          <!-- Hapus Semua Data -->
-          <div class="danger-zone card">
-            <div class="card-header">
-              <div class="card-title">Reset Semua Data</div>
-              <div class="card-desc" style="color:var(--danger)">Menghapus SELURUH data — tidak bisa dikembalikan</div>
-            </div>
-            <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="hapus-reset-warning">
-                  ⚠ Operasi ini akan menghapus semua data yang dipilih. Brand dan pengguna <strong>tidak</strong> ikut dihapus.
-                </div>
-                <div class="hapus-reset-btns">
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('barang')">Hapus Semua Barang</button>
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('vendor')">Hapus Semua Vendor</button>
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('pembelian')">Hapus Semua Pembelian</button>
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('harga')">Hapus Semua Riwayat Harga</button>
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('stockopname')">Hapus Semua Stock Opname</button>
-                  <button class="btn btn-danger btn-sm" onclick="hapusSemua('purchaseplan')">Hapus Semua Purchase Plan</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
 
       </div>
     </div>
@@ -1016,6 +943,15 @@
 <script src="ppn.js"></script>
 <script src="logger.js"></script>
 <script>
+  function applyThemeUI(mode) {
+    document.body.classList.toggle('light-mode', mode === 'light');
+    const dark  = document.getElementById('themeOptDark');
+    const light = document.getElementById('themeOptLight');
+    if (!dark || !light) return;
+    dark.classList.toggle('active', mode !== 'light');
+    light.classList.toggle('active', mode === 'light');
+  }
+
   (async () => {
     window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 
@@ -1064,19 +1000,42 @@
     }
 
     applyThemeUI(localStorage.getItem('appTheme') || 'dark');
-    setInviteLink();
 
     /* ── Load brands ── */
     await loadBrands();
+
+    const savedPanel = localStorage.getItem('settingsPanel');
+    if (savedPanel && savedPanel !== 'brands' && document.getElementById('panel-' + savedPanel)) {
+      switchPanel(savedPanel, false);
+    }
+
     hideLoader();
   })();
 
   /* BRANDS */
   async function loadBrands() {
     try {
-      const { data, error } = await window._sb.from('brands').select('*').order('nama');
+      const [{ data, error }, { data: bb }, { data: vb }, { data: rb }] = await Promise.all([
+        window._sb.from('brands').select('*').order('nama'),
+        window._sb.from('barang_brands').select('brand_id'),
+        window._sb.from('vendor_brands').select('brand_id'),
+        window._sb.from('riwayat_beli').select('brand_id'),
+      ]);
       if (error) throw error;
-      window.allBrands = data || [];
+
+      const countMap = (rows, key) => (rows || []).reduce((acc, r) => {
+        acc[r[key]] = (acc[r[key]] || 0) + 1; return acc;
+      }, {});
+      const barangCount  = countMap(bb,  'brand_id');
+      const vendorCount  = countMap(vb,  'brand_id');
+      const beliCount    = countMap(rb,  'brand_id');
+
+      window.allBrands = (data || []).map(b => ({
+        ...b,
+        _cBarang: barangCount[b.id]  || 0,
+        _cVendor: vendorCount[b.id]  || 0,
+        _cBeli:   beliCount[b.id]    || 0,
+      }));
 
       /* Sidebar select */
       const sel = document.getElementById('brandSelect');
@@ -1105,7 +1064,11 @@
           <div class="brand-dot" style="background:${color}"></div>
           <div>
             <div class="brand-info-name">${b.nama}</div>
-            ${b.deskripsi ? `<div class="brand-info-id">${b.deskripsi}</div>` : ''}
+            <div class="brand-stats">
+              <span class="brand-stat">📦 ${b._cBarang} barang</span>
+              <span class="brand-stat">🏪 ${b._cVendor} vendor</span>
+              <span class="brand-stat">🛒 ${b._cBeli} pembelian</span>
+            </div>
           </div>
         </div>
         <div class="brand-right">
@@ -1746,15 +1709,6 @@
     }
   }
 
-  /* INVITE LINK */
-  function setInviteLink() {
-    document.getElementById('inviteLink').textContent = location.origin + '/index.html';
-  }
-  function copyInviteLink() {
-    navigator.clipboard.writeText(location.origin+'/index.html')
-      .then(()=>showToast('Link disalin!','success'))
-      .catch(()=>showToast('Gagal menyalin','error'));
-  }
 
   /* THEME */
   function setTheme(mode) {
@@ -1762,24 +1716,6 @@
     applyThemeUI(mode);
     showToast(mode === 'light' ? '☀️ Light mode aktif' : '🌙 Dark mode aktif', 'success');
   }
-  function applyThemeUI(mode) {
-    document.body.classList.toggle('light-mode', mode === 'light');
-    const dark  = document.getElementById('themeOptDark');
-    const light = document.getElementById('themeOptLight');
-    if (!dark || !light) return;
-    if (mode === 'light') {
-      light.style.border = '2px solid var(--accent)';
-      light.style.background = 'rgba(0,212,255,0.05)';
-      dark.style.border  = '1px solid var(--border)';
-      dark.style.background = '';
-    } else {
-      dark.style.border  = '2px solid var(--accent)';
-      dark.style.background = 'rgba(0,212,255,0.05)';
-      light.style.border = '1px solid var(--border)';
-      light.style.background = '';
-    }
-  }
-
   /* PPN */
   async function loadPPN() {
     try {
@@ -1822,15 +1758,16 @@
   }
 
   /* PANEL SWITCH */
-  function switchPanel(name) {
+  function switchPanel(name, fromNav = true) {
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.settings-nav-item').forEach(n=>n.classList.remove('active'));
     document.getElementById('panel-'+name).classList.add('active');
-    event.currentTarget.classList.add('active');
+    const target = fromNav ? event.currentTarget : document.querySelector(`.settings-nav-item[data-panel="${name}"]`);
+    if (target) target.classList.add('active');
+    localStorage.setItem('settingsPanel', name);
     if (name === 'users')         window.loadUsers();
     if (name === 'system')        loadPPN();
     if (name === 'log')           loadLog();
-    if (name === 'hapus')         initHapusPanel();
     if (name === 'satuan')        window.loadSatuan();
     if (name === 'kategori')      window.loadKategoriSettings();
     if (name === 'kode-order')    window.loadKodeOrder();
@@ -2217,26 +2154,21 @@
         return;
       }
 
-      const AKSI_BADGE = {
-        tambah: 'background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid rgba(56,217,169,0.3)',
-        edit:   'background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.22)',
-        hapus:  'background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.25)'
-      };
+      const AKSI_CLS  = { tambah:'badge-green', edit:'badge-blue', hapus:'badge-red' };
       const TIPE_LABEL = { barang:'Barang', vendor:'Vendor', pembelian:'Pembelian', harga:'Harga', brand:'Brand', user_role:'Role', stock_opname:'Stock Opname', plan:'Purchase Plan' };
 
       tbody.innerHTML = rows.map(r => {
         const tgl = new Date(r.created_at).toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        const aksiStyle = AKSI_BADGE[r.aksi] || '';
-        return `<tr>
-          <td class="log-date">${tgl}</td>
+        return `<tr class="log-${r.aksi||''}">
+          <td class="log-time" style="white-space:nowrap">${tgl}</td>
           <td>
             <div class="log-user">${r.user_nama||'—'}</div>
             <div class="log-email">${r.user_email||''}</div>
           </td>
-          <td><span class="badge" style="${aksiStyle}">${r.aksi}</span></td>
+          <td><span class="badge ${AKSI_CLS[r.aksi]||'badge-gray'}">${r.aksi||'—'}</span></td>
           <td><span class="badge badge-gray">${TIPE_LABEL[r.tipe]||r.tipe}</span></td>
-          <td style="font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.target_nama||''}">${r.target_nama||'—'}</td>
-          <td class="log-detail">${r.detail||'—'}</td>
+          <td class="log-item" title="${r.target_nama||''}">${r.target_nama||'—'}</td>
+          <td class="log-detail" title="${r.detail||''}">${r.detail||'—'}</td>
         </tr>`;
       }).join('');
 
@@ -2261,147 +2193,16 @@
   }
   window.loadLog = loadLog;
 
-  /* ══ HAPUS DATA ══ */
-  function initHapusPanel() {
-    ['hapusBarangBrand','hapusVendorBrand','hapusBelisBrand'].forEach(id => {
-      const sel = document.getElementById(id);
-      sel.innerHTML = '<option value="">— Pilih Brand —</option>';
-      (window.allBrands||[]).forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b.id; opt.textContent = b.nama; sel.appendChild(opt);
-      });
-    });
-    document.getElementById('hapusBarangBrand').onchange = () => previewHapus('barang');
-    document.getElementById('hapusVendorBrand').onchange = () => previewHapus('vendor');
-    document.getElementById('hapusBelisBrand').onchange  = () => previewHapus('beli');
-  }
-
-  async function previewHapus(tipe) {
-    const selMap  = { barang:'hapusBarangBrand', vendor:'hapusVendorBrand', beli:'hapusBelisBrand' };
-    const infoMap = { barang:'hapusBarangInfo',  vendor:'hapusVendorInfo',  beli:'hapusBeliInfo' };
-    const brandId = document.getElementById(selMap[tipe]).value;
-    const infoEl  = document.getElementById(infoMap[tipe]);
-    if (!brandId) { infoEl.textContent = ''; return; }
-    infoEl.textContent = 'Menghitung...';
-    try {
-      let c, label;
-      if (tipe === 'barang') {
-        ({ count: c } = await window._sb.from('barang_brands').select('*',{count:'exact',head:true}).eq('brand_id', brandId));
-        label = `${c||0} barang akan dihapus`;
-      } else if (tipe === 'vendor') {
-        ({ count: c } = await window._sb.from('vendor_brands').select('*',{count:'exact',head:true}).eq('brand_id', brandId));
-        label = `${c||0} vendor akan dihapus`;
-      } else {
-        ({ count: c } = await window._sb.from('riwayat_beli').select('*',{count:'exact',head:true}).eq('brand_id', brandId));
-        label = `${c||0} transaksi akan dihapus`;
-      }
-      infoEl.textContent = label;
-      infoEl.style.color = c ? 'var(--danger)' : 'var(--muted)';
-    } catch(e) { infoEl.textContent = 'Gagal: '+e.message; }
-  }
-
-  async function hapusBarangByBrand() {
-    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
-    const brandId   = document.getElementById('hapusBarangBrand').value;
-    const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
-    if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
-    if (!confirm(`Hapus SEMUA barang di brand "${brandNama}"?\n\nRiwayat harga terkait juga ikut dihapus. Tidak bisa dibatalkan.`)) return;
-    try {
-      const { data: bb } = await window._sb.from('barang_brands').select('barang_id').eq('brand_id', brandId);
-      const ids = (bb||[]).map(x=>x.barang_id);
-      if (!ids.length) { showToast('Tidak ada barang di brand ini', 'error'); return; }
-      await window._sb.from('barang_brands').delete().in('barang_id', ids);
-      await window._sb.from('riwayat_harga').delete().in('barang_id', ids);
-      await window._sb.from('barang').delete().in('id', ids);
-      logActivity('hapus', 'barang', `Brand: ${brandNama}`, `${ids.length} barang dihapus`);
-      showToast(`✓ ${ids.length} barang dihapus`, 'success');
-      document.getElementById('hapusBarangInfo').textContent = '';
-      document.getElementById('hapusBarangBrand').value = '';
-    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
-  }
-
-  async function hapusVendorByBrand() {
-    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
-    const brandId   = document.getElementById('hapusVendorBrand').value;
-    const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
-    if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
-    if (!confirm(`Hapus SEMUA vendor di brand "${brandNama}"?\n\nTidak bisa dibatalkan.`)) return;
-    try {
-      const { data: vb } = await window._sb.from('vendor_brands').select('vendor_id').eq('brand_id', brandId);
-      const ids = (vb||[]).map(x=>x.vendor_id);
-      if (!ids.length) { showToast('Tidak ada vendor di brand ini', 'error'); return; }
-      await window._sb.from('vendor_brands').delete().in('vendor_id', ids);
-      await window._sb.from('vendor').delete().in('id', ids);
-      logActivity('hapus', 'vendor', `Brand: ${brandNama}`, `${ids.length} vendor dihapus`);
-      showToast(`✓ ${ids.length} vendor dihapus`, 'success');
-      document.getElementById('hapusVendorInfo').textContent = '';
-      document.getElementById('hapusVendorBrand').value = '';
-    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
-  }
-
-  async function hapusBelisByBrand() {
-    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
-    const brandId   = document.getElementById('hapusBelisBrand').value;
-    const brandNama = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
-    if (!brandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
-    if (!confirm(`Hapus SEMUA riwayat pembelian di brand "${brandNama}"?\n\nRiwayat harga terkait juga ikut dihapus. Tidak bisa dibatalkan.`)) return;
-    try {
-      const { data: rows } = await window._sb.from('riwayat_beli').select('id').eq('brand_id', brandId);
-      const ids = (rows||[]).map(x=>x.id);
-      if (!ids.length) { showToast('Tidak ada pembelian di brand ini', 'error'); return; }
-      await window._sb.from('riwayat_harga').delete().not('beli_id','is',null).in('beli_id', ids);
-      await window._sb.from('riwayat_beli_items').delete().in('beli_id', ids);
-      await window._sb.from('riwayat_beli').delete().eq('brand_id', brandId);
-      logActivity('hapus', 'pembelian', `Brand: ${brandNama}`, `${ids.length} transaksi dihapus`);
-      showToast(`✓ ${ids.length} transaksi dihapus`, 'success');
-      document.getElementById('hapusBeliInfo').textContent = '';
-      document.getElementById('hapusBelisBrand').value = '';
-    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
-  }
-
-  async function hapusSemua(tipe) {
-    if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
-    const labelMap = { barang:'semua barang', vendor:'semua vendor', pembelian:'semua riwayat pembelian', harga:'semua riwayat harga', stockopname:'semua data stock opname', purchaseplan:'semua purchase plan' };
-    if (!confirm(`Hapus ${labelMap[tipe]}?\n\nAksi ini TIDAK BISA dibatalkan.`)) return;
-    if (!confirm(`Konfirmasi sekali lagi — hapus ${labelMap[tipe]} secara permanen?`)) return;
-    try {
-      if (tipe === 'barang') {
-        await window._sb.from('barang_brands').delete().neq('barang_id','00000000-0000-0000-0000-000000000000');
-        await window._sb.from('riwayat_harga').delete().eq('sumber','survey');
-        await window._sb.from('barang').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      } else if (tipe === 'vendor') {
-        await window._sb.from('vendor_brands').delete().neq('vendor_id','00000000-0000-0000-0000-000000000000');
-        await window._sb.from('vendor').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      } else if (tipe === 'pembelian') {
-        await window._sb.from('riwayat_harga').delete().not('beli_id','is',null);
-        await window._sb.from('riwayat_beli_items').delete().neq('beli_id','00000000-0000-0000-0000-000000000000');
-        await window._sb.from('riwayat_beli').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      } else if (tipe === 'harga') {
-        await window._sb.from('riwayat_harga').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      } else if (tipe === 'stockopname') {
-        await window._sb.from('stock_opname').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      } else if (tipe === 'purchaseplan') {
-        await window._sb.from('purchase_plan').delete().neq('id','00000000-0000-0000-0000-000000000000');
-      }
-      logActivity('hapus', tipe, `Reset ${labelMap[tipe]}`, 'hapus semua');
-      showToast(`✓ ${labelMap[tipe]} berhasil dihapus`, 'success');
-    } catch(e) { showToast('Gagal: '+e.message, 'error'); }
-  }
-
   window.openBrandModal=openBrandModal; window.closeBrandModal=closeBrandModal;
   window.saveBrand=saveBrand; window.deleteBrand=deleteBrand; window.pickColor=pickColor;
   window.onToggleAssign=onToggleAssign; window.onModeChange=onModeChange;
   window.loadChecklist=loadChecklist; window.populateSrcBrandSelect=populateSrcBrandSelect;
   window.saveProfile=saveProfile; window.changePassword=changePassword;
-  window.copyInviteLink=copyInviteLink;
-  window.clearLocalCache=clearLocalCache; window.doLogout=doLogout;
+window.clearLocalCache=clearLocalCache; window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
   window.openCreateUserModal=openCreateUserModal; window.closeCreateUserModal=closeCreateUserModal; window.createUser=createUser;
   window.openRoleModal=openRoleModal; window.closeRoleModal=closeRoleModal; window.saveRole=saveRole;
   window.setTheme=setTheme; window.savePPN=savePPN;
-  window.initHapusPanel=initHapusPanel; window.hapusBarangByBrand=hapusBarangByBrand;
-  window.hapusVendorByBrand=hapusVendorByBrand; window.hapusBelisByBrand=hapusBelisByBrand;
-  window.hapusSemua=hapusSemua;
 </script>
 
 <!-- ═══ MODAL SATUAN ═══ -->
@@ -2465,14 +2266,19 @@ function renderSatuanList() {
   if (!window.allSatuan?.length) {
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Belum ada satuan. Tambahkan sekarang.</div>'; return;
   }
-  list.innerHTML = window.allSatuan.map(s => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)">
-      <span class="simple-list-item-name">${s.nama}</span>
-      <div style="display:flex;gap:8px">
-        <button onclick="openSatuanModal('${s.id}')" class="btn btn-ghost btn-sm">Edit</button>
-        <button onclick="deleteSatuan('${s.id}','${s.nama}')" class="btn btn-danger btn-sm">Hapus</button>
+  list.innerHTML = `<div class="satuan-grid">${window.allSatuan.map(s => `
+    <div class="satuan-chip">
+      <span>${s.nama}</span>
+      <div class="satuan-chip-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openSatuanModal('${s.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSatuan('${s.id}','${s.nama}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
       </div>
-    </div>`).join('');
+    </div>`).join('')}</div>`;
 }
 
 function openSatuanModal(id) {
@@ -2536,14 +2342,19 @@ function renderKategoriList() {
   if (!window.allKategori?.length) {
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Belum ada kategori. Tambahkan sekarang.</div>'; return;
   }
-  list.innerHTML = window.allKategori.map(k => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)">
-      <span class="simple-list-item-name">${k.nama}</span>
-      <div style="display:flex;gap:8px">
-        <button onclick="openKategoriModal('${k.id}')" class="btn btn-ghost btn-sm">Edit</button>
-        <button onclick="deleteKategori('${k.id}','${k.nama}')" class="btn btn-danger btn-sm">Hapus</button>
+  list.innerHTML = `<div class="satuan-grid">${window.allKategori.map(k => `
+    <div class="satuan-chip">
+      <span>${k.nama}</span>
+      <div class="satuan-chip-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openKategoriModal('${k.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteKategori('${k.id}','${k.nama}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
       </div>
-    </div>`).join('');
+    </div>`).join('')}</div>`;
 }
 
 function openKategoriModal(id) {
