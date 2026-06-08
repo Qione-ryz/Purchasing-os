@@ -1285,7 +1285,9 @@ function applyFilters() {
     // Multi-brand filter
     if (_selectedBrands.length > 0 && !_selectedBrands.includes(o.brand_id)) return false;
     // Status filter (hanya di mode aktif)
-    if (!_showCancelled && status) {
+    // Flat view: skip order-level status filter — item-level filter di renderFlatItems yang berlaku
+    // (item 'pending' bisa ada di order 'partial', dst.)
+    if (!_showCancelled && status && PageState.viewMode !== 'flat') {
       if (status === 'ordered') {
         // Filter order yang punya ≥1 item dengan status_item 'ordered'
         const hasOrdered = (PageState.allItemRows).some(it => it.order_id === o.id && it.status_item === 'ordered');
@@ -1483,6 +1485,7 @@ function toggleViewMode() {
           <th data-sort="harga" onclick="setFlatSort('harga')" style="cursor:pointer;user-select:none">Est. Harga <span class="sort-ind"></span></th>
           <th data-sort="status" onclick="setFlatSort('status')" style="cursor:pointer;user-select:none">Status <span class="sort-ind"></span></th>
           <th data-sort="progress" onclick="setFlatSort('progress')" style="cursor:pointer;user-select:none">Progress <span class="sort-ind"></span></th>
+          <th data-sort="tgl" onclick="setFlatSort('tgl')" style="cursor:pointer;user-select:none;white-space:nowrap">Tgl Order <span class="sort-ind"></span></th>
           <th style="text-align:right">Aksi</th>
         </tr>`
       : `<tr>
@@ -1585,11 +1588,17 @@ function renderFlatItems() {
     rows.sort((a, b) => dir * ((a.harga_estimasi || 0) - (b.harga_estimasi || 0)));
   } else if (sortKey === 'progress') {
     rows.sort((a, b) => dir * (_progPct(a) - _progPct(b)));
+  } else if (sortKey === 'tgl') {
+    rows.sort((a, b) => {
+      const da = orderMap[a.order_id]?.created_at || '';
+      const db = orderMap[b.order_id]?.created_at || '';
+      return dir * da.localeCompare(db);
+    });
   }
   _updateFlatSortIndicators();
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Tidak ada item ditemukan</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Tidak ada item ditemukan</div></div></td></tr>`;
     document.getElementById('paginationWrap').style.display = 'none';
     return;
   }
@@ -1602,8 +1611,9 @@ function renderFlatItems() {
     const o = orderMap[it.order_id] || {};
     const brandNama = brands[o.brand_id] || '—';
     const shortId   = (o.id || '').substring(0, 8).toUpperCase();
+    const tglOrder  = o.created_at ? new Date(o.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
     const extraBarangInfo = `<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:3px;display:flex;align-items:center;gap:5px">${_buildBrandTag(o.brand_id, brandNama)}<span style="color:var(--accent);opacity:0.7">#${shortId}</span></div>`;
-    return _renderItemRow(it, o, extraBarangInfo);
+    return _renderItemRow(it, o, extraBarangInfo, tglOrder);
   }).join('');
 
   renderPagination(total);
@@ -1854,6 +1864,21 @@ function toggleArsipTab() {
 async function _refreshDetailBody(orderId) {
   const modal = document.getElementById('modalDetail');
   if (!modal || !modal.classList.contains('show')) {
+    // Flat view: jangan buka modal — cukup reload data + render ulang tabel
+    if (PageState.viewMode === 'flat') {
+      // Update allItemRows dari DB lalu re-render
+      try {
+        const fresh = await supaGet('order_items', `order_id=eq.${orderId}&select=*&order=created_at`);
+        if (Array.isArray(fresh)) {
+          // Replace items milik order ini di allItemRows
+          PageState.allItemRows = PageState.allItemRows
+            .filter(it => it.order_id !== orderId)
+            .concat(fresh);
+        }
+      } catch(e) { /* silent */ }
+      applyFilters();
+      return;
+    }
     await openDetail(orderId);
     return;
   }
@@ -2205,7 +2230,7 @@ function _updateTableRowProgress(orderId, o, itemsArr) {
 
 // _refreshRowBadge — didefinisikan di bawah dekat _recalcOrderStatus
 
-function _renderItemRow(it, o, extraBarangInfo = '') {
+function _renderItemRow(it, o, extraBarangInfo = '', tglCell = '') {
     const faktor    = it.faktor_konversi || 1;
     const hasFaktor = it.satuan_db && faktor > 1;
     const qtyTerpenuhiOrder = hasFaktor ? (it.qty_terpenuhi / faktor) : it.qty_terpenuhi;
@@ -2336,6 +2361,7 @@ function _renderItemRow(it, o, extraBarangInfo = '') {
       </td>
       <td class="col-status" style="vertical-align:middle">${badgeCell}</td>
       <td class="col-progress" style="vertical-align:middle">${progressCell}</td>
+      ${tglCell ? `<td class="col-tgl" style="font-family:var(--mono);font-size:11px;color:var(--muted);vertical-align:middle;white-space:nowrap">${tglCell}</td>` : ''}
       <td class="col-aksi" style="text-align:right;vertical-align:middle">${aksiCell}</td>
     </tr>`;
 }
@@ -3142,6 +3168,16 @@ function goPage(p) {
 // UTILS
 // ═══════════════════════════════════════════════
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// Escape key closes the topmost visible modal
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  const modals = ['modalDetail', 'modalBeli', 'modalWAMode', 'modalWA', 'modalWAManual', 'modalConfirm', 'modalCancelItem'];
+  for (let i = modals.length - 1; i >= 0; i--) {
+    const el = document.getElementById(modals[i]);
+    if (el && el.classList.contains('show')) { el.classList.remove('show'); return; }
+  }
+});
 
 let toastTimer;
 function showToast(type, msg) {

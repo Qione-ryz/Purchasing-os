@@ -56,12 +56,7 @@
       <div class="mini-stat"><div class="mini-stat-val" id="statMultiBrand">—</div><div class="mini-stat-label">Pakai ≥2 Brand</div></div>
     </div>
 
-    <div class="tab-bar" style="margin-bottom:12px">
-      <button class="tab-btn active" id="tabBtnBarangList" onclick="switchBarangTab('list')">📋 Daftar Barang</button>
-      <button class="tab-btn" id="tabBtnUnmatched" onclick="switchBarangTab('unmatched')">⚠ Antrian Unmatched <span id="unmatchedBadge" style="margin-left:4px;background:var(--danger);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;display:none">0</span></button>
-    </div>
 
-    <div id="tabBarangList">
     <div class="toolbar">
       <div class="search-wrap" style="position:relative;flex:1">
         <span class="search-icon">🔍</span>
@@ -104,32 +99,6 @@
         <div class="page-btns" id="pageBtns"></div>
       </div>
     </div>
-    </div><!-- /tabBarangList -->
-
-    <div id="tabUnmatched" style="display:none">
-      <div class="card anim">
-        <div class="card-header" style="justify-content:space-between;align-items:center">
-          <span class="card-title">Item Tidak Teridentifikasi</span>
-          <span style="font-size:12px;color:var(--muted)">Hubungkan nama OCR ke barang master</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nama dari Invoice (OCR)</th>
-                <th style="text-align:center">Kemunculan</th>
-                <th>Terakhir Muncul</th>
-                <th>Vendor</th>
-                <th style="text-align:center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="unmatchedBody">
-              <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">Memuat...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div><!-- /tabUnmatched -->
 
   </div>
 </main>
@@ -1916,190 +1885,8 @@
   window.addSatuanOrderRow = addSatuanOrderRow;
   window.removeSatuanOrderRow = removeSatuanOrderRow;
 
-  /* ── UNMATCHED TAB ─────────────────────────────────────────────── */
-
-  function switchBarangTab(tab) {
-    const isList = tab === 'list';
-    document.getElementById('tabBarangList').style.display  = isList ? '' : 'none';
-    document.getElementById('tabUnmatched').style.display   = isList ? 'none' : '';
-    document.getElementById('tabBtnBarangList').classList.toggle('active', isList);
-    document.getElementById('tabBtnUnmatched').classList.toggle('active', !isList);
-    if (!isList) loadUnmatchedItems();
-  }
-
-  async function loadUnmatchedItems() {
-    const tbody = document.getElementById('unmatchedBody');
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">Memuat...</td></tr>`;
-
-    const { data, error } = await window._sb
-      .from('riwayat_beli_items')
-      .select('unmatched_nama, created_at, riwayat_beli(vendor_id, vendor(nama))')
-      .eq('is_unmatched', true)
-      .not('unmatched_nama', 'is', null)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--danger)">${error.message}</td></tr>`;
-      return;
-    }
-
-    // Group by unmatched_nama
-    const grouped = {};
-    (data || []).forEach(r => {
-      const key = (r.unmatched_nama || '').toLowerCase().trim();
-      if (!key) return;
-      if (!grouped[key]) grouped[key] = { nama: r.unmatched_nama, count: 0, lastDate: '', vendors: new Set() };
-      grouped[key].count++;
-      if (!grouped[key].lastDate || r.created_at > grouped[key].lastDate) grouped[key].lastDate = r.created_at;
-      const vNama = r.riwayat_beli?.vendor?.nama;
-      if (vNama) grouped[key].vendors.add(vNama);
-    });
-
-    const groups = Object.values(grouped).sort((a, b) => b.count - a.count);
-
-    // Update badge
-    const badge = document.getElementById('unmatchedBadge');
-    if (badge) { badge.textContent = groups.length; badge.style.display = groups.length ? '' : 'none'; }
-
-    if (!groups.length) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">✅ Tidak ada item unmatched</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = groups.map(g => {
-      const vendorStr = [...g.vendors].slice(0, 2).join(', ') + (g.vendors.size > 2 ? ` +${g.vendors.size - 2}` : '');
-      const dateStr   = g.lastDate ? new Date(g.lastDate).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-      const namaEsc   = g.nama.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:13px">${escapeHtml(g.nama)}</td>
-        <td style="text-align:center"><span class="badge-orange" style="font-size:11px">${g.count}×</span></td>
-        <td style="font-size:12px;color:var(--muted)">${dateStr}</td>
-        <td style="font-size:12px;color:var(--muted)">${escapeHtml(vendorStr || '—')}</td>
-        <td style="text-align:center">
-          <button class="btn-ghost" style="font-size:12px;padding:4px 12px" onclick="openResolveModal('${namaEsc}')">Resolve →</button>
-        </td>
-      </tr>`;
-    }).join('');
-  }
-
-  function escapeHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  let _resolveNama = '';
-  let _resolveSearchTimer = null;
-
-  function openResolveModal(nama) {
-    _resolveNama = nama;
-    document.getElementById('resolveNamaOcr').textContent = nama;
-    document.getElementById('resolveSearch').value = nama;
-    document.getElementById('resolveResults').innerHTML = '';
-    document.getElementById('resolveModal').style.display = 'flex';
-    setTimeout(() => {
-      document.getElementById('resolveSearch').focus();
-      searchResolveBarang(nama);
-    }, 40);
-  }
-
-  function closeResolveModal() {
-    document.getElementById('resolveModal').style.display = 'none';
-  }
-
-  function onResolveSearch() {
-    clearTimeout(_resolveSearchTimer);
-    _resolveSearchTimer = setTimeout(() => searchResolveBarang(document.getElementById('resolveSearch').value), 200);
-  }
-
-  async function searchResolveBarang(q) {
-    const el = document.getElementById('resolveResults');
-    el.innerHTML = `<div style="padding:8px 12px;color:var(--muted);font-size:13px">Mencari...</div>`;
-    const query = (q || '').trim();
-    if (!query) { el.innerHTML = ''; return; }
-
-    const { data } = await window._sb.from('barang')
-      .select('id,nama,sku,satuan')
-      .ilike('nama', `%${query}%`)
-      .eq('aktif', true)
-      .limit(8);
-
-    if (!data?.length) {
-      el.innerHTML = `<div style="padding:8px 12px;color:var(--muted);font-size:13px">Tidak ada hasil</div>`;
-      return;
-    }
-    el.innerHTML = data.map(b => `
-      <div style="padding:8px 12px;cursor:pointer;font-size:13px;border-radius:6px;transition:background .1s"
-           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"
-           onclick="doResolve('${b.id}','${escapeHtml(b.nama).replace(/'/g,"\\'")}')">
-        <b>${escapeHtml(b.nama)}</b>
-        ${b.sku ? `<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:6px">${escapeHtml(b.sku)}</span>` : ''}
-        ${b.satuan ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">${escapeHtml(b.satuan)}</span>` : ''}
-      </div>`).join('');
-  }
-
-  async function doResolve(barangId, barangNama) {
-    if (!_resolveNama || !barangId) return;
-    const btn = event?.target?.closest('div[onclick]');
-    if (btn) btn.style.opacity = '0.5';
-
-    // Update all matching unmatched items
-    const { error: updErr } = await window._sb.from('riwayat_beli_items')
-      .update({ barang_id: barangId, is_unmatched: false })
-      .eq('is_unmatched', true)
-      .eq('unmatched_nama', _resolveNama);
-
-    if (updErr) { showToast('Gagal update: ' + updErr.message, 'error'); if (btn) btn.style.opacity = ''; return; }
-
-    // Save learned mapping
-    await window._sb.from('scan_mappings').upsert(
-      { nama_invoice: _resolveNama.toLowerCase(), barang_id: barangId },
-      { onConflict: 'nama_invoice' }
-    );
-
-    closeResolveModal();
-    showToast(`✓ "${_resolveNama}" → "${barangNama}" disimpan`, 'success');
-    loadUnmatchedItems();
-  }
-
-  async function resolveAsNewBarang() {
-    const nama = document.getElementById('resolveNewNama').value.trim();
-    if (!nama) { showToast('Nama barang wajib diisi', 'error'); return; }
-
-    const { data, error } = await window._sb.from('barang').insert({
-      nama, aktif: true,
-    }).select().single();
-    if (error) { showToast('Gagal tambah barang: ' + error.message, 'error'); return; }
-
-    doResolve(data.id, data.nama);
-  }
 
 </script>
-<!-- RESOLVE UNMATCHED MODAL -->
-<div class="modal-overlay" id="resolveModal" style="display:none" onclick="if(event.target===this)closeResolveModal()">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
-      <div class="modal-title">Resolve Item Unmatched</div>
-      <button class="modal-close" onclick="closeResolveModal()">✕</button>
-    </div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
-      <div style="padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Nama dari OCR</div>
-        <div id="resolveNamaOcr" style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;color:var(--accent2)"></div>
-      </div>
-      <div>
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px">Cari barang di master</label>
-        <input id="resolveSearch" class="search-input" style="width:100%;box-sizing:border-box" placeholder="Ketik nama barang..." oninput="onResolveSearch()"/>
-      </div>
-      <div id="resolveResults" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface2)"></div>
-      <details style="cursor:pointer">
-        <summary style="font-size:12px;color:var(--muted);user-select:none;outline:none">＋ Tambahkan sebagai barang baru</summary>
-        <div style="margin-top:10px;display:flex;gap:8px">
-          <input id="resolveNewNama" class="search-input" style="flex:1" placeholder="Nama barang baru..."/>
-          <button class="btn-primary" style="white-space:nowrap" onclick="resolveAsNewBarang()">Tambah &amp; Pilih</button>
-        </div>
-      </details>
-    </div>
-  </div>
-</div>
 
 <script src="barang-duplikat.js"></script>
 <script src="barang-export.js"></script>

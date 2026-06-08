@@ -7,6 +7,7 @@ const _SIDEBAR_NAV = [
   { href: 'dashboard.html',    icon: '🏠', label: 'Dashboard',       section: 'Pembelian' },
   { href: 'barang.html',       icon: '📋', label: 'Barang' },
   { href: 'vendor.html',       icon: '🏢', label: 'Vendor' },
+  { href: 'kontrak.html',      icon: '📜', label: 'Kontrak Vendor' },
   { href: 'pembelian.html',    icon: '🛒', label: 'Pembelian' },
   { href: 'harga.html',        icon: '📈', label: 'Riwayat Harga' },
   { href: 'stock-opname.html', icon: '📦', label: 'Stock Opname' },

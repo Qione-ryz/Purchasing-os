@@ -294,15 +294,27 @@ function _buildKontakCheckMapFromPref(vendorId, kontakList, items) {
   return map;
 }
 
+function _resolveWAItemsForVendor(vendorId) {
+  const sel = document.getElementById('waVendorSelect');
+  const vendorItemsMap = sel?._vendorItemsMap || {};
+  const assignedItems  = vendorItemsMap[vendorId];
+  if (assignedItems && assignedItems.length > 0) {
+    return { items: assignedItems, hasHist: true };
+  }
+  const vendorPerBarang = sel?._vendorPerBarang || {};
+  const items = (_waOrderItems || []).filter(it =>
+    it.barang_id && vendorPerBarang[it.barang_id]?.has(vendorId)
+  );
+  return { items, hasHist: items.length > 0 };
+}
+
 function _renderWAItemKontakList() {
   const listEl = document.getElementById('waItemKontakList');
   if (!listEl) return;
 
   const sel          = document.getElementById('waVendorSelect');
   const vendorId     = sel.value;
-  const vendorItemsMap = sel._vendorItemsMap || {};
-  const assignedItems  = vendorItemsMap[vendorId];
-  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
+  const { items: itemsUntukVendor } = _resolveWAItemsForVendor(vendorId);
 
   const vendor       = vendors.find(v => v.id === vendorId);
   const kontakList   = vendor?.kontak_list || [];
@@ -337,9 +349,7 @@ function onWAGroupItemToggle() {
   if (!window._waKontakCheckMap) window._waKontakCheckMap = {};
   if (!window._waKontakCheckMap[selectedTelp]) window._waKontakCheckMap[selectedTelp] = new Set();
 
-  const vendorItemsMap   = sel._vendorItemsMap || {};
-  const assignedItems    = vendorItemsMap[vendorId];
-  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
+  const { items: itemsUntukVendor } = _resolveWAItemsForVendor(vendorId);
 
   const checkboxes = document.querySelectorAll('#waItemKontakList input[type=checkbox]');
   const newSet = new Set();
@@ -372,9 +382,7 @@ function onWAGroupItemToggle() {
 function waGroupCheckAll(val) {
   const sel          = document.getElementById('waVendorSelect');
   const vendorId     = sel.value;
-  const vendorItemsMap = sel._vendorItemsMap || {};
-  const assignedItems  = vendorItemsMap[vendorId];
-  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
+  const { items: itemsUntukVendor } = _resolveWAItemsForVendor(vendorId);
   const vendor       = vendors.find(v => v.id === vendorId);
   const kontakList   = vendor?.kontak_list || [];
   const selectedTelp = document.getElementById('waKontakSelect')?.value || kontakList[0]?.telp || '';
@@ -391,9 +399,7 @@ function waGroupCheckAll(val) {
 function _renderWAGroupPreview() {
   const sel          = document.getElementById('waVendorSelect');
   const vendorId     = sel.value;
-  const vendorItemsMap = sel._vendorItemsMap || {};
-  const assignedItems  = vendorItemsMap[vendorId];
-  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
+  const { items: itemsUntukVendor } = _resolveWAItemsForVendor(vendorId);
   const vendor       = vendors.find(v => v.id === vendorId);
   const kontakList   = vendor?.kontak_list || [];
   const isMulti      = kontakList.length > 1;
@@ -433,8 +439,6 @@ function _renderWAGroupPreview() {
 
 function onWAVendorChange() {
   const vendorId = document.getElementById('waVendorSelect').value;
-  const sel      = document.getElementById('waVendorSelect');
-  const vendorItemsMap = sel._vendorItemsMap || {};
 
   if (!vendorId) {
     document.getElementById('waMsgPreview').value = '';
@@ -454,9 +458,7 @@ function onWAVendorChange() {
   _renderWAKontakUI('waNoHp', 'waNoHpVal', 'waKontakSelect', 'btnOpenWA', kontakList);
 
   // Reset checklist map untuk vendor baru — default semua item ter-check di tiap kontak
-  const assignedItems    = vendorItemsMap[vendorId];
-  const itemsUntukVendor = (assignedItems && assignedItems.length > 0) ? assignedItems : _waOrderItems;
-  const hasHist          = !!(assignedItems && assignedItems.length > 0);
+  const { items: itemsUntukVendor, hasHist } = _resolveWAItemsForVendor(vendorId);
 
   // Build default checklist per-kontak dari preferensi localStorage.
   // Item yang sebelumnya di-toggle ke kontak X otomatis masuk ke kontak X saja.

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PurchaseOS — Kontrak Vendor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="sidebar.js"></script>
+  <style>
+    /* ── KONTRAK ROW (list card) ── */
+    .kontrak-row {
+      display:flex;flex-direction:column;gap:12px;
+      padding:16px 18px;
+      border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--surface);
+      transition:border-color .15s, box-shadow .15s, transform .15s;
+      position:relative;overflow:hidden;
+    }
+    .kontrak-row::before {
+      content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:0;transition:opacity .15s;
+    }
+    .kontrak-row:hover { border-color:var(--accent);box-shadow:var(--glow-accent) }
+    .kontrak-row:hover::before { opacity:1 }
+    .kontrak-row.status-selesai::before    { background:#22c55e;opacity:.7 }
+    .kontrak-row.status-expired::before    { background:#f59e0b;opacity:.7 }
+    .kontrak-row.status-dibatalkan::before { background:var(--muted);opacity:.5 }
+
+    .kontrak-head { display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap }
+    .kontrak-title { font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap }
+    .kontrak-meta  { font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 10px }
+    .kontrak-meta .sep { opacity:.4 }
+    .kontrak-meta .vendor-name { color:var(--text);font-weight:500 }
+    .kontrak-actions { display:flex;gap:8px;flex-shrink:0;align-items:center }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { display:flex;align-items:center;gap:12px }
+    .progress-bar  { flex:1;height:10px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:99px;overflow:hidden;position:relative }
+    .progress-fill { height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s ease;border-radius:99px;box-shadow:0 0 8px rgba(0,212,255,0.4) }
+    .progress-fill.done { background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 0 8px rgba(34,197,94,0.4) }
+    .progress-fill.over { background:linear-gradient(90deg,#f59e0b,#facc15);box-shadow:0 0 8px rgba(245,158,11,0.4) }
+    .progress-fill.zero { background:var(--border);box-shadow:none }
+    .progress-label{ font-size:11px;color:var(--muted);font-family:var(--mono);min-width:88px;text-align:right;font-weight:500 }
+    .progress-label.done { color:#22c55e }
+    .progress-label.over { color:#f59e0b }
+
+    /* ── BRAND CHIPS ── */
+    .brand-row { display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:4px;border-top:1px dashed var(--border) }
+    .brand-row-label { font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-right:4px;font-family:var(--mono) }
+    .brand-chip-mini {
+      display:inline-flex;align-items:center;gap:5px;
+      font-size:11px;font-family:var(--mono);
+      background:var(--bg);border:1px solid var(--border);
+      padding:3px 8px;border-radius:99px;color:var(--text);
+    }
+    .chip-dot { width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 4px rgba(0,212,255,0.6) }
+    .brand-empty { font-size:11px;color:var(--muted);font-style:italic;opacity:.7 }
+
+    /* ── FILE / ATTACHMENT ── */
+    .file-drop {
+      border:1.5px dashed var(--border);border-radius:10px;
+      padding:22px;text-align:center;cursor:pointer;
+      transition:border-color .15s,background .15s;
+    }
+    .file-drop:hover { border-color:var(--accent);background:rgba(0,212,255,0.04) }
+    .file-pill {
+      display:inline-flex;align-items:center;gap:10px;
+      background:var(--bg);border:1px solid var(--border);
+      border-radius:10px;padding:8px 12px;
+      font-size:12px;font-family:var(--mono);
+    }
+
+    /* ── ITEM FORM ROW ── */
+    .item-row-form {
+      display:grid;grid-template-columns:1fr 110px 90px 36px;
+      gap:8px;align-items:center;
+      padding:8px 0;border-bottom:1px dashed var(--border);
+    }
+    .item-row-form:last-child { border-bottom:none }
+
+    /* ── DETAIL MODAL ── */
+    .detail-section { margin-bottom:22px }
+    .detail-label { font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;font-weight:600 }
+    .stat-tile {
+      padding:14px;background:var(--bg);
+      border:1px solid var(--border);border-radius:12px;
+      transition:border-color .15s;
+    }
+    .stat-tile:hover { border-color:var(--accent) }
+    .stat-tile-val { font-size:22px;font-weight:600;color:var(--text);font-family:var(--mono);line-height:1.1 }
+    .stat-tile-val.accent { color:var(--accent) }
+    .stat-tile-val.green  { color:#22c55e }
+    .stat-tile-val.orange { color:#f59e0b }
+    .stat-tile-lbl { font-size:10.5px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.5px }
+
+    .detail-table { width:100%;border-collapse:collapse }
+    .detail-table th {
+      text-align:left;padding:10px 8px;font-size:10.5px;
+      color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+      border-bottom:1px solid var(--border);font-weight:600;
+    }
+    .detail-table td { padding:12px 8px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle }
+    .detail-table tr:last-child td { border-bottom:none }
+    .detail-table tr:hover td { background:rgba(0,212,255,0.03) }
+
+    /* ── EMPTY STATES ── */
+    .empty-block {
+      padding:48px 24px;text-align:center;color:var(--muted);
+      background:var(--surface);border:1px dashed var(--border);
+      border-radius:var(--radius);
+    }
+    .empty-block .icon { font-size:36px;opacity:.5;margin-bottom:10px }
+    .empty-block .msg  { font-size:13px;margin-bottom:4px;color:var(--text) }
+    .empty-block .hint { font-size:11px;color:var(--muted);font-family:var(--mono) }
+
+    /* ── MINI STATS ACCENT ── */
+    #statAktif   { color:var(--accent) }
+    #statSelesai { color:#22c55e }
+    #statExpired { color:#f59e0b }
+
+    @media (max-width:600px) {
+      .kontrak-head { flex-direction:column;align-items:stretch }
+      .kontrak-actions { justify-content:flex-end }
+      .item-row-form { grid-template-columns:1fr 80px 70px 32px }
+    }
+  </style>
+</head>
+<body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <div class="topbar" id="mainTopbar" style="z-index:200">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Kontrak Vendor</div>
+      <div class="page-sub" id="activeBrandLabel">Track kontrak & pemenuhan otomatis dari riwayat pembelian</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-primary admin-only" onclick="openKontrakModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tambah Kontrak
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Mini stats -->
+    <div class="mini-stats">
+      <div class="mini-stat"><div class="mini-stat-val" id="statTotal">—</div><div class="mini-stat-label">Total Kontrak</div></div>
+      <div class="mini-stat"><div class="mini-stat-val" id="statAktif">—</div><div class="mini-stat-label">Aktif</div></div>
+      <div class="mini-stat"><div class="mini-stat-val" id="statSelesai">—</div><div class="mini-stat-label">Selesai</div></div>
+      <div class="mini-stat"><div class="mini-stat-val" id="statExpired">—</div><div class="mini-stat-label">Kadaluarsa</div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap" style="position:relative;flex:1">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="searchInput" type="text" placeholder="Cari judul kontrak, vendor, nomor..." oninput="onSearch()"/>
+      </div>
+      <select id="statusFilter" class="search-input" onchange="renderList()" style="max-width:170px">
+        <option value="all">Semua status</option>
+        <option value="aktif">Aktif</option>
+        <option value="selesai">Selesai</option>
+        <option value="dibatalkan">Dibatalkan</option>
+        <option value="expired">Kadaluarsa</option>
+      </select>
+      <select id="vendorFilter" class="search-input" onchange="renderList()" style="max-width:240px">
+        <option value="all">Semua vendor</option>
+      </select>
+    </div>
+
+    <!-- LIST -->
+    <div class="card" style="margin-top:14px">
+      <div id="kontrakList" style="display:flex;flex-direction:column;gap:10px">
+        <div class="state-empty" style="padding:40px;text-align:center;color:var(--muted)">Memuat...</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ───────────────── MODAL: TAMBAH/EDIT KONTRAK ───────────────── -->
+<div class="modal-overlay" id="modalKontrak">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitleK">Tambah Kontrak</div>
+      <button class="modal-close" onclick="closeKontrakModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="kModalError" style="display:none;margin-bottom:14px;padding:10px 12px;background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.3);border-radius:8px;color:var(--danger);font-size:12px;font-family:var(--mono)"></div>
+
+      <div class="field field-row">
+        <div>
+          <label>Vendor *</label>
+          <select id="kVendor"></select>
+        </div>
+        <div>
+          <label>Nomor Kontrak</label>
+          <input id="kNomor" type="text" placeholder="opsional"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Judul Kontrak *</label>
+        <input id="kJudul" type="text" placeholder="Misal: Pasokan tepung Q1 2026"/>
+      </div>
+
+      <div class="field field-row-3">
+        <div>
+          <label>Tanggal Mulai *</label>
+          <input id="kMulai" type="date"/>
+        </div>
+        <div>
+          <label>Tanggal Selesai *</label>
+          <input id="kSelesai" type="date"/>
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="kStatus">
+            <option value="aktif">Aktif</option>
+            <option value="selesai">Selesai</option>
+            <option value="dibatalkan">Dibatalkan</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0">Item Kontrak *</label>
+          <button class="btn btn-ghost btn-sm" onclick="addItemRow()">＋ Tambah item</button>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg)">
+          <div class="item-row-form" style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px">
+            <div>Barang</div>
+            <div style="text-align:right">Target Qty</div>
+            <div>Satuan</div>
+            <div></div>
+          </div>
+          <div id="kItemRows"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Attachment (PDF / Gambar)</label>
+        <input id="kFile" type="file" accept="application/pdf,image/*" style="display:none" onchange="onFilePicked()"/>
+        <div id="kFileDrop" class="file-drop" onclick="document.getElementById('kFile').click()">
+          <div style="font-size:13px;color:var(--text)">📎 Klik untuk pilih file</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)">PDF atau gambar, max 10 MB</div>
+        </div>
+        <div id="kFileInfo" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <div class="field">
+        <label>Catatan</label>
+        <textarea id="kCatatan" rows="2" placeholder="opsional"></textarea>
+      </div>
+
+      <div class="field-hint" style="margin-top:0">
+        Dibuat oleh: <span id="kCreator" style="color:var(--text)">—</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeKontrakModal()">Batal</button>
+      <button class="btn btn-primary" id="btnSaveK" onclick="saveKontrak()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── MODAL: DETAIL ───────────────── -->
+<div class="modal-overlay" id="modalDetail">
+  <div class="modal" style="max-width:840px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="dTitle">—</div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:3px" id="dMeta">—</div>
+      </div>
+      <button class="modal-close" onclick="closeDetailModal()">×</button>
+    </div>
+    <div class="modal-body" id="dBody">Memuat...</div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm admin-only" id="btnDeleteK" onclick="">🗑 Hapus Kontrak</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeDetailModal()">Tutup</button>
+        <button class="btn btn-primary admin-only" id="btnEditK" onclick="editFromDetail()">Edit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── SUPABASE ── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="ppn.js"></script>
+<script>
+/*
+═══════════════════════════════════════════════════════════════════════
+ SCHEMA SQL — jalankan sekali di Supabase SQL Editor sebelum pakai page
+
+ CREATE TABLE IF NOT EXISTS kontrak (
+   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+   vendor_id uuid NOT NULL REFERENCES vendor(id) ON DELETE RESTRICT,
+   nomor_kontrak text,
+   judul text NOT NULL,
+   tanggal_mulai date NOT NULL,
+   tanggal_selesai date NOT NULL,
+   status text NOT NULL DEFAULT 'aktif',
+   catatan text,
+   attachment_path text,
+   attachment_name text,
+   attachment_type text,
+   dibuat_oleh text,
+   dibuat_oleh_email text,
+   created_at timestamptz DEFAULT now()
+ );
+
+ CREATE TABLE IF NOT EXISTS kontrak_items (
+   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+   kontrak_id uuid NOT NULL REFERENCES kontrak(id) ON DELETE CASCADE,
+   barang_id uuid NOT NULL REFERENCES barang(id),
+   target_qty numeric NOT NULL,
+   satuan text,
+   harga_satuan numeric,
+   catatan text
+ );
+
+ CREATE INDEX IF NOT EXISTS idx_kontrak_vendor ON kontrak(vendor_id);
+ CREATE INDEX IF NOT EXISTS idx_kontrak_items_kontrak ON kontrak_items(kontrak_id);
+ CREATE INDEX IF NOT EXISTS idx_kontrak_items_barang  ON kontrak_items(barang_id);
+
+ -- RLS:
+ ALTER TABLE kontrak ENABLE ROW LEVEL SECURITY;
+ ALTER TABLE kontrak_items ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY "kontrak_auth_all" ON kontrak FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ CREATE POLICY "kontrak_items_auth_all" ON kontrak_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ -- Storage bucket "kontrak-attachments" — set PRIVATE (bukan public).
+ -- Policy:
+ CREATE POLICY "kontrak_storage_upload" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id='kontrak-attachments');
+ CREATE POLICY "kontrak_storage_read"   ON storage.objects FOR SELECT TO authenticated USING (bucket_id='kontrak-attachments');
+ CREATE POLICY "kontrak_storage_delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id='kontrak-attachments');
+═══════════════════════════════════════════════════════════════════════
+*/
+
+window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+
+const State = {
+  list: [],
+  vendors: [],
+  barang: [],
+  riwayatItems: [],     // dipakai untuk hitung pemenuhan
+  riwayatHead: [],      // riwayat_beli untuk brand tracking
+  searchTerm: '',
+  searchTimer: null,
+  currentUser: null,
+  editingId: null,
+  pendingFile: null,
+  detailKontrak: null,
+};
+
+const BUCKET = 'kontrak-attachments';
+
+(async () => {
+  const { data: { session } } = await window._sb.auth.getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
+  State.currentUser = session.user;
+  renderSidebar('kontrak.html', 'Brand aktif');
+  const role = await getUserRole(); applyRoleUI(role);
+
+  await loadAll();
+  document.getElementById('page-loader')?.remove();
+})();
+
+async function loadAll() {
+  try {
+    const [vR, bR, kR, iR, rhR, rhItemsR] = await Promise.all([
+      window._sb.from('vendor').select('id,nama').order('nama').range(0, 9999),
+      window._sb.from('barang').select('id,nama,satuan').order('nama').range(0, 19999),
+      window._sb.from('kontrak').select('*').order('created_at', { ascending:false }).range(0, 9999),
+      window._sb.from('kontrak_items').select('*').range(0, 49999),
+      window._sb.from('riwayat_beli').select('id,vendor_id,brand_id,tanggal,status').range(0, 49999),
+      window._sb.from('riwayat_beli_items').select('beli_id,barang_id,qty,nama').range(0, 99999),
+    ]);
+
+    if (kR.error && /relation .* does not exist/i.test(kR.error.message || '')) {
+      document.getElementById('kontrakList').innerHTML = `
+        <div class="state-empty" style="padding:30px;text-align:center;color:var(--muted)">
+          Tabel <code>kontrak</code> belum dibuat. Lihat SQL di komentar atas <code>kontrak.html</code>, jalankan di Supabase SQL Editor.
+        </div>`;
+      return;
+    }
+
+    State.vendors      = vR.data || [];
+    State.barang       = bR.data || [];
+    State.riwayatHead  = rhR.data || [];
+    State.riwayatItems = rhItemsR.data || [];
+
+    const itemsByKontrak = {};
+    (iR.data || []).forEach(it => {
+      if (!itemsByKontrak[it.kontrak_id]) itemsByKontrak[it.kontrak_id] = [];
+      itemsByKontrak[it.kontrak_id].push(it);
+    });
+    State.list = (kR.data || []).map(k => ({ ...k, items: itemsByKontrak[k.id] || [] }));
+
+    populateVendorFilter();
+    renderStats();
+    renderList();
+  } catch(e) {
+    showToast('Gagal memuat: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+function populateVendorFilter() {
+  const sel = document.getElementById('vendorFilter');
+  let html = '<option value="all">Semua vendor</option>';
+  State.vendors.forEach(v => html += `<option value="${v.id}">${escapeHtml(v.nama)}</option>`);
+  sel.innerHTML = html;
+}
+
+function effectiveStatus(k) {
+  if (k.status === 'selesai' || k.status === 'dibatalkan') return k.status;
+  const today = new Date().toISOString().slice(0,10);
+  if (k.tanggal_selesai && k.tanggal_selesai < today) return 'expired';
+  return 'aktif';
+}
+
+function renderStats() {
+  const counts = { aktif:0, selesai:0, expired:0, dibatalkan:0 };
+  State.list.forEach(k => counts[effectiveStatus(k)]++);
+  document.getElementById('statTotal').textContent   = State.list.length;
+  document.getElementById('statAktif').textContent   = counts.aktif;
+  document.getElementById('statSelesai').textContent = counts.selesai;
+  document.getElementById('statExpired').textContent = counts.expired;
+}
+
+function computeFulfillment(kontrak) {
+  // riwayat_beli yang vendor cocok + tanggal dalam periode + status selesai
+  const beliMatches = State.riwayatHead.filter(rb =>
+    rb.vendor_id === kontrak.vendor_id
+    && rb.tanggal >= kontrak.tanggal_mulai
+    && rb.tanggal <= kontrak.tanggal_selesai
+    && (!rb.status || rb.status === 'selesai')
+  );
+  const beliIds  = new Set(beliMatches.map(rb => rb.id));
+  const brandIds = new Set(beliMatches.map(rb => rb.brand_id).filter(Boolean));
+  const itemsInPeriod = State.riwayatItems.filter(it => beliIds.has(it.beli_id));
+
+  const fulfilledPerBarang = {};
+  itemsInPeriod.forEach(it => {
+    if (!it.barang_id) return;
+    fulfilledPerBarang[it.barang_id] = (fulfilledPerBarang[it.barang_id] || 0) + Number(it.qty || 0);
+  });
+
+  const itemProgress = kontrak.items.map(ki => {
+    const got = fulfilledPerBarang[ki.barang_id] || 0;
+    const target = Number(ki.target_qty || 0) || 0;
+    const pct = target > 0 ? Math.min(100, Math.round((got / target) * 100)) : (got > 0 ? 100 : 0);
+    return { ...ki, fulfilled: got, target, pct, over: target > 0 && got > target };
+  });
+
+  const totalTarget = itemProgress.reduce((s, i) => s + i.target, 0);
+  const totalGot    = itemProgress.reduce((s, i) => s + Math.min(i.fulfilled, i.target || i.fulfilled), 0);
+  const overallPct  = totalTarget > 0 ? Math.min(100, Math.round((totalGot / totalTarget) * 100))
+                                       : (itemProgress.every(i => i.pct >= 100) ? 100 : 0);
+
+  return { itemProgress, brandIds: [...brandIds], beliCount: beliMatches.length, overallPct };
+}
+
+function renderList() {
+  const list   = document.getElementById('kontrakList');
+  const term   = State.searchTerm.toLowerCase();
+  const sFil   = document.getElementById('statusFilter').value;
+  const vFil   = document.getElementById('vendorFilter').value;
+  const vMap   = Object.fromEntries(State.vendors.map(v => [v.id, v.nama]));
+
+  let filtered = State.list.filter(k => {
+    if (vFil !== 'all' && k.vendor_id !== vFil) return false;
+    if (sFil !== 'all' && effectiveStatus(k) !== sFil) return false;
+    if (term) {
+      const blob = `${k.judul||''} ${k.nomor_kontrak||''} ${vMap[k.vendor_id]||''}`.toLowerCase();
+      if (!blob.includes(term)) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    const hasFilter = State.searchTerm || sFil !== 'all' || vFil !== 'all';
+    list.innerHTML = `
+      <div class="empty-block">
+        <div class="icon">${hasFilter ? '🔍' : '📜'}</div>
+        <div class="msg">${hasFilter ? 'Tidak ada kontrak yang cocok dengan filter.' : 'Belum ada kontrak.'}</div>
+        <div class="hint">${hasFilter ? 'Coba ubah kata kunci atau reset filter.' : 'Klik "Tambah Kontrak" untuk mulai.'}</div>
+      </div>`;
+    return;
+  }
+
+  const brandMap = window._brandMap || {};
+
+  list.innerHTML = filtered.map(k => {
+    const stat = effectiveStatus(k);
+    const ful  = computeFulfillment(k);
+    const statBadge = ({
+      aktif:     'badge-green',
+      selesai:   'badge-blue',
+      expired:   'badge-orange',
+      dibatalkan:'badge-gray',
+    })[stat] || 'badge-gray';
+    const statLbl = ({
+      aktif:'Aktif', selesai:'Selesai', expired:'Kadaluarsa', dibatalkan:'Dibatalkan'
+    })[stat] || stat;
+
+    const brandChips = ful.brandIds.length
+      ? ful.brandIds.slice(0, 6).map(bid =>
+          `<span class="brand-chip-mini"><span class="chip-dot"></span>${escapeHtml(brandMap[bid] || bid.substring(0,6))}</span>`
+        ).join('') + (ful.brandIds.length > 6 ? `<span class="brand-chip-mini">+${ful.brandIds.length-6}</span>` : '')
+      : '<span class="brand-empty">Belum ada pembelian masuk</span>';
+
+    const progClass = ful.overallPct === 0 ? 'zero' : (ful.overallPct >= 100 ? 'done' : '');
+    const lblClass  = ful.overallPct >= 100 ? 'done' : '';
+    const fileIcon = k.attachment_path
+      ? `<span title="Ada attachment" style="font-size:13px;opacity:.8">📎</span>` : '';
+    const nomorHtml = k.nomor_kontrak
+      ? `<span class="sep">•</span><span>No: ${escapeHtml(k.nomor_kontrak)}</span>` : '';
+
+    return `
+      <div class="kontrak-row status-${stat}">
+        <div class="kontrak-head">
+          <div style="flex:1;min-width:0">
+            <div class="kontrak-title">${escapeHtml(k.judul)}${fileIcon}</div>
+            <div class="kontrak-meta">
+              <span class="vendor-name">${escapeHtml(vMap[k.vendor_id] || '—')}</span>
+              <span class="sep">•</span>
+              <span>${k.tanggal_mulai} → ${k.tanggal_selesai}</span>
+              ${nomorHtml}
+              <span class="sep">•</span>
+              <span>${k.items.length} item</span>
+              <span class="sep">•</span>
+              <span>${ful.beliCount} pembelian</span>
+            </div>
+          </div>
+          <div class="kontrak-actions">
+            <span class="badge ${statBadge}">${statLbl}</span>
+            <button class="btn btn-ghost btn-sm" onclick="openDetail('${k.id}')">Detail →</button>
+          </div>
+        </div>
+        <div class="progress-bar" style="margin:2px 0"><div class="progress-fill ${progClass}" style="width:${Math.max(ful.overallPct, ful.overallPct === 0 ? 0 : 2)}%"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--mono);margin-top:4px">
+          ${k.items.length === 1 ? (() => {
+            const it  = ful.itemProgress[0];
+            const sat = escapeHtml(it?.satuan || '');
+            const got = (it?.fulfilled || 0).toLocaleString('id-ID');
+            const tgt = (it?.target    || 0).toLocaleString('id-ID');
+            const pctCls = ful.overallPct >= 100 ? '#22c55e' : ful.overallPct > 0 ? 'var(--accent)' : 'var(--muted)';
+            return `<span style="color:var(--accent);font-weight:500">${got}${sat ? ' '+sat : ''}</span>
+                    <span style="color:${pctCls};font-weight:600">${ful.overallPct}% terpenuhi</span>
+                    <span style="color:var(--muted)">${tgt}${sat ? ' '+sat : ''}</span>`;
+          })() : (() => {
+            const pctCls = ful.overallPct >= 100 ? '#22c55e' : ful.overallPct > 0 ? 'var(--accent)' : 'var(--muted)';
+            return `<span style="color:var(--muted)">${k.items.length} item</span>
+                    <span style="color:${pctCls};font-weight:600">${ful.overallPct}% terpenuhi</span>
+                    <span style="color:var(--muted)">${ful.beliCount} pembelian</span>`;
+          })()}
+        </div>
+        ${ful.brandIds.length ? `<div class="brand-row"><span class="brand-row-label">Brand pembeli</span>${brandChips}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function onSearch() {
+  clearTimeout(State.searchTimer);
+  State.searchTimer = setTimeout(() => {
+    State.searchTerm = document.getElementById('searchInput').value.trim();
+    renderList();
+  }, 150);
+}
+
+// ───────────── MODAL TAMBAH/EDIT ─────────────
+function openKontrakModal(id) {
+  State.editingId  = id || null;
+  State.pendingFile = null;
+  document.getElementById('kModalError').style.display = 'none';
+  document.getElementById('modalTitleK').textContent = id ? 'Edit Kontrak' : 'Tambah Kontrak';
+  document.getElementById('kCreator').textContent = State.currentUser?.user_metadata?.full_name || State.currentUser?.email || '—';
+
+  // Populate vendor select
+  let vH = '<option value="">— Pilih Vendor —</option>';
+  State.vendors.forEach(v => vH += `<option value="${v.id}">${escapeHtml(v.nama)}</option>`);
+  document.getElementById('kVendor').innerHTML = vH;
+
+  const k = id ? State.list.find(x => x.id === id) : null;
+  document.getElementById('kVendor').value   = k?.vendor_id || '';
+  document.getElementById('kNomor').value    = k?.nomor_kontrak || '';
+  document.getElementById('kJudul').value    = k?.judul || '';
+  document.getElementById('kMulai').value    = k?.tanggal_mulai || '';
+  document.getElementById('kSelesai').value  = k?.tanggal_selesai || '';
+  document.getElementById('kStatus').value   = (k?.status === 'dibatalkan' || k?.status === 'selesai') ? k.status : 'aktif';
+  document.getElementById('kCatatan').value  = k?.catatan || '';
+
+  renderItemRows(k?.items || [{ barang_id:'', target_qty:'', satuan:'' }]);
+  renderFileInfo(k);
+  document.getElementById('modalKontrak').classList.add('show');
+}
+
+function closeKontrakModal() {
+  document.getElementById('modalKontrak').classList.remove('show');
+  State.editingId = null;
+  State.pendingFile = null;
+}
+
+function renderItemRows(items) {
+  const wrap = document.getElementById('kItemRows');
+  if (!items.length) items = [{ barang_id:'', target_qty:'', satuan:'' }];
+  wrap.innerHTML = items.map((it, i) => itemRowHtml(it, i)).join('');
+}
+
+function itemRowHtml(it, idx) {
+  const opts = '<option value="">— pilih —</option>' +
+    State.barang.map(b => `<option value="${b.id}" data-satuan="${escapeAttr(b.satuan||'')}" ${b.id===it.barang_id?'selected':''}>${escapeHtml(b.nama)}</option>`).join('');
+  // Satuan auto dari barang.satuan kalau item.satuan kosong
+  const barangPicked = State.barang.find(b => b.id === it.barang_id);
+  const satuanVal = it.satuan || barangPicked?.satuan || '';
+  return `
+    <div class="item-row-form" data-idx="${idx}">
+      <select onchange="onItemBarangChange(${idx})" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 10px;outline:none">${opts}</select>
+      <input type="number" min="0" step="any" placeholder="0" value="${it.target_qty ?? ''}" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;outline:none;text-align:right"/>
+      <input type="text" placeholder="—" value="${escapeAttr(satuanVal)}" readonly title="Otomatis dari satuan barang" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;cursor:not-allowed"/>
+      <button class="btn btn-ghost btn-sm" onclick="removeItemRow(${idx})" title="Hapus" style="padding:4px 8px">×</button>
+    </div>`;
+}
+
+function addItemRow() {
+  const items = readItemsFromForm();
+  items.push({ barang_id:'', target_qty:'', satuan:'' });
+  renderItemRows(items);
+}
+
+function removeItemRow(idx) {
+  const items = readItemsFromForm();
+  items.splice(idx, 1);
+  renderItemRows(items.length ? items : [{ barang_id:'', target_qty:'', satuan:'' }]);
+}
+
+function onItemBarangChange(idx) {
+  const row = document.querySelector(`#kItemRows .item-row-form[data-idx="${idx}"]`);
+  if (!row) return;
+  const sel = row.querySelector('select');
+  const opt = sel.options[sel.selectedIndex];
+  const satuanInput = row.querySelectorAll('input')[1];
+  // Selalu override — satuan terkunci ke satuan barang master
+  satuanInput.value = opt?.dataset.satuan || '';
+}
+
+function readItemsFromForm() {
+  const rows = document.querySelectorAll('#kItemRows .item-row-form');
+  return [...rows].map(r => {
+    const sel = r.querySelector('select');
+    const inputs = r.querySelectorAll('input');
+    return {
+      barang_id:  sel.value,
+      target_qty: inputs[0].value,
+      satuan:     inputs[1].value.trim(),
+    };
+  });
+}
+
+function renderFileInfo(k) {
+  const info = document.getElementById('kFileInfo');
+  if (k?.attachment_path) {
+    info.style.display = 'block';
+    info.innerHTML = `
+      <div class="file-pill">
+        <span>📎 ${escapeHtml(k.attachment_name || 'attachment')}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openAttachment('${escapeAttr(k.attachment_path)}')" style="color:var(--accent)">Buka</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearAttachment()">Ganti</button>
+      </div>`;
+  } else {
+    info.style.display = 'none';
+    info.innerHTML = '';
+  }
+}
+
+function onFilePicked() {
+  const f = document.getElementById('kFile').files[0];
+  if (!f) return;
+  if (f.size > 10 * 1024 * 1024) { showToast('File terlalu besar (max 10 MB)', 'error'); return; }
+  State.pendingFile = f;
+  document.getElementById('kFileInfo').style.display = 'block';
+  document.getElementById('kFileInfo').innerHTML = `
+    <div class="file-pill">
+      <span>📎 ${escapeHtml(f.name)} (${(f.size/1024).toFixed(0)} KB)</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearAttachment()">Batal</button>
+    </div>`;
+}
+
+function clearAttachment() {
+  State.pendingFile = null;
+  document.getElementById('kFile').value = '';
+  document.getElementById('kFileInfo').style.display = 'none';
+  document.getElementById('kFileInfo').innerHTML = '';
+  if (State.editingId) {
+    const k = State.list.find(x => x.id === State.editingId);
+    if (k) { k.attachment_path = null; k.attachment_name = null; k.attachment_type = null; }
+  }
+}
+
+function buildKontrakFilename(originalName, vendorName, mulai, selesai) {
+  const ext = (originalName || '').split('.').pop() || 'bin';
+  const slug = (vendorName || 'vendor').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'vendor';
+  const safeMulai   = (mulai   || '').replace(/[^0-9-]/g, '').slice(0, 10);
+  const safeSelesai = (selesai || '').replace(/[^0-9-]/g, '').slice(0, 10);
+  return `Kontrak-${slug}-${safeMulai}-${safeSelesai}.${ext}`;
+}
+
+async function uploadAttachment(file, vendorName, mulai, selesai) {
+  const displayName = buildKontrakFilename(file.name, vendorName, mulai, selesai);
+  const rand = Math.random().toString(36).slice(2, 7);
+  // storage path tetap unique (pakai rand suffix) supaya tidak collision saat re-upload
+  const dot = displayName.lastIndexOf('.');
+  const path = dot > 0
+    ? `${displayName.slice(0, dot)}-${rand}${displayName.slice(dot)}`
+    : `${displayName}-${rand}`;
+  const { error } = await window._sb.storage.from(BUCKET).upload(path, file, { upsert:false, contentType:file.type });
+  if (error) throw error;
+  return { path, displayName };
+}
+
+// Bucket private → generate signed URL on-demand (1 jam expiry)
+async function openAttachment(path) {
+  if (!path) return;
+  try {
+    const { data, error } = await window._sb.storage.from(BUCKET).createSignedUrl(path, 3600);
+    if (error) throw error;
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  } catch(e) {
+    showToast('Gagal buka attachment: ' + e.message, 'error');
+  }
+}
+
+async function removeAttachmentFile(path) {
+  if (!path) return;
+  try { await window._sb.storage.from(BUCKET).remove([path]); } catch(_) {}
+}
+
+async function saveKontrak() {
+  const err = (msg) => {
+    const e = document.getElementById('kModalError');
+    e.textContent = msg; e.style.display = 'block';
+  };
+  const btn = document.getElementById('btnSaveK');
+
+  const vendor_id      = document.getElementById('kVendor').value;
+  const judul          = document.getElementById('kJudul').value.trim();
+  const tanggal_mulai  = document.getElementById('kMulai').value;
+  const tanggal_selesai= document.getElementById('kSelesai').value;
+  if (!vendor_id) return err('Vendor wajib dipilih.');
+  if (!judul) return err('Judul wajib diisi.');
+  if (!tanggal_mulai || !tanggal_selesai) return err('Tanggal mulai & selesai wajib diisi.');
+  if (tanggal_selesai < tanggal_mulai) return err('Tanggal selesai tidak boleh sebelum mulai.');
+
+  const items = readItemsFromForm().filter(i => i.barang_id && Number(i.target_qty) > 0);
+  if (!items.length) return err('Minimal satu item dengan barang & qty > 0.');
+
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try {
+    let attachment = { path: null, name: null, type: null };
+    const oldPath = State.editingId
+      ? State.list.find(x => x.id === State.editingId)?.attachment_path || null
+      : null;
+
+    if (State.pendingFile) {
+      const vendorName = State.vendors.find(v => v.id === vendor_id)?.nama || '';
+      const up = await uploadAttachment(State.pendingFile, vendorName, tanggal_mulai, tanggal_selesai);
+      attachment = { path: up.path, name: up.displayName, type: State.pendingFile.type };
+      if (oldPath && oldPath !== up.path) await removeAttachmentFile(oldPath);
+    } else if (State.editingId) {
+      const k = State.list.find(x => x.id === State.editingId);
+      attachment = { path: k?.attachment_path, name: k?.attachment_name, type: k?.attachment_type };
+      // User klik "Ganti/Batal" tanpa pilih file baru → hapus file lama
+      if (oldPath && !attachment.path) await removeAttachmentFile(oldPath);
+    }
+
+    const payload = {
+      vendor_id,
+      nomor_kontrak: document.getElementById('kNomor').value.trim() || null,
+      judul,
+      tanggal_mulai,
+      tanggal_selesai,
+      status: document.getElementById('kStatus').value,
+      catatan: document.getElementById('kCatatan').value.trim() || null,
+      attachment_path: attachment.path,
+      attachment_name: attachment.name,
+      attachment_type: attachment.type,
+    };
+
+    let kontrakId;
+    if (State.editingId) {
+      const { error } = await window._sb.from('kontrak').update(payload).eq('id', State.editingId);
+      if (error) throw error;
+      kontrakId = State.editingId;
+      await window._sb.from('kontrak_items').delete().eq('kontrak_id', kontrakId);
+    } else {
+      payload.dibuat_oleh = State.currentUser?.user_metadata?.full_name || State.currentUser?.email || null;
+      payload.dibuat_oleh_email = State.currentUser?.email || null;
+      const { data, error } = await window._sb.from('kontrak').insert(payload).select().single();
+      if (error) throw error;
+      kontrakId = data.id;
+    }
+
+    const itemPayloads = items.map(i => ({
+      kontrak_id: kontrakId,
+      barang_id:  i.barang_id,
+      target_qty: Number(i.target_qty),
+      satuan:     i.satuan || null,
+    }));
+    const { error: e2 } = await window._sb.from('kontrak_items').insert(itemPayloads);
+    if (e2) throw e2;
+
+    showToast('Kontrak tersimpan', 'success');
+    closeKontrakModal();
+    await loadAll();
+  } catch(e) {
+    err('Gagal: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Simpan';
+  }
+}
+
+// ───────────── DETAIL ─────────────
+function openDetail(id) {
+  const k = State.list.find(x => x.id === id);
+  if (!k) return;
+  State.detailKontrak = k;
+  const vMap = Object.fromEntries(State.vendors.map(v => [v.id, v.nama]));
+  const bMap = Object.fromEntries(State.barang.map(b => [b.id, b.nama]));
+  const brandMap = window._brandMap || {};
+  const ful = computeFulfillment(k);
+  const stat = effectiveStatus(k);
+
+  document.getElementById('dTitle').textContent = k.judul;
+  document.getElementById('dMeta').textContent =
+    `${vMap[k.vendor_id]||'—'} · ${k.tanggal_mulai} → ${k.tanggal_selesai} · status: ${stat}`;
+
+  const itemRows = ful.itemProgress.map(ip => {
+    const cls = ip.pct === 0 ? 'zero' : (ip.pct >= 100 ? 'done' : (ip.over ? 'over' : ''));
+    const lblCls = ip.pct >= 100 ? 'done' : (ip.over ? 'over' : '');
+    return `
+      <tr>
+        <td style="color:var(--text);font-weight:500">${escapeHtml(bMap[ip.barang_id] || '—')}</td>
+        <td style="text-align:right;font-family:var(--mono);color:var(--text)">${ip.fulfilled.toLocaleString('id-ID')} <span style="color:var(--muted);font-size:11px">${escapeHtml(ip.satuan||'')}</span></td>
+        <td style="text-align:right;font-family:var(--mono);color:var(--muted)">${ip.target.toLocaleString('id-ID')} <span style="font-size:11px">${escapeHtml(ip.satuan||'')}</span></td>
+        <td style="min-width:180px">
+          <div class="progress-wrap">
+            <div class="progress-bar" style="height:8px"><div class="progress-fill ${cls}" style="width:${Math.max(ip.pct, ip.pct === 0 ? 0 : 2)}%"></div></div>
+            <div class="progress-label ${lblCls}" style="min-width:48px">${ip.pct}%</div>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const brandList = ful.brandIds.length
+    ? ful.brandIds.map(bid => `<span class="brand-chip-mini"><span class="chip-dot"></span>${escapeHtml(brandMap[bid] || bid.substring(0,8))}</span>`).join(' ')
+    : '<span class="brand-empty">Belum ada pembelian dari kontrak ini.</span>';
+
+  const fileBlock = k.attachment_path
+    ? `<button onclick="openAttachment('${escapeAttr(k.attachment_path)}')" class="file-pill" style="cursor:pointer">
+         <span>📎 ${escapeHtml(k.attachment_name || 'attachment')}</span>
+         <span style="color:var(--accent);font-weight:500">Buka →</span>
+       </button>`
+    : '<span class="brand-empty">Tidak ada attachment.</span>';
+
+  const overallCls = ful.overallPct >= 100 ? 'green' : (ful.overallPct > 0 ? 'accent' : '');
+
+  document.getElementById('dBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
+      <div class="stat-tile"><div class="stat-tile-val ${overallCls}">${ful.overallPct}%</div><div class="stat-tile-lbl">Pemenuhan</div></div>
+      <div class="stat-tile"><div class="stat-tile-val">${ful.beliCount}</div><div class="stat-tile-lbl">Transaksi</div></div>
+      <div class="stat-tile"><div class="stat-tile-val">${ful.brandIds.length}</div><div class="stat-tile-lbl">Brand pembeli</div></div>
+      <div class="stat-tile"><div class="stat-tile-val">${k.items.length}</div><div class="stat-tile-lbl">Item kontrak</div></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-label">Item & Pemenuhan</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <table class="detail-table">
+          <thead><tr>
+            <th>Barang</th>
+            <th style="text-align:right">Terbeli</th>
+            <th style="text-align:right">Target</th>
+            <th>Progress</th>
+          </tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-label">Brand yang Beli dari Kontrak Ini</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${brandList}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="detail-section">
+        <div class="detail-label">Attachment</div>
+        ${fileBlock}
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Dibuat oleh</div>
+        <div style="font-size:13px;color:var(--text);font-weight:500">${escapeHtml(k.dibuat_oleh || k.dibuat_oleh_email || '—')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)">${k.created_at ? new Date(k.created_at).toLocaleString('id-ID') : ''}</div>
+      </div>
+    </div>
+
+    ${k.catatan ? `
+    <div class="detail-section">
+      <div class="detail-label">Catatan</div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;line-height:1.5">${escapeHtml(k.catatan)}</div>
+    </div>` : ''}
+
+    ${k.nomor_kontrak ? `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);padding-top:8px">No. Kontrak: <span style="color:var(--text)">${escapeHtml(k.nomor_kontrak)}</span></div>` : ''}
+  `;
+
+  const btnDel = document.getElementById('btnDeleteK');
+  if (btnDel) btnDel.onclick = () => deleteKontrak(k.id);
+  document.getElementById('modalDetail').classList.add('show');
+}
+
+function closeDetailModal() {
+  document.getElementById('modalDetail').classList.remove('show');
+  State.detailKontrak = null;
+}
+
+function editFromDetail() {
+  if (!State.detailKontrak) return;
+  const id = State.detailKontrak.id;
+  closeDetailModal();
+  openKontrakModal(id);
+}
+
+async function deleteKontrak(id) {
+  if (!confirm('Hapus kontrak ini? Tindakan tidak bisa dibatalkan.')) return;
+  try {
+    const k = State.list.find(x => x.id === id);
+    if (k?.attachment_path) await removeAttachmentFile(k.attachment_path);
+    await window._sb.from('kontrak_items').delete().eq('kontrak_id', id);
+    const { error } = await window._sb.from('kontrak').delete().eq('id', id);
+    if (error) throw error;
+    showToast('Kontrak dihapus', 'success');
+    closeDetailModal();
+    await loadAll();
+  } catch(e) { showToast('Gagal hapus: ' + e.message, 'error'); }
+}
+
+// ───────────── HELPERS ─────────────
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type==='error' ? 'toast-error' : 'toast-success');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// Load brand names untuk mapping di chip
+(async () => {
+  try {
+    const { data } = await window._sb.from('brands').select('id,nama');
+    window._brandMap = Object.fromEntries((data||[]).map(b => [b.id, b.nama]));
+  } catch(e) { window._brandMap = {}; }
+})();
+
+window.openAttachment = openAttachment;
+window.openKontrakModal = openKontrakModal;
+window.closeKontrakModal = closeKontrakModal;
+window.addItemRow = addItemRow;
+window.removeItemRow = removeItemRow;
+window.onItemBarangChange = onItemBarangChange;
+window.onFilePicked = onFilePicked;
+window.clearAttachment = clearAttachment;
+window.saveKontrak = saveKontrak;
+window.openDetail = openDetail;
+window.closeDetailModal = closeDetailModal;
+window.editFromDetail = editFromDetail;
+window.deleteKontrak = deleteKontrak;
+window.onSearch = onSearch;
+window.renderList = renderList;
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+window.toggleSidebar = toggleSidebar; window.closeSidebar = closeSidebar;
+</script>
+</body>
+</html>

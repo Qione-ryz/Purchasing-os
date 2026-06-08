@@ -531,8 +531,13 @@ function findVendorByName(namaVendor) {
 // ────────────────────────────────────────────────────────────────
 function getLastKnownPrice(barangId, vendorId, mode) {
   // mode: 'exc' | 'inc' — ambil harga sesuai mode PPN; default exc
-  const cache = window.hargaCache;
-  if (!cache) return null;
+  // Priority chain:
+  //   1. riwayat_beli vendor-specific (hargaCache)
+  //   2. riwayat_harga (survey/manual/etc) vendor-specific (surveyPriceCache)
+  //   3. riwayat_beli any vendor
+  //   4. riwayat_harga any vendor
+  const cache       = window.hargaCache       || {};
+  const surveyCache = window.surveyPriceCache || {};
 
   function _pick(entry) {
     if (!entry) return null;
@@ -541,19 +546,65 @@ function getLastKnownPrice(barangId, vendorId, mode) {
     return entry.exc || entry.inc || null; // default: exc
   }
 
-  // Prioritaskan harga dari vendor yang dipilih
-  if (vendorId && cache[barangId]?.[vendorId]) {
-    return _pick(cache[barangId][vendorId]);
+  if (vendorId) {
+    const p1 = _pick(cache[barangId]?.[vendorId]);       if (p1) return p1;
+    const p2 = _pick(surveyCache[barangId]?.[vendorId]); if (p2) return p2;
   }
-
-  // Fallback: cari harga dari vendor manapun
-  const byBarang = cache[barangId];
-  if (!byBarang) return null;
-  for (const vId of Object.keys(byBarang)) {
-    const price = _pick(byBarang[vId]);
+  const byBarangBeli = cache[barangId] || {};
+  for (const vId of Object.keys(byBarangBeli)) {
+    const price = _pick(byBarangBeli[vId]);
+    if (price) return price;
+  }
+  const byBarangSurvey = surveyCache[barangId] || {};
+  for (const vId of Object.keys(byBarangSurvey)) {
+    const price = _pick(byBarangSurvey[vId]);
     if (price) return price;
   }
   return null;
+}
+
+// Pre-fetch riwayat_harga (survey + manual input + dll) untuk barang yg sedang di-review.
+// Dipanggil dari showScanItemsModal setelah _scanMappings ter-build.
+async function buildSurveyPriceCache(barangIds, vendorId) {
+  if (!Array.isArray(barangIds) || !barangIds.length || !window._sb) return;
+  try {
+    let q = window._sb
+      .from('riwayat_harga')
+      .select('barang_id,vendor_id,harga,harga_inc_ppn,harga_exc_ppn,ppn_included,sumber,tanggal')
+      .in('barang_id', barangIds)
+      .order('tanggal', { ascending:false })
+      .range(0, 9999);
+    // Sumber 'beli' sudah ter-cover hargaCache. Sisanya (survey/manual/dll) yang kita butuh.
+    q = q.neq('sumber', 'beli');
+    const { data, error } = await q;
+    if (error) throw error;
+
+    const PPN_RATE = (window.PPN_RATE != null ? window.PPN_RATE : 0.11);
+    const toInc = v => Math.round(v * (1 + PPN_RATE));
+    const toExc = v => Math.round(v / (1 + PPN_RATE));
+
+    const cache = window.surveyPriceCache || {};
+    (data || []).forEach(h => {
+      if (!h.barang_id || !h.vendor_id) return;
+      let inc = h.harga_inc_ppn || null;
+      let exc = h.harga_exc_ppn || null;
+      if (!inc && !exc && h.harga) {
+        if (h.ppn_included) { inc = h.harga; exc = toExc(h.harga); }
+        else                { exc = h.harga; inc = toInc(h.harga); }
+      } else if (inc && !exc) { exc = toExc(inc); }
+      else if (exc && !inc)   { inc = toInc(exc); }
+      if (!inc && !exc) return;
+
+      if (!cache[h.barang_id]) cache[h.barang_id] = {};
+      // First entry = latest (data sudah di-sort desc) → skip kalau sudah ada
+      if (!cache[h.barang_id][h.vendor_id]) {
+        cache[h.barang_id][h.vendor_id] = { inc, exc, sumber: h.sumber, tanggal: h.tanggal };
+      }
+    });
+    window.surveyPriceCache = cache;
+  } catch(e) {
+    console.warn('[scan] buildSurveyPriceCache gagal:', e);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -918,6 +969,14 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
       : null;
   });
 
+  // Pre-fetch riwayat_harga (survey/manual/dll) untuk barang ter-match + vendor terpilih.
+  // Dipakai sebagai fallback harga di getLastKnownPrice saat OCR harga kosong.
+  const matchedBarangIds = Object.values(_scanMappings)
+    .map(m => m?.barang?.id).filter(Boolean);
+  if (matchedBarangIds.length) {
+    await buildSurveyPriceCache(matchedBarangIds, vendorMatch?.id);
+  }
+
   // ── Vendor section ──
   const vendorBadge = vendorMatch
     ? `<span class="scan-badge vendor-ok">✓ ditemukan</span>`
@@ -997,16 +1056,26 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
     const badgeCls= mode === "exact" ? "exact" : mode === "fuzzy" ? "fuzzy" : "manual";
     const badgeTxt= mode === "exact" ? "cocok" : mode === "fuzzy" ? "mirip" : "manual";
 
-    // Ambil harga: dari OCR, atau fallback ke harga terakhir jika 0
+    // OCR positif → pakai langsung. OCR 0/kosong → fallback riwayat dulu.
     const vendorIdSekarang = document.getElementById("scanVendorId")?.value
       || window._scanVendor?.id
       || document.getElementById("fVendor")?.value
       || "";
-    let hargaAwal = item.harga_satuan || 0;
+    const rawHarga = item.harga_satuan;
+    const ocrPositive = rawHarga !== null && rawHarga !== undefined && rawHarga !== '' && Number(rawHarga) > 0;
+    let hargaAwal = ocrPositive ? (Number(rawHarga) || 0) : 0;
     let hargaDariCache = false;
-    if (!hargaAwal && barang) {
-      const lastPrice = getLastKnownPrice(barang.id, vendorIdSekarang, _scanPPNMode);
+    let hargaDariMaster = false;
+    let hargaNol = false;
+    if (!ocrPositive && barang) {
+      // OCR kosong/0 → cari dari riwayat vendor/master sebelum tampilkan 0
+      let lastPrice = getLastKnownPrice(barang.id, vendorIdSekarang, _scanPPNMode);
       if (lastPrice) { hargaAwal = lastPrice; hargaDariCache = true; }
+      else {
+        const masterPrice = window.hargaTerakhirMap?.[barang.id];
+        if (masterPrice) { hargaAwal = masterPrice; hargaDariMaster = true; }
+        else { hargaNol = true; } // benar-benar tidak ada data → cek manual
+      }
     }
 
     // Bangun opsi satuan: satuan dasar + satuan_order dari master
@@ -1056,7 +1125,7 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
           <div style="width:130px;flex-shrink:0">
             <input type="number" class="scan-num-input" id="scanHarga_${i}"
               value="${hargaAwal}" min="0" step="any"
-              style="${hargaDariCache ? "border-color:rgba(247,146,79,0.5)" : ""}"/>
+              style="${hargaDariCache || hargaDariMaster ? "border-color:rgba(247,146,79,0.5)" : (hargaNol ? "border-color:rgba(255,77,106,0.6)" : "")}"/>
           </div>
           <div style="width:24px;flex-shrink:0;text-align:center">
             <input type="checkbox" id="scanChk_${i}" checked
@@ -1078,8 +1147,12 @@ async function showScanItemsModal(items, vendorNamaDariInvoice, ppnIncluded) {
           <div style="width:130px;flex-shrink:0;text-align:right">
             <div id="scanHargaNote_${i}" class="scan-harga-note">
               ${hargaDariCache
-                ? `<span style="color:var(--accent3)">dari riwayat</span>`
-                : (_scanPPNMode === "inc" ? "inc PPN" : "exc PPN")}
+                ? `<span style="color:var(--accent3)">dari riwayat vendor</span>`
+                : hargaDariMaster
+                  ? `<span style="color:var(--accent3)">dari harga master</span>`
+                  : hargaNol
+                    ? `<span style="color:var(--danger)">harga 0 — cek manual</span>`
+                    : (_scanPPNMode === "inc" ? "inc PPN" : "exc PPN")}
             </div>
           </div>
           <div style="width:24px;flex-shrink:0"></div>
@@ -1649,15 +1722,26 @@ function applyScanItems(count) {
     const mapping  = _scanMappings[i];
     const barang   = mapping?.barang;
     const qtyVal   = parseFloat(document.getElementById(`scanQty_${i}`)?.value)   || item.qty          || 1;
-    let   hargaVal = parseFloat(document.getElementById(`scanHarga_${i}`)?.value) || item.harga_satuan || 0;
-    const satuanSelectVal = document.getElementById(`scanSatuan_${i}`)?.value || ""; // format "satuan|faktor"
 
-    // Jika harga masih 0, coba ambil dari hargaCache sesuai mode PPN
-    if (!hargaVal && barang) {
-      const vendorId = document.getElementById("fVendor")?.value || window._scanVendor?.id || "";
-      const lastPrice = getLastKnownPrice(barang.id, vendorId, _scanPPNMode);
-      if (lastPrice) hargaVal = lastPrice;
+    // Harga: bedakan input kosong (= fetch riwayat) vs input "0" (= eksplisit nol).
+    const hargaInputRaw = document.getElementById(`scanHarga_${i}`)?.value;
+    const hargaInputEmpty = hargaInputRaw === undefined || hargaInputRaw === null || String(hargaInputRaw).trim() === '';
+    let hargaVal;
+    if (!hargaInputEmpty) {
+      hargaVal = parseFloat(hargaInputRaw);
+      if (isNaN(hargaVal)) hargaVal = 0;
+    } else {
+      // Input kosong → selalu gunakan riwayat (OCR 0 diperlakukan sama dengan kosong)
+      if (barang) {
+        const vendorId = document.getElementById("fVendor")?.value || window._scanVendor?.id || "";
+        hargaVal = getLastKnownPrice(barang.id, vendorId, _scanPPNMode)
+                || window.hargaTerakhirMap?.[barang.id]
+                || 0;
+      } else {
+        hargaVal = 0;
+      }
     }
+    const satuanSelectVal = document.getElementById(`scanSatuan_${i}`)?.value || ""; // format "satuan|faktor"
 
     if (barang && typeof addItem === "function") {
       const idxBefore = document.querySelectorAll("#itemList .item-row").length;

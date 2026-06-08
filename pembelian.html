@@ -895,6 +895,20 @@
       return d;
     } catch(e) { return null; }
   }
+  /* Auto-assign barang ke brand setelah pembelian disimpan.
+     Gunakan ignoreDuplicates agar upsert tidak error kalau sudah terdaftar. */
+  async function _autoAssignBarangToBrand(barangIds, brandId) {
+    if (!brandId || !barangIds?.length) return;
+    try {
+      const uniq = [...new Set(barangIds.filter(Boolean))];
+      if (!uniq.length) return;
+      const payloads = uniq.map(barang_id => ({ barang_id, brand_id: brandId }));
+      await window._sb.from('barang_brands')
+        .upsert(payloads, { onConflict: 'barang_id,brand_id', ignoreDuplicates: true });
+    } catch(e) { console.warn('[autoAssign]', e.message); }
+  }
+  window._autoAssignBarangToBrand = _autoAssignBarangToBrand;
+
   window._invalidateHargaCache = () => {
     localStorage.removeItem('_c_harga');
     localStorage.removeItem('_hargaCache');
@@ -2665,6 +2679,9 @@
       const { error: itemErr } = await window._sb.from('riwayat_beli_items').insert(itemPayloads);
       if (itemErr) throw itemErr;
 
+      /* 2b. Auto-assign barang ke brand */
+      _autoAssignBarangToBrand(items.map(i => i.barang_id), brandId);
+
       /* 3. Insert riwayat_harga entries */
       const hargaPayloads = items.map(item => {
         const harga_exc = incPPN
@@ -3626,19 +3643,31 @@
     const scanItemsList = document.getElementById('fScanItemsList');
     if (scanItemsList && (ocr.items||[]).length) {
       const formatRpS = v => v ? 'Rp ' + Math.round(v).toLocaleString('id-ID',{maximumFractionDigits:0}) : '—';
+      const itemsHtml = (ocr.items||[]).map(it => {
+        const nama  = it.nama || it.nama_item || '?';
+        const qty   = it.qty  || 1;
+        const sat   = it.satuan || '';
+        const harga = it.harga_satuan || it.harga || 0;
+        return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;gap:8px">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nama}">${nama}</span>
+          <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${qty}${sat ? ' '+sat : ''}</span>
+          <span style="font-family:var(--mono);color:var(--accent2);white-space:nowrap;min-width:80px;text-align:right">${formatRpS(harga)}</span>
+        </div>`;
+      }).join('');
+      const grandTotal = (ocr.items||[]).reduce((s, it) => {
+        const qty   = Number(it.qty)   || 1;
+        const harga = Number(it.harga_satuan || it.harga) || 0;
+        return s + qty * harga;
+      }, 0);
+      const totalHtml = grandTotal > 0
+        ? `<div style="padding:6px 0 2px;display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border);margin-top:4px">
+            <span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Grand Total</span>
+            <span style="font-family:var(--mono);color:var(--accent);font-weight:600;white-space:nowrap">${formatRpS(grandTotal)}</span>
+           </div>`
+        : '';
       scanItemsList.innerHTML =
         `<div style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px">Daftar Barang OCR</div>` +
-        (ocr.items||[]).map(it => {
-          const nama  = it.nama || it.nama_item || '?';
-          const qty   = it.qty  || 1;
-          const sat   = it.satuan || '';
-          const harga = it.harga_satuan || it.harga || 0;
-          return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;gap:8px">
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nama}">${nama}</span>
-            <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${qty}${sat ? ' '+sat : ''}</span>
-            <span style="font-family:var(--mono);color:var(--accent2);white-space:nowrap;min-width:80px;text-align:right">${formatRpS(harga)}</span>
-          </div>`;
-        }).join('');
+        itemsHtml + totalHtml;
     }
     if (scanPanel) scanPanel.style.display = '';
 
@@ -4132,6 +4161,12 @@
       });
       const { error: itemErr } = await sb.from('riwayat_beli_items').insert(itemPayloads);
       if (itemErr) throw itemErr;
+
+      /* 2b. Auto-assign barang ke brand */
+      window._autoAssignBarangToBrand?.(
+        DiState.items.filter(i => !i.isUnmatched && i.barangId).map(i => i.barangId),
+        DiState.selectedBrandId || draft.brand_id || null
+      );
 
       /* 3. riwayat_harga — hanya item yg punya barang_id */
       const hargaPayloads = DiState.items

@@ -768,6 +768,7 @@
             <label class="toggle"><input type="checkbox" id="bAssignBarang" onchange="onToggleAssign('barang')"/><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
           </div>
           <div id="assignBarangOptions" style="display:none;margin-top:6px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+            <button type="button" id="btnToggleModeBarang" onclick="toggleAssignMode('barang')" style="display:none;background:none;border:1px dashed var(--border);color:var(--accent);font-size:12px;padding:6px 10px;border-radius:7px;cursor:pointer;margin-bottom:8px">▾ Ubah cara assign</button>
             <!-- Radio options -->
             <div id="assignBarangRadios">
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
@@ -802,6 +803,7 @@
             <label class="toggle"><input type="checkbox" id="bAssignVendor" onchange="onToggleAssign('vendor')"/><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
           </div>
           <div id="assignVendorOptions" style="display:none;margin-top:6px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+            <button type="button" id="btnToggleModeVendor" onclick="toggleAssignMode('vendor')" style="display:none;background:none;border:1px dashed var(--border);color:var(--accent);font-size:12px;padding:6px 10px;border-radius:7px;cursor:pointer;margin-bottom:8px">▾ Ubah cara assign</button>
             <div id="assignVendorRadios">
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
                 <input type="radio" name="modeVendor" value="all" checked style="margin-top:3px;accent-color:var(--accent)" onchange="onModeChange('vendor')"/>
@@ -1017,9 +1019,9 @@
     try {
       const [{ data, error }, { data: bb }, { data: vb }, { data: rb }] = await Promise.all([
         window._sb.from('brands').select('*').order('nama'),
-        window._sb.from('barang_brands').select('brand_id'),
-        window._sb.from('vendor_brands').select('brand_id'),
-        window._sb.from('riwayat_beli').select('brand_id'),
+        window._sb.from('barang_brands').select('brand_id').range(0, 49999),
+        window._sb.from('vendor_brands').select('brand_id').range(0, 49999),
+        window._sb.from('riwayat_beli').select('brand_id').range(0, 49999),
       ]);
       if (error) throw error;
 
@@ -1373,6 +1375,15 @@
     }
   }
 
+  function toggleAssignMode(tipe) {
+    const T = tipe === 'barang' ? 'Barang' : 'Vendor';
+    const radios = document.getElementById(`assign${T}Radios`);
+    const btn    = document.getElementById(`btnToggleMode${T}`);
+    const show   = radios.style.display === 'none';
+    radios.style.display = show ? 'block' : 'none';
+    btn.textContent = show ? '▴ Sembunyikan opsi' : '▾ Ubah cara assign';
+  }
+
   function onModeChange(tipe) {
     const T        = tipe === 'barang';
     const mode     = _getMode(tipe);
@@ -1389,7 +1400,9 @@
     // Show/hide checklist — load async separately
     if (mode === 'pilih') {
       listEl.style.display = 'block';
-      loadChecklist(tipe, listEl); // async but fire-and-forget, UI updates inside
+      const isEdit = !!document.getElementById('bId').value;
+      const savedIds = (isEdit && window._editAssignedIds && window._editAssignedIds[tipe]) || [];
+      loadChecklist(tipe, listEl, savedIds);
     } else {
       listEl.style.display = 'none';
       listEl.innerHTML = '';
@@ -1402,12 +1415,12 @@
       let data, error;
       if (tipe === 'barang') {
         // Coba dengan kode dulu, fallback tanpa kode jika kolom tidak ada
-        ({ data, error } = await window._sb.from('barang').select('id, nama, kode').order('nama'));
+        ({ data, error } = await window._sb.from('barang').select('id, nama, kode').order('nama').range(0, 19999));
         if (error && error.message && error.message.includes('kode')) {
-          ({ data, error } = await window._sb.from('barang').select('id, nama').order('nama'));
+          ({ data, error } = await window._sb.from('barang').select('id, nama').order('nama').range(0, 19999));
         }
       } else {
-        ({ data, error } = await window._sb.from('vendor').select('id, nama').order('nama'));
+        ({ data, error } = await window._sb.from('vendor').select('id, nama').order('nama').range(0, 19999));
       }
       if (error) throw error;
       if (!data || data.length === 0) {
@@ -1463,22 +1476,28 @@
       document.getElementById('assignBarangSub').textContent = 'Edit barang yang di-assign ke brand ini';
       document.getElementById('assignVendorSub').textContent = 'Edit vendor yang di-assign ke brand ini';
 
-      // Hide "all" and "brand" radio options in edit mode — only "pilih" makes sense
+      // Edit mode: radio disembunyikan; tombol "Ubah cara assign" untuk memunculkan
       document.getElementById('assignBarangRadios').style.display = 'none';
       document.getElementById('assignVendorRadios').style.display = 'none';
+      document.getElementById('btnToggleModeBarang').style.display = '';
+      document.getElementById('btnToggleModeVendor').style.display = '';
+      ['Barang','Vendor'].forEach(T => {
+        const pilihRadio = document.querySelector(`input[name="mode${T}"][value="pilih"]`);
+        if (pilihRadio) pilihRadio.checked = true;
+      });
 
       // Pre-load checklists with current assigned items ticked
       const [{ data: bb }, { data: vb }] = await Promise.all([
-        window._sb.from('barang_brands').select('barang_id').eq('brand_id', id),
-        window._sb.from('vendor_brands').select('vendor_id').eq('brand_id', id),
+        window._sb.from('barang_brands').select('barang_id').eq('brand_id', id).range(0, 19999),
+        window._sb.from('vendor_brands').select('vendor_id').eq('brand_id', id).range(0, 19999),
       ]);
       const assignedBarang  = (bb||[]).map(x=>x.barang_id);
       const assignedVendor  = (vb||[]).map(x=>x.vendor_id);
 
-      // Simpan ke window agar onToggleAssign bisa akses ketika toggle dimatikan/dinyalakan ulang
+      // Simpan ke window agar onModeChange/onToggleAssign bisa akses saat user pilih mode "pilih"
       window._editAssignedIds = { barang: assignedBarang, vendor: assignedVendor };
 
-      // Auto-open both toggles and show checklist
+      // Buka toggle Assign + auto-load checklist dengan assignment current ter-check
       for (const [tipe, assigned] of [['barang', assignedBarang],['vendor', assignedVendor]]) {
         const T = tipe === 'barang' ? 'Barang' : 'Vendor';
         document.getElementById(`bAssign${T}`).checked = true;
@@ -1501,6 +1520,8 @@
       document.getElementById('assignVendorSub').textContent = 'Tambahkan brand ini ke vendor';
       document.getElementById('assignBarangRadios').style.display = 'block';
       document.getElementById('assignVendorRadios').style.display = 'block';
+      document.getElementById('btnToggleModeBarang').style.display = 'none';
+      document.getElementById('btnToggleModeVendor').style.display = 'none';
     }
 
     buildColorPicker();
@@ -1532,28 +1553,41 @@
         if (error) throw error;
 
         const results = [];
-        // Sync barang assign if toggle is on (edit mode always shows pilih)
-        if (document.getElementById('bAssignBarang').checked) {
-          const selected = [...document.querySelectorAll('.chk-barang:checked')].map(c=>c.value);
-          const { data: cur } = await window._sb.from('barang_brands').select('barang_id').eq('brand_id', id);
-          const curSet      = new Set((cur||[]).map(x=>x.barang_id));
-          const selectedSet = new Set(selected);
-          const toAdd = selected.filter(x=>!curSet.has(x));
-          const toDel = [...curSet].filter(x=>!selectedSet.has(x));
-          if (toAdd.length) await window._sb.from('barang_brands').insert(toAdd.map(bid=>({ barang_id:bid, brand_id:id })));
-          if (toDel.length) await window._sb.from('barang_brands').delete().eq('brand_id',id).in('barang_id',toDel);
-          if (toAdd.length||toDel.length) results.push(`barang: +${toAdd.length} -${toDel.length}`);
-        }
-        if (document.getElementById('bAssignVendor').checked) {
-          const selected = [...document.querySelectorAll('.chk-vendor:checked')].map(c=>c.value);
-          const { data: cur } = await window._sb.from('vendor_brands').select('vendor_id').eq('brand_id', id);
-          const curSet      = new Set((cur||[]).map(x=>x.vendor_id));
-          const selectedSet = new Set(selected);
-          const toAdd = selected.filter(x=>!curSet.has(x));
-          const toDel = [...curSet].filter(x=>!selectedSet.has(x));
-          if (toAdd.length) await window._sb.from('vendor_brands').insert(toAdd.map(vid=>({ vendor_id:vid, brand_id:id })));
-          if (toDel.length) await window._sb.from('vendor_brands').delete().eq('brand_id',id).in('vendor_id',toDel);
-          if (toAdd.length||toDel.length) results.push(`vendor: +${toAdd.length} -${toDel.length}`);
+        for (const tipe of ['barang','vendor']) {
+          const T   = tipe === 'barang' ? 'Barang' : 'Vendor';
+          if (!document.getElementById(`bAssign${T}`).checked) continue;
+          const mode = _getMode(tipe);
+          const tbl  = tipe === 'barang' ? 'barang_brands' : 'vendor_brands';
+          const col  = tipe === 'barang' ? 'barang_id' : 'vendor_id';
+          const srcTbl = tipe === 'barang' ? 'barang' : 'vendor';
+          const cls  = tipe === 'barang' ? '.chk-barang:checked' : '.chk-vendor:checked';
+
+          const { data: cur } = await window._sb.from(tbl).select(col).eq('brand_id', id).range(0, 49999);
+          const curSet = new Set((cur||[]).map(x=>x[col]));
+
+          if (mode === 'pilih') {
+            const selected    = [...document.querySelectorAll(cls)].map(c=>c.value);
+            const selectedSet = new Set(selected);
+            const toAdd = selected.filter(x=>!curSet.has(x));
+            const toDel = [...curSet].filter(x=>!selectedSet.has(x));
+            if (toAdd.length) await window._sb.from(tbl).insert(toAdd.map(v=>({ [col]:v, brand_id:id })));
+            if (toDel.length) await window._sb.from(tbl).delete().eq('brand_id',id).in(col,toDel);
+            if (toAdd.length||toDel.length) results.push(`${tipe}: +${toAdd.length} -${toDel.length}`);
+
+          } else if (mode === 'all') {
+            const { data: allItems } = await window._sb.from(srcTbl).select('id').range(0, 49999);
+            const toAdd = (allItems||[]).filter(i=>!curSet.has(i.id)).map(i=>({ [col]:i.id, brand_id:id }));
+            if (toAdd.length) await window._sb.from(tbl).insert(toAdd);
+            results.push(`${tipe}: +${toAdd.length} (semua)`);
+
+          } else if (mode === 'brand') {
+            const srcId = document.getElementById(`srcBrand${T}`).value;
+            if (!srcId) continue;
+            const { data: srcItems } = await window._sb.from(tbl).select(col).eq('brand_id', srcId).range(0, 49999);
+            const toAdd = (srcItems||[]).filter(x=>!curSet.has(x[col])).map(x=>({ [col]:x[col], brand_id:id }));
+            if (toAdd.length) await window._sb.from(tbl).insert(toAdd);
+            results.push(`${tipe}: +${toAdd.length} (salin)`);
+          }
         }
         const detail = results.length ? ` (${results.join(', ')})` : '';
         showToast(`Brand diperbarui ✓${detail}`, 'success');
@@ -1621,26 +1655,47 @@
   async function deleteBrand(id, nama) {
     if (!window._isAdmin) { showToast('Akses ditolak', 'error'); return; }
     /* Cek dulu berapa data yang akan terdampak */
-    const [{ count: cBarang }, { count: cVendor }, { count: cBeli }] = await Promise.all([
-      window._sb.from('barang_brands').select('*', { count:'exact', head:true }).eq('brand_id', id),
-      window._sb.from('vendor_brands').select('*', { count:'exact', head:true }).eq('brand_id', id),
-      window._sb.from('riwayat_beli').select('*', { count:'exact', head:true }).eq('brand_id', id)
+    const safeCount = (p) => p.then(r => r.count || 0).catch(() => 0);
+    const [cBarang, cVendor, cBeli, cPemesan, cOrders, cSoGroup] = await Promise.all([
+      safeCount(window._sb.from('barang_brands').select('*', { count:'exact', head:true }).eq('brand_id', id)),
+      safeCount(window._sb.from('vendor_brands').select('*', { count:'exact', head:true }).eq('brand_id', id)),
+      safeCount(window._sb.from('riwayat_beli').select('*', { count:'exact', head:true }).eq('brand_id', id)),
+      safeCount(window._sb.from('pemesan').select('*', { count:'exact', head:true }).eq('brand_id', id)),
+      safeCount(window._sb.from('orders').select('*', { count:'exact', head:true }).eq('brand_id', id)),
+      safeCount(window._sb.from('so_item_groups').select('*', { count:'exact', head:true }).eq('brand_id', id)),
     ]);
 
     const dampak = [];
-    if (cBarang) dampak.push(`${cBarang} barang`);
-    if (cVendor) dampak.push(`${cVendor} vendor`);
-    if (cBeli)   dampak.push(`${cBeli} transaksi pembelian`);
+    if (cBarang)  dampak.push(`${cBarang} relasi barang`);
+    if (cVendor)  dampak.push(`${cVendor} relasi vendor`);
+    if (cBeli)    dampak.push(`${cBeli} transaksi pembelian`);
+    if (cPemesan) dampak.push(`${cPemesan} kode order (pemesan)`);
+    if (cOrders)  dampak.push(`${cOrders} order masuk`);
+    if (cSoGroup) dampak.push(`${cSoGroup} grup stock opname`);
+
+    if (cBeli || cOrders) {
+      alert(`Brand "${nama}" tidak bisa dihapus.\n\nMasih ada data transaksi:\n• ${dampak.join('\n• ')}\n\nHapus/arsipkan data transaksi tersebut dulu.`);
+      return;
+    }
 
     const pesanDampak = dampak.length
-      ? `\n\nData terdampak:\n• ${dampak.join('\n• ')}\n\nRelasi brand pada data tersebut akan ikut dihapus.`
+      ? `\n\nData terdampak (akan ikut dihapus):\n• ${dampak.join('\n• ')}`
       : '\n\nBrand ini belum dipakai oleh data apapun.';
 
     if (!confirm(`Hapus brand "${nama}"?${pesanDampak}\n\nAksi ini tidak bisa dibatalkan.`)) return;
     try {
-      /* Hapus relasi dulu, baru hapus brand */
-      await window._sb.from('barang_brands').delete().eq('brand_id', id);
-      await window._sb.from('vendor_brands').delete().eq('brand_id', id);
+      /* Hapus semua dependent rows dulu */
+      const cleanups = [
+        window._sb.from('barang_brands').delete().eq('brand_id', id),
+        window._sb.from('vendor_brands').delete().eq('brand_id', id),
+        window._sb.from('pemesan').delete().eq('brand_id', id),
+        window._sb.from('so_item_groups').delete().eq('brand_id', id),
+        window._sb.from('so_barang_config').delete().eq('brand_id', id),
+        window._sb.from('inventory_stock').delete().eq('brand_id', id),
+        window._sb.from('inventory_log').delete().eq('brand_id', id),
+      ];
+      await Promise.all(cleanups.map(p => p.then(() => null).catch(() => null)));
+
       const { error } = await window._sb.from('brands').delete().eq('id', id);
       if (error) throw error;
       logActivity('hapus', 'brand', nama, `${dampak.join(', ') || 'tidak ada data terdampak'}`);
@@ -2194,6 +2249,7 @@
   window.loadLog = loadLog;
 
   window.openBrandModal=openBrandModal; window.closeBrandModal=closeBrandModal;
+  window.toggleAssignMode=toggleAssignMode;
   window.saveBrand=saveBrand; window.deleteBrand=deleteBrand; window.pickColor=pickColor;
   window.onToggleAssign=onToggleAssign; window.onModeChange=onModeChange;
   window.loadChecklist=loadChecklist; window.populateSrcBrandSelect=populateSrcBrandSelect;
