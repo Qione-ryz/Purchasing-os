@@ -929,18 +929,20 @@
           nama: r.nama_barang||'—', sku: r.sku||'—',
           harga: r.harga, harga_inc: r.harga_inc,
           count: 0,
-          /* per-vendor history untuk trend yang valid */
-          byVendor: {}
+          byVendor: {},
+          newestRow: r,   /* filteredData sorted newest→oldest; first = newest */
+          oldestRow: r
         };
       }
       /* Simpan 2 data terbaru per vendor */
       const vid = r.vendor_id || '__unknown__';
       if (!barangAgg[bid].byVendor[vid]) barangAgg[bid].byVendor[vid] = [];
       if (barangAgg[bid].byVendor[vid].length < 2) barangAgg[bid].byVendor[vid].push(r);
+      barangAgg[bid].oldestRow = r; /* terus diupdate → akhirnya = row tertua */
       barangAgg[bid].count++;
     });
 
-    /* Hitung trend: cari vendor yang punya ≥2 data & perubahan terbesar (abs) */
+    /* Hitung trend: same-vendor ≥2 pembelian; fallback lintas vendor jika tidak ada */
     Object.values(barangAgg).forEach(b => {
       let bestDiff = null, bestDiffInc = null;
       Object.values(b.byVendor).forEach(rows => {
@@ -952,7 +954,14 @@
           bestDiff = d; bestDiffInc = dInc;
         }
       });
-      b.vendorDiff    = bestDiff;    /* null = tidak ada perbandingan valid */
+      /* Fallback cross-vendor: newest vs oldest, hanya jika beda vendor */
+      if (bestDiff === null && b.newestRow && b.oldestRow && b.newestRow !== b.oldestRow
+          && b.newestRow.vendor_id !== b.oldestRow.vendor_id) {
+        const d    = b.newestRow.harga     - b.oldestRow.harga;
+        const dInc = b.newestRow.harga_inc - b.oldestRow.harga_inc;
+        if (Math.abs(d) >= 1) { bestDiff = d; bestDiffInc = dInc; b._crossVendor = true; }
+      }
+      b.vendorDiff    = bestDiff;
       b.vendorDiffInc = bestDiffInc;
     });
 
@@ -978,17 +987,17 @@
     list.innerHTML = visible.map(([id,b]) => {
       const isSelected = (window._selectedBarangs||[]).includes(id);
       const dispHarga = PageState.ppnMode==='inc' ? (b.harga_inc || toIncPPN(b.harga)) : b.harga;
-      /* Gunakan diff per-vendor yang sama — bukan cross-vendor */
       const diff2    = PageState.ppnMode==='inc' ? b.vendorDiffInc : b.vendorDiff;
       const trendCls2 = diff2 === null ? 'trend-flat'
                       : diff2 > 0 ? 'trend-up'
                       : diff2 < 0 ? 'trend-down' : 'trend-flat';
-      /* Hitung persentase untuk tooltip */
+      /* Harga referensi untuk persentase: same-vendor prev, atau oldest cross-vendor */
       const prevHarga2 = (() => {
+        if (b._crossVendor && b.oldestRow) {
+          return PageState.ppnMode==='inc' ? (b.oldestRow.harga_inc||toIncPPN(b.oldestRow.harga)) : b.oldestRow.harga;
+        }
         let prev = null;
-        Object.values(b.byVendor).forEach(rows => {
-          if (rows.length >= 2) prev = rows[1];
-        });
+        Object.values(b.byVendor).forEach(rows => { if (rows.length >= 2) prev = rows[1]; });
         return prev ? (PageState.ppnMode==='inc' ? (prev.harga_inc||toIncPPN(prev.harga)) : prev.harga) : null;
       })();
       const pct2 = (diff2 !== null && prevHarga2 && prevHarga2 > 0)
@@ -996,11 +1005,19 @@
       const pctLabel2 = pct2 !== null
         ? (pct2 > 0 ? `+${pct2.toFixed(1)}%` : `${pct2.toFixed(1)}%`) : null;
       const tipText2 = diff2 !== null && Math.abs(diff2) >= 1 && pctLabel2
-        ? `${pctLabel2} · ${diff2>0?'+':''}${formatRp(Math.abs(diff2))} dari harga sebelumnya` : null;
+        ? b._crossVendor
+          ? `${pctLabel2} · selisih antar vendor ${diff2>0?'+':''}${formatRp(Math.abs(diff2))}`
+          : `${pctLabel2} · ${diff2>0?'+':''}${formatRp(Math.abs(diff2))} dari harga sebelumnya`
+        : null;
       const trendStr  = diff2 === null ? '—'
                       : Math.abs(diff2) < 1 ? '→ Stabil'
-                      : diff2 > 0 ? `↑ +${formatRp(diff2)}${pctLabel2?' ('+pctLabel2+')':''}`
-                      : `↓ ${formatRp(Math.abs(diff2))}${pctLabel2?' ('+pctLabel2+')':''}`;
+                      : b._crossVendor
+                        ? (diff2 > 0
+                          ? `↑ +${formatRp(diff2)}${pctLabel2?' ('+pctLabel2+') ⇄':''}`
+                          : `↓ ${formatRp(Math.abs(diff2))}${pctLabel2?' ('+pctLabel2+') ⇄':''}`)
+                        : (diff2 > 0
+                          ? `↑ +${formatRp(diff2)}${pctLabel2?' ('+pctLabel2+')':''}`
+                          : `↓ ${formatRp(Math.abs(diff2))}${pctLabel2?' ('+pctLabel2+')':''}`);
       return `<div class="barang-item${isSelected?' selected':''}" onclick="selectBarang('${id}')">
         <div style="min-width:0;flex:1">
           <div class="barang-item-name">${b.nama}</div>
@@ -1255,11 +1272,17 @@
         byVendor[vName].push(r);
       });
 
-      const allDates = [...new Set(chartData.map(r => groupKey(r.tanggal_js, groupBy)))].sort();
+      let effectiveGroupBy = groupBy;
+      let allDates = [...new Set(chartData.map(r => groupKey(r.tanggal_js, effectiveGroupBy)))].sort();
+      // Fallback ke per-hari jika semua data dalam ≤1 periode — agar perbedaan harga terlihat
+      if (allDates.length <= 1 && effectiveGroupBy !== 'day') {
+        effectiveGroupBy = 'day';
+        allDates = [...new Set(chartData.map(r => groupKey(r.tanggal_js, effectiveGroupBy)))].sort();
+      }
 
       const datasets = Object.entries(byVendor).map(([vName, rows], i) => {
         const dataMap = {};
-        rows.forEach(r => { dataMap[groupKey(r.tanggal_js,groupBy)] = getHarga(r); });
+        rows.forEach(r => { dataMap[groupKey(r.tanggal_js,effectiveGroupBy)] = getHarga(r); });
         const shortLabel = vName.length > 22 ? vName.slice(0, 20) + '…' : vName;
         return {
           label: shortLabel,
@@ -1271,7 +1294,20 @@
         };
       });
 
-      drawChart(canvas, allDates.map(d=>formatLabel(d,groupBy)), datasets);
+      /* Subtitle: tampilkan selisih harga antar vendor jika ada ≥2 vendor */
+      const vendorNames = Object.keys(byVendor);
+      if (vendorNames.length >= 2) {
+        const allPrices = chartData.map(r => getHarga(r));
+        const maxP = Math.max(...allPrices), minP = Math.min(...allPrices);
+        const range = maxP - minP;
+        if (range >= 1) {
+          const pct = minP > 0 ? (range / minP * 100) : 0;
+          subtitleEl.style.display = '';
+          subtitleEl.textContent = `Selisih antar vendor: ${formatRp(range)} (${pct.toFixed(1)}%) · termurah ${formatRp(minP)} · termahal ${formatRp(maxP)}`;
+        }
+      }
+
+      drawChart(canvas, allDates.map(d=>formatLabel(d,effectiveGroupBy)), datasets);
 
     } else {
       // Default: Top 10 barang dengan kenaikan harga terbesar

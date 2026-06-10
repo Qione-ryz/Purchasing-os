@@ -1065,7 +1065,12 @@
     if(!deleteId) return;
     const btn=document.getElementById('btnConfirmDel'); btn.disabled=true; btn.textContent='Menghapus...';
     try {
-      await window._sb.from('barang').delete().eq('id', deleteId);
+      const delBrands = await window._sb.from('barang_brands').delete().eq('barang_id', deleteId);
+      if (delBrands.error) throw delBrands.error;
+      const delSatuan = await window._sb.from('barang_satuan_order').delete().eq('barang_id', deleteId);
+      if (delSatuan.error) throw delSatuan.error;
+const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
+      if (delBarang.error) throw delBarang.error;
       const deletedName = (window.allData||[]).find(x=>x.id===deleteId)?.nama || deleteId;
       logActivity('hapus', 'barang', deletedName);
       showToast('Barang berhasil dihapus','success'); closeConfirm(); await window.loadBarang();

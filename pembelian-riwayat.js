@@ -55,10 +55,11 @@ function _normalizeRow(r) {
 
 /* ── Build query Supabase berdasarkan filter aktif ── */
 function _buildRiwayatQuery() {
-  const sel    = PageState.rSelectedBrands || [];
+  const sel      = PageState.rSelectedBrands || [];
   const status   = document.getElementById('rFilterStatus').value;
   const dateFrom = document.getElementById('rDateFrom').value;
   const dateTo   = document.getElementById('rDateTo').value;
+  const vendor   = PageState.rVendorFilter;
 
   let q = window._sb.from('riwayat_beli').select('*, riwayat_beli_items(*)');
   if (sel.length === 1)    q = q.eq('brand_id', sel[0]);
@@ -66,16 +67,18 @@ function _buildRiwayatQuery() {
   if (status)   q = q.eq('status', status);
   if (dateFrom) q = q.gte('tanggal', dateFrom);
   if (dateTo)   q = q.lte('tanggal', dateTo);
+  if (vendor)   q = q.eq('vendor_id', vendor);
   return q;
 }
 
 
 /* Query khusus untuk count ── */
 function _buildCountQuery() {
-  const sel    = PageState.rSelectedBrands || [];
+  const sel      = PageState.rSelectedBrands || [];
   const status   = document.getElementById('rFilterStatus').value;
   const dateFrom = document.getElementById('rDateFrom').value;
   const dateTo   = document.getElementById('rDateTo').value;
+  const vendor   = PageState.rVendorFilter;
 
   let q = window._sb.from('riwayat_beli').select('id', { count: 'exact', head: true });
   if (sel.length === 1)    q = q.eq('brand_id', sel[0]);
@@ -83,6 +86,7 @@ function _buildCountQuery() {
   if (status)   q = q.eq('status', status);
   if (dateFrom) q = q.gte('tanggal', dateFrom);
   if (dateTo)   q = q.lte('tanggal', dateTo);
+  if (vendor)   q = q.eq('vendor_id', vendor);
   return q;
 }
 
@@ -523,6 +527,10 @@ async function hapusRiwayat(id, label) {
         //    lalu riwayat_harga + riwayat_beli header.
         await window._sb.from('riwayat_beli_items').delete().eq('beli_id', id);
         await window._sb.from('riwayat_harga').delete().eq('beli_id', id);
+        // Kembalikan invoice_drafts terkait ke "belum dicek" (lepas purchased_at + riwayat_beli_id)
+        await window._sb.from('invoice_drafts')
+          .update({ riwayat_beli_id: null, purchased_at: null })
+          .eq('riwayat_beli_id', id);
         const { error } = await window._sb.from('riwayat_beli').delete().eq('id', id);
         if (error) throw error;
 
@@ -684,6 +692,55 @@ function renderEditItems() {
       <button class="item-del" onclick="editItems.splice(${i},1);renderEditItems();updateEditSummary()" title="Hapus">✕</button>
     </div>`;
   }).join('');
+}
+
+function eItemSearchUpdate(q) {
+  const drop = document.getElementById('eItemSearchDrop');
+  if (!drop) return;
+  const query = (q || '').toLowerCase().trim();
+  const all   = window.allBarang || [];
+  const results = query
+    ? all.filter(b => b.nama?.toLowerCase().includes(query) || b.sku?.toLowerCase().includes(query)).slice(0, 30)
+    : all.slice(0, 30);
+  if (!results.length) { drop.style.display = 'none'; return; }
+  drop.innerHTML = results.map(b => `
+    <div onmousedown="eAddItem('${b.id}')"
+      style="padding:9px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s"
+      onmouseover="this.style.background='rgba(0,212,255,0.08)'" onmouseout="this.style.background=''">
+      <div style="font-weight:500">${b.nama}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${[b.sku, b.satuan].filter(Boolean).join(' · ')}</div>
+    </div>`).join('');
+  drop.style.display = 'block';
+}
+
+function eAddItem(barangId) {
+  const b = (window.allBarang || []).find(x => x.id === barangId);
+  if (!b) return;
+  const ppnRate  = (window._ppnRate || 11) / 100;
+  const isInc    = editPpnMode === 'inc';
+  const hargaRaw = window._getHarga ? window._getHarga(b.id, eFVendorValue()) : null;
+  const harga    = hargaRaw?.harga || 0;
+  editItems.push({
+    barang_id:     b.id,
+    nama:          b.nama,
+    sku:           b.sku || '',
+    satuan:        b.satuan || '',
+    brand_id:      b.brand_id || null,
+    qty:           1,
+    harga_satuan:  harga,
+    _harga_exc:    isInc ? Math.round(harga / (1 + ppnRate)) : harga,
+    _harga_inc:    isInc ? harga : Math.round(harga * (1 + ppnRate)),
+  });
+  renderEditItems();
+  updateEditSummary();
+  const inp = document.getElementById('eItemSearchInput');
+  const drop = document.getElementById('eItemSearchDrop');
+  if (inp)  { inp.value = ''; inp.focus(); }
+  if (drop) drop.style.display = 'none';
+}
+
+function eFVendorValue() {
+  return document.getElementById('eFVendor')?.value || '';
 }
 
 function onEditHargaInput(i, val) {
@@ -905,6 +962,32 @@ async function exportRiwayat() {
 }
 
 
+/* ── Buka detail riwayat berdasarkan ID (dari tab Automation Discord) ── */
+async function openRiwayatById(id) {
+  if (!id) return;
+  /* Cek apakah sudah ada di PageState.riwayatData */
+  let r = (PageState.riwayatData || []).find(x => x.id === id);
+  if (!r) {
+    /* Fetch langsung dari DB */
+    const { data, error } = await window._sb
+      .from('riwayat_beli')
+      .select('*, riwayat_beli_items(*)')
+      .eq('id', id)
+      .single();
+    if (error || !data) {
+      showToast('Pembelian tidak ditemukan.', 'error');
+      return;
+    }
+    r = _normalizeRow(data);
+    if (!PageState.riwayatData) PageState.riwayatData = [];
+    PageState.riwayatData.unshift(r);
+  }
+  /* Pindah ke tab Riwayat lalu buka detail */
+  if (typeof switchTab === 'function') switchTab('riwayat');
+  setTimeout(() => openDetail(id), 80);
+}
+
+
 /* ── Expose ke window (dipanggil dari atribut HTML & inline script) ── */
 window.loadRiwayat        = loadRiwayat;
 window.renderRiwayat      = renderRiwayat;
@@ -925,6 +1008,9 @@ window.updateEditSummary  = updateEditSummary;
 window.saveEdit           = saveEdit;
 window.hapusRiwayat       = hapusRiwayat;
 window.hapusRiwayatById   = hapusRiwayatById;
+window.openRiwayatById    = openRiwayatById;
+window.eItemSearchUpdate  = eItemSearchUpdate;
+window.eAddItem           = eAddItem;
 window.showConfirmModal   = showConfirmModal;
 window.closeConfirm       = closeConfirm;
 window.exportRiwayat      = exportRiwayat;

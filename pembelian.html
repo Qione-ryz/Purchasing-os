@@ -76,13 +76,46 @@
             </div>
           </div>
           <div class="card-body" style="padding:12px 16px;display:grid;grid-template-columns:120px 1fr 1fr;gap:16px;align-items:start">
-            <img id="fScanImg" src="" alt="Invoice" style="width:100%;border-radius:6px;border:1px solid var(--border)"/>
+            <img id="fScanImg" src="" alt="Invoice" onclick="fOpenImgPreview(this.src)"
+              style="width:100%;border-radius:6px;border:1px solid var(--border);cursor:zoom-in;transition:opacity .15s"
+              onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'"/>
             <div id="fScanOcrInfo" style="font-size:13px;color:var(--text);line-height:2.2"></div>
             <div id="fScanItemsList" style="font-size:12px;color:var(--text)"></div>
           </div>
         </div>
       </div>
       <div id="formError" class="error-box"></div>
+
+<!-- Preview gambar invoice (sama persis dengan viewer di Automation Discord) -->
+<div id="fpOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.78);align-items:center;justify-content:center">
+  <div style="width:min(900px,96vw);height:min(92vh,860px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7)">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0">
+      <span style="font-size:13px;font-weight:600;color:var(--text)">📷 Preview Invoice</span>
+      <button onclick="document.getElementById('fpOverlay').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1">✕</button>
+    </div>
+    <!-- Controls bar -->
+    <div style="display:flex;padding:5px 10px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;flex-direction:row;align-items:center;gap:3px;justify-content:flex-end">
+      <span style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-right:auto;opacity:.7">🖱 Drag geser &nbsp;·&nbsp; Ctrl+Scroll zoom &nbsp;·&nbsp; Scroll naik/turun</span>
+      <button onclick="fpImgRotate(-1)" title="Putar kiri" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↺</button>
+      <span id="fpRotateLbl" style="font-size:10px;font-family:var(--mono);color:var(--muted);min-width:26px;text-align:center">0°</span>
+      <button onclick="fpImgRotate(1)" title="Putar kanan" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">↻</button>
+      <div style="width:1px;height:16px;background:var(--border);margin:0 2px"></div>
+      <button onclick="fpImgZoom(-1)" title="Zoom out" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+      <span id="fpZoomLbl" style="font-size:11px;font-family:var(--mono);color:var(--muted);min-width:34px;text-align:center">75%</span>
+      <button onclick="fpImgZoom(1)" title="Zoom in" style="width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">＋</button>
+      <button onclick="fpImgReset()" title="Reset zoom &amp; rotate" style="padding:0 7px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-size:10px;font-family:var(--mono)">⟳</button>
+    </div>
+    <!-- Image area -->
+    <div id="fpImgView" style="flex:1;overflow:auto;cursor:grab;user-select:none;background:var(--bg)">
+      <div id="fpImgInner" style="display:block;padding:8px;box-sizing:border-box">
+        <img id="fpImgEl" alt="Invoice" draggable="false"
+          style="display:block;border-radius:4px;max-width:none"
+          onload="fpImgAutoLandscape(this)"/>
+      </div>
+    </div>
+  </div>
+</div>
 
       <div class="form-layout">
 
@@ -99,14 +132,14 @@
                   <select id="fBrand" onchange="onFormBrandChange()"><option value="">— Pilih Brand —</option></select>
                 </div>
                 <div class="field">
-                  <label style="display:flex;align-items:center;justify-content:space-between">
-                    <span>Vendor <span style="color:var(--danger)">*</span></span>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <label style="margin-bottom:0">Vendor <span style="color:var(--danger)">*</span></label>
                     <button type="button" class="admin-only" onclick="openQuickAddVendor('form')"
                       title="Tambah vendor baru"
                       style="font-size:11px;padding:2px 8px;height:22px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.22);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
                       ＋ Vendor baru
                     </button>
-                  </label>
+                  </div>
                   <div class="item-search-wrap" style="position:relative">
                     <!-- Trigger tombol (tampilan seperti select) -->
                     <div id="vendorComboBtn" onclick="toggleVendorDropdown()"
@@ -367,6 +400,10 @@
         </div>
         <!-- Hidden single-select untuk backward compat query -->
         <select id="rFilterBrand" style="display:none" onchange="rPage=1;fetchRiwayatPage()"><option value="">Semua Brand</option></select>
+        <div id="rVendorChip" style="display:none;align-items:center;gap:6px;padding:5px 11px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:20px;font-size:12px;white-space:nowrap;color:var(--text)">
+          <span>🏪 <span id="rVendorChipName"></span></span>
+          <button onclick="clearRVendorFilter()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:0 2px;line-height:1;transition:color .15s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'" title="Hapus filter vendor">✕</button>
+        </div>
         <select class="filter-select" id="rFilterStatus" onchange="rPage=1;fetchRiwayatPage()">
           <option value="">Semua Status</option>
           <option value="selesai">Selesai</option>
@@ -712,14 +749,14 @@
 
       <div class="field-row" style="margin-bottom:14px">
         <div class="field">
-          <label style="display:flex;align-items:center;justify-content:space-between">
-            Vendor
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="margin-bottom:0">Vendor</label>
             <button type="button" class="admin-only" onclick="openQuickAddVendor('edit')"
               title="Tambah vendor baru"
               style="font-size:11px;padding:2px 8px;height:22px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.22);border-radius:5px;color:var(--accent);cursor:pointer;font-family:var(--sans);line-height:1;display:flex;align-items:center;gap:3px">
               ＋ Vendor baru
             </button>
-          </label>
+          </div>
           <div style="position:relative">
             <!-- Trigger tombol (tampilan seperti select) -->
             <div id="eVendorComboBtn" onclick="toggleEditVendorDropdown()"
@@ -783,7 +820,19 @@
           <button id="ePpnBtnInc" class="diskon-toggle-btn" onclick="setEditPPN('inc')">Inc PPN</button>
         </div>
       </div>
-      <div id="eItemList" style="margin-bottom:12px"></div>
+      <div id="eItemList" style="margin-bottom:8px"></div>
+
+      <!-- Tambah barang di edit modal -->
+      <div style="position:relative;margin-bottom:14px">
+        <input type="text" id="eItemSearchInput" autocomplete="off"
+          placeholder="🔍 Tambah barang..."
+          oninput="eItemSearchUpdate(this.value)"
+          onfocus="eItemSearchUpdate(this.value)"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px;outline:none;transition:border-color .2s;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--accent)';eItemSearchUpdate(this.value)"
+          onblur="this.style.borderColor='var(--border)';setTimeout(()=>{const d=document.getElementById('eItemSearchDrop');if(d)d.style.display='none'},180)"/>
+        <div id="eItemSearchDrop" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:220px;overflow-y:auto"></div>
+      </div>
 
       <!-- Diskon & Ongkir -->
       <div class="field-row">
@@ -902,9 +951,25 @@
     try {
       const uniq = [...new Set(barangIds.filter(Boolean))];
       if (!uniq.length) return;
+      /* Deteksi barang yang belum di-assign ke brand ini */
+      const allBarang   = window.allBarang || [];
+      const brandNama   = (window.allBrands||[]).find(b=>b.id===brandId)?.nama || brandId;
+      const newAssigned = uniq.filter(bid => {
+        const b = allBarang.find(x => x.id === bid);
+        return b ? !(b.brand_ids||[]).includes(brandId) : true;
+      });
       const payloads = uniq.map(barang_id => ({ barang_id, brand_id: brandId }));
       await window._sb.from('barang_brands')
         .upsert(payloads, { onConflict: 'barang_id,brand_id', ignoreDuplicates: true });
+      /* Update cache lokal supaya tidak double-assign di simpan berikutnya */
+      newAssigned.forEach(bid => {
+        const b = allBarang.find(x => x.id === bid);
+        if (b) b.brand_ids = [...new Set([...(b.brand_ids||[]), brandId])];
+      });
+      if (newAssigned.length) {
+        const namaList = newAssigned.map(bid => allBarang.find(x=>x.id===bid)?.nama || bid).join(', ');
+        showToast(`${newAssigned.length} barang di-assign ke brand ${brandNama}: ${namaList}`, 'info');
+      }
     } catch(e) { console.warn('[autoAssign]', e.message); }
   }
   window._autoAssignBarangToBrand = _autoAssignBarangToBrand;
@@ -1000,6 +1065,7 @@
     const paramBrands   = urlParams.get('brands');  // multi-brand: "id1,id2,..."
     const paramDateFrom = urlParams.get('dateFrom');
     const paramDateTo   = urlParams.get('dateTo');
+    const paramVendor   = urlParams.get('vendor');
 
     // Terapkan brand dari URL ke filter riwayat (rSelectedBrands) jika datang dari redirect
     // (misal dari dashboard). Ini terpisah dari activeBrand yang hanya untuk form catat.
@@ -1028,6 +1094,17 @@
       rDf.setCustom(from, to);
     } else {
       rDf.setQuick('thismonth'); // default Bulan Ini — loadRiwayat() yang fetch
+    }
+
+    if (paramVendor) {
+      PageState.rVendorFilter = paramVendor;
+      const chip   = document.getElementById('rVendorChip');
+      const nameEl = document.getElementById('rVendorChipName');
+      if (chip && nameEl) {
+        const vName = (window.allVendors || []).find(v => v.id === paramVendor)?.nama || paramVendor;
+        nameEl.textContent = vName;
+        chip.style.display = 'flex';
+      }
     }
 
     await loadRiwayat();
@@ -1905,6 +1982,15 @@
     input.focus();
   }
 
+  function clearRVendorFilter() {
+    PageState.rVendorFilter = null;
+    const chip = document.getElementById('rVendorChip');
+    if (chip) chip.style.display = 'none';
+    rPage = 1;
+    fetchRiwayatPage();
+  }
+  window.clearRVendorFilter = clearRVendorFilter;
+
   function onItemFocus() {
     onItemSearch();
   }
@@ -2115,7 +2201,11 @@
           showToast(`💡 Diskon Rp ${cached.nilai.toLocaleString('id-ID',{maximumFractionDigits:0})} diambil dari riwayat pembelian sebelumnya`, 'success');
         }
       } else {
-        document.getElementById('fDiskon').value = 0;
+        /* Jangan timpa diskon dari OCR scan jika tidak ada cache riwayat */
+        const scanDiskon = Number(window._scanData?.diskon) || 0;
+        if (scanDiskon <= 0) {
+          document.getElementById('fDiskon').value = 0;
+        }
       }
       updateSummary();
     }
@@ -3098,8 +3188,8 @@
   function diModalImgRotate(d) { _mRot = (_mRot+d*90+360)%360; _applyModalTransform(); }
   function diModalImgReset()   { _mZoomIdx = 3; _mRot = 0; _applyModalTransform(); }
 
-  function diOpenFotoModal() {
-    const src = DiState.activeDraft?.image_url;
+  function diOpenFotoModal(overrideSrc) {
+    const src = overrideSrc || DiState.activeDraft?.image_url;
     if (!src) { showToast('Tidak ada foto untuk draft ini','error'); return; }
     const img = document.getElementById('diFotoModalImg');
     if (img) img.src = src;
@@ -3524,6 +3614,13 @@
         actions.innerHTML = `
           <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="diUnreject()">↩ Batal Tolak</button>
           <button class="btn btn-ghost is-destructive" style="width:100%;justify-content:center" onclick="diHapusDraft()">🗑 Hapus Invoice</button>`;
+      } else if (activeTab === 'input' && draft.riwayat_beli_id) {
+        actions.style.display = 'flex';
+        actions.innerHTML = `
+          <button class="btn btn-ghost" style="width:100%;justify-content:center"
+            onclick="openRiwayatById('${draft.riwayat_beli_id}')">
+            📋 Lihat Riwayat Pembelian
+          </button>`;
       } else {
         actions.style.display = 'none';
       }
@@ -3591,6 +3688,157 @@
   }
   window.fReviewUlang = fReviewUlang;
 
+  /* Dipanggil oleh scan-invoice.js setelah OCR selesai dan _scanData di-set */
+  window._onScanFormFill = function(data) {
+    const scanImg   = document.getElementById('fScanImg');
+    const scanInfo  = document.getElementById('fScanOcrInfo');
+    const scanPanel = document.getElementById('fScanPanel');
+    const scanItems = document.getElementById('fScanItemsList');
+    if (!scanPanel) return;
+
+    /* Gambar dari blob URL file yang di-upload */
+    if (scanImg && window._scanFileUrl) scanImg.src = window._scanFileUrl;
+
+    if (scanInfo) {
+      const ppnStr = data.ppn_included !== false ? `Inc PPN ${window._ppnRate||11}%` : 'Exc PPN';
+      scanInfo.innerHTML =
+        `<b>Vendor:</b> ${data.vendor || data.nama_vendor || '—'}<br>` +
+        `<b>No. Faktur:</b> ${data.nomor_faktur || data.nomor_invoice || '—'}<br>` +
+        `<b>Tgl Invoice:</b> ${data.tanggal || '—'}<br>` +
+        `<b>PPN:</b> ${ppnStr}`;
+    }
+
+    if (scanItems) {
+      const formatRpS = v => v ? 'Rp ' + Math.round(v).toLocaleString('id-ID',{maximumFractionDigits:0}) : '—';
+      const items = data.items || [];
+      const itemsHtml = items.map(it => {
+        const nama  = it.nama || it.nama_item || '?';
+        const qty   = it.qty  || 1;
+        const sat   = it.satuan || '';
+        const harga = it.harga_satuan || it.harga || 0;
+        return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;gap:8px">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nama}">${nama}</span>
+          <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${qty}${sat?' '+sat:''}</span>
+          <span style="font-family:var(--mono);color:var(--accent2);white-space:nowrap;min-width:80px;text-align:right">${formatRpS(harga)}</span>
+        </div>`;
+      }).join('');
+      const grandTotal   = items.reduce((s,it) => s + (Number(it.qty)||1)*(Number(it.harga_satuan||it.harga)||0), 0);
+      const ppnIncluded  = data.ppn_included !== false;
+      const ppnRate      = (window._ppnRate || 11) / 100;
+      const ppnAmt       = ppnIncluded ? 0 : Math.round(grandTotal * ppnRate);
+      const rowStyle     = 'padding:4px 0;display:flex;justify-content:space-between;gap:8px';
+      const totalHtml    = grandTotal > 0 ? `<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
+        ${!ppnIncluded ? `
+          <div style="${rowStyle}"><span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Subtotal (Exc PPN)</span><span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${formatRpS(grandTotal)}</span></div>
+          <div style="${rowStyle}"><span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">PPN ${window._ppnRate||11}%</span><span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${formatRpS(ppnAmt)}</span></div>` : ''}
+        <div style="${rowStyle}"><span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Grand Total</span><span style="font-family:var(--mono);color:var(--accent);font-weight:600;white-space:nowrap">${formatRpS(ppnIncluded ? grandTotal : grandTotal + ppnAmt)}</span></div>
+      </div>` : '';
+      scanItems.innerHTML =
+        `<div style="font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px">Daftar Barang OCR</div>` +
+        itemsHtml + totalHtml;
+    }
+
+    scanPanel.style.display = '';
+  };
+
+  /* ── Preview modal image viewer (clone dari Discord viewer) ── */
+  const _FP_ZOOM = [25,50,75,100,125,150,200,300,400];
+  let _fpZoomIdx = 2, _fpRot = 0;
+
+  function _fpApply() {
+    const img       = document.getElementById('fpImgEl');
+    const inner     = document.getElementById('fpImgInner');
+    const container = document.getElementById('fpImgView');
+    if (!img || !inner) return;
+    const sideways = _fpRot === 90 || _fpRot === 270;
+    const pct      = _FP_ZOOM[_fpZoomIdx] / 100;
+    const natW     = img.naturalWidth  || 1;
+    const natH     = img.naturalHeight || 1;
+    if (sideways) {
+      const cW      = container ? Math.max(100, container.clientWidth - 16) : 400;
+      const renderW = Math.round(cW * pct);
+      const renderH = Math.round(renderW * natH / natW);
+      inner.style.cssText = ['width:'+renderH+'px','height:'+renderW+'px','padding:0','display:flex',
+        'align-items:center','justify-content:center','overflow:visible','box-sizing:content-box',
+        'flex-shrink:0','margin:8px auto'].join(';')+';';
+      img.style.width = renderW+'px'; img.style.height = renderH+'px';
+      img.style.maxWidth = 'none'; img.style.transformOrigin = 'center center';
+      img.style.transform = 'rotate('+_fpRot+'deg)'; img.style.flexShrink = '0'; img.style.display = 'block';
+    } else {
+      const cW     = container ? Math.max(100, container.clientWidth) : 400;
+      const imgW   = Math.round((cW - 16) * pct);
+      const innerW = Math.max(cW, imgW + 16);
+      inner.style.cssText = 'display:block;padding:8px;box-sizing:border-box;width:'+innerW+'px;';
+      img.style.width = imgW+'px'; img.style.height = 'auto'; img.style.maxWidth = 'none';
+      img.style.transformOrigin = 'center center';
+      img.style.transform = 'rotate('+_fpRot+'deg)'; img.style.flexShrink = ''; img.style.display = 'block';
+    }
+    const rotLbl  = document.getElementById('fpRotateLbl');
+    const zoomLbl = document.getElementById('fpZoomLbl');
+    if (rotLbl)  rotLbl.textContent  = _fpRot + '°';
+    if (zoomLbl) zoomLbl.textContent = _FP_ZOOM[_fpZoomIdx] + '%';
+  }
+  function fpImgZoom(d)   { _fpZoomIdx = Math.min(_FP_ZOOM.length-1, Math.max(0, _fpZoomIdx+d)); _fpApply(); }
+  function fpImgRotate(d) { _fpRot = (_fpRot + d*90 + 360) % 360; _fpApply(); }
+  function fpImgReset()   { _fpZoomIdx = 2; _fpRot = 0; _fpApply(); }
+  function fpImgAutoLandscape(imgEl) {
+    if (!imgEl) return;
+    if (imgEl.naturalWidth > imgEl.naturalHeight) { _fpRot = 0; }
+    else { _fpRot = 0; } // portrait — biarkan user rotate manual
+    _fpApply();
+  }
+
+  /* Drag-to-pan + Ctrl+Scroll zoom untuk fpImgView */
+  (function() {
+    let _drag = false, _sx = 0, _sy = 0, _sl = 0, _st = 0;
+    document.addEventListener('mousedown', e => {
+      const c = document.getElementById('fpImgView');
+      if (!c || !c.contains(e.target)) return;
+      _drag = true; _sx = e.pageX - c.offsetLeft; _sy = e.pageY - c.offsetTop;
+      _sl = c.scrollLeft; _st = c.scrollTop; c.style.cursor = 'grabbing'; e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!_drag) return;
+      const c = document.getElementById('fpImgView'); if (!c) return;
+      c.scrollLeft = _sl - (e.pageX - c.offsetLeft - _sx);
+      c.scrollTop  = _st - (e.pageY - c.offsetTop  - _sy);
+    });
+    document.addEventListener('mouseup', () => {
+      if (!_drag) return; _drag = false;
+      const c = document.getElementById('fpImgView'); if (c) c.style.cursor = 'grab';
+    });
+    document.addEventListener('wheel', e => {
+      const c = document.getElementById('fpImgView');
+      if (!c || !c.contains(e.target)) return;
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      fpImgZoom(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  })();
+
+  /* Tutup dengan Escape */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const ov = document.getElementById('fpOverlay');
+      if (ov && ov.style.display === 'flex') ov.style.display = 'none';
+    }
+  });
+
+  function fOpenImgPreview(src) {
+    if (!src) return;
+    const overlay = document.getElementById('fpOverlay');
+    const img     = document.getElementById('fpImgEl');
+    if (!overlay || !img) return;
+    _fpZoomIdx = 2; _fpRot = 0;
+    img.src = src;
+    overlay.style.display = 'flex';
+  }
+  window.fOpenImgPreview   = fOpenImgPreview;
+  window.fpImgZoom         = fpImgZoom;
+  window.fpImgRotate       = fpImgRotate;
+  window.fpImgReset        = fpImgReset;
+  window.fpImgAutoLandscape = fpImgAutoLandscape;
+
   function diKirimKeScanInvoice() {
     const draft = DiState.activeDraft;
     if (!draft) return;
@@ -3602,6 +3850,8 @@
       tanggal:      ocr.tanggal || ocr.tanggal_invoice || ocr.date || '',
       vendor:       ocr.vendor || ocr.nama_vendor || '',
       ppn_included: ocr.ppn_included !== false,
+      diskon:       Number(ocr.diskon)  || 0,
+      ongkir:       Number(ocr.ongkir)  || 0,
       items:        ocr.items || [],
     };
 
@@ -3659,10 +3909,26 @@
         const harga = Number(it.harga_satuan || it.harga) || 0;
         return s + qty * harga;
       }, 0);
+      const ppnIncluded = ocr.ppn_included !== false;
+      const ppnRate     = (window._ppnRate || 11) / 100;
+      const ppnAmt      = ppnIncluded ? 0 : Math.round(grandTotal * ppnRate);
+      const totalAfterPpn = grandTotal + ppnAmt;
+      const rowStyle = 'padding:4px 0;display:flex;justify-content:space-between;gap:8px';
       const totalHtml = grandTotal > 0
-        ? `<div style="padding:6px 0 2px;display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border);margin-top:4px">
-            <span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Grand Total</span>
-            <span style="font-family:var(--mono);color:var(--accent);font-weight:600;white-space:nowrap">${formatRpS(grandTotal)}</span>
+        ? `<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
+            ${!ppnIncluded ? `
+            <div style="${rowStyle}">
+              <span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Subtotal (Exc PPN)</span>
+              <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${formatRpS(grandTotal)}</span>
+            </div>
+            <div style="${rowStyle}">
+              <span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">PPN ${window._ppnRate||11}%</span>
+              <span style="font-family:var(--mono);color:var(--muted);white-space:nowrap">${formatRpS(ppnAmt)}</span>
+            </div>` : ''}
+            <div style="${rowStyle}">
+              <span style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">Grand Total</span>
+              <span style="font-family:var(--mono);color:var(--accent);font-weight:600;white-space:nowrap">${formatRpS(ppnIncluded ? grandTotal : totalAfterPpn)}</span>
+            </div>
            </div>`
         : '';
       scanItemsList.innerHTML =
@@ -3693,8 +3959,26 @@
         if (typeof onFormBrandChange === 'function') onFormBrandChange();
       }
     }
-    const tanggalOcr = ocr.tanggal || ocr.tanggal_invoice || ocr.date || '';
+    let tanggalOcr = ocr.tanggal || ocr.tanggal_invoice || ocr.date || '';
     if (tanggalOcr) {
+      /* Koreksi tanggal — sama seperti fillFormFromScan di scan-invoice.js */
+      try {
+        const now    = new Date();
+        let parsed   = new Date(tanggalOcr);
+        if (!isNaN(parsed)) {
+          /* Koreksi 1: tahun > 1 tahun di belakang */
+          if (now.getFullYear() - parsed.getFullYear() > 1) {
+            parsed.setFullYear(now.getFullYear());
+            if (parsed > now) parsed.setFullYear(now.getFullYear() - 1);
+            tanggalOcr = parsed.toISOString().slice(0, 10);
+          }
+          /* Koreksi 2: tanggal di masa depan */
+          parsed = new Date(tanggalOcr);
+          if (!isNaN(parsed) && parsed > now) {
+            tanggalOcr = now.toISOString().slice(0, 10);
+          }
+        }
+      } catch(e) {}
       const tanggalEl = document.getElementById('fTanggal');
       if (tanggalEl) tanggalEl.value = tanggalOcr;
     }
@@ -4386,18 +4670,32 @@
   /* ══════════════════════════════════════════
      QUICK-ADD VENDOR
   ══════════════════════════════════════════ */
-  let _qaVendorTarget = 'form'; /* 'form' | 'edit' — combo mana yang di-autofill setelah simpan */
+  var _qaVendorTarget = 'form'; /* 'form' | 'edit' — combo mana yang di-autofill setelah simpan */
 
   function openQuickAddVendor(target = 'form') {
-    if (!requireAdmin(showToast)) return;
-    _qaVendorTarget = target;
-    document.getElementById('qaVendorNama').value = '';
-    const errEl = document.getElementById('qaVendorError');
-    errEl.textContent = ''; errEl.style.display = 'none';
-    document.getElementById('qaVendorSaveBtn').disabled = false;
-    document.getElementById('qaVendorSaveBtn').textContent = 'Simpan';
-    document.getElementById('qaVendorOverlay').classList.add('show');
-    setTimeout(() => document.getElementById('qaVendorNama').focus(), 80);
+    try {
+      if (!isAdminLevel(window._userRole)) {
+        showToast('Hanya admin yang bisa melakukan aksi ini.', 'error');
+        return;
+      }
+      _qaVendorTarget = target;
+      const overlay = document.getElementById('qaVendorOverlay');
+      const nama    = document.getElementById('qaVendorNama');
+      const errEl   = document.getElementById('qaVendorError');
+      const saveBtn = document.getElementById('qaVendorSaveBtn');
+      if (!overlay || !nama || !errEl || !saveBtn) {
+        console.error('[openQuickAddVendor] elemen modal tidak ditemukan', {overlay, nama, errEl, saveBtn});
+        return;
+      }
+      nama.value = '';
+      errEl.textContent = ''; errEl.style.display = 'none';
+      saveBtn.disabled = false; saveBtn.textContent = 'Simpan';
+      overlay.classList.add('show');
+      setTimeout(() => nama.focus(), 80);
+    } catch(e) {
+      console.error('[openQuickAddVendor] error:', e);
+      showToast('Gagal membuka form vendor: ' + e.message, 'error');
+    }
   }
 
   function closeQuickAddVendor() {

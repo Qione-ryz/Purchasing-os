@@ -37,7 +37,7 @@
 
     /* ── PROGRESS ── */
     .progress-wrap { display:flex;align-items:center;gap:12px }
-    .progress-bar  { flex:1;height:10px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:99px;overflow:hidden;position:relative }
+    .progress-bar  { flex:1;height:10px;background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.18);border-radius:99px;overflow:hidden;position:relative }
     .progress-fill { height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s ease;border-radius:99px;box-shadow:0 0 8px rgba(0,212,255,0.4) }
     .progress-fill.done { background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 0 8px rgba(34,197,94,0.4) }
     .progress-fill.over { background:linear-gradient(90deg,#f59e0b,#facc15);box-shadow:0 0 8px rgba(245,158,11,0.4) }
@@ -119,6 +119,12 @@
     #statAktif   { color:var(--accent) }
     #statSelesai { color:#22c55e }
     #statExpired { color:#f59e0b }
+
+    /* ── CLICKABLE STAT TILE ── */
+    .stat-tile-link { cursor:pointer;position:relative;overflow:hidden }
+    .stat-tile-link:hover { border-color:var(--accent);box-shadow:var(--glow-accent) }
+    .stat-tile-link .tile-hint { position:absolute;bottom:8px;right:10px;font-size:9px;color:var(--accent);font-family:var(--mono);opacity:0;transition:opacity .15s;white-space:nowrap;pointer-events:none }
+    .stat-tile-link:hover .tile-hint { opacity:1 }
 
     @media (max-width:600px) {
       .kontrak-head { flex-direction:column;align-items:stretch }
@@ -555,7 +561,7 @@ function renderList() {
             <button class="btn btn-ghost btn-sm" onclick="openDetail('${k.id}')">Detail →</button>
           </div>
         </div>
-        <div class="progress-bar" style="margin:2px 0"><div class="progress-fill ${progClass}" style="width:${Math.max(ful.overallPct, ful.overallPct === 0 ? 0 : 2)}%"></div></div>
+        <div class="progress-bar" style="flex:none;height:10px;margin:4px 0"><div class="progress-fill ${progClass}" style="width:${Math.max(ful.overallPct, ful.overallPct === 0 ? 0 : 2)}%"></div></div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--mono);margin-top:4px">
           ${k.items.length === 1 ? (() => {
             const it  = ful.itemProgress[0];
@@ -885,7 +891,7 @@ function openDetail(id) {
   document.getElementById('dBody').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
       <div class="stat-tile"><div class="stat-tile-val ${overallCls}">${ful.overallPct}%</div><div class="stat-tile-lbl">Pemenuhan</div></div>
-      <div class="stat-tile"><div class="stat-tile-val">${ful.beliCount}</div><div class="stat-tile-lbl">Transaksi</div></div>
+      <div class="stat-tile stat-tile-link" onclick="window.location.href='pembelian.html?vendor=${k.vendor_id}&dateFrom=${k.tanggal_mulai}&dateTo=${k.tanggal_selesai}&tab=riwayat'" title="Lihat di riwayat pembelian"><div class="stat-tile-val">${ful.beliCount}</div><div class="stat-tile-lbl">Transaksi</div><div class="tile-hint">↗ lihat riwayat</div></div>
       <div class="stat-tile"><div class="stat-tile-val">${ful.brandIds.length}</div><div class="stat-tile-lbl">Brand pembeli</div></div>
       <div class="stat-tile"><div class="stat-tile-val">${k.items.length}</div><div class="stat-tile-lbl">Item kontrak</div></div>
     </div>
