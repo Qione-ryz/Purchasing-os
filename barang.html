@@ -115,7 +115,7 @@
 
       <div class="field-row">
         <div class="field">
-          <label>Nama Barang *</label>
+          <label>Nama Barang <span class="req">*</span></label>
           <input type="text" id="fNama" placeholder="cth: Kertas HVS A4"/>
         </div>
         <div class="field">
@@ -133,7 +133,7 @@
           </select>
         </div>
         <div class="field">
-          <label>Satuan *</label>
+          <label>Satuan <span class="req">*</span></label>
           <select id="fSatuan">
             <option value="">— Pilih Satuan —</option>
           </select>
@@ -205,7 +205,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeDetailModal()">
+      <button class="btn btn-ghost" onclick="closeDetailModal()" style="margin-right:auto;color:var(--muted)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Tutup
       </button>
@@ -233,11 +233,11 @@
       <div id="surveyBarangLabel" style="font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;padding:8px 12px;background:var(--surface2);border-radius:6px"></div>
       <div class="field-row">
         <div class="field">
-          <label>Tanggal *</label>
+          <label>Tanggal <span class="req">*</span></label>
           <input type="date" id="sTanggal"/>
         </div>
         <div class="field">
-          <label>Harga Satuan *</label>
+          <label>Harga Satuan <span class="req">*</span></label>
           <input type="number" id="sHarga" placeholder="0" min="0"/>
         </div>
       </div>
@@ -1074,7 +1074,14 @@ const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
       const deletedName = (window.allData||[]).find(x=>x.id===deleteId)?.nama || deleteId;
       logActivity('hapus', 'barang', deletedName);
       showToast('Barang berhasil dihapus','success'); closeConfirm(); await window.loadBarang();
-    } catch(e) { showToast('Gagal: '+e.message,'error'); }
+    } catch(e) {
+      const isFK = e.message && (e.message.includes('riwayat_beli_items') || e.message.includes('foreign key'));
+      if (isFK) {
+        showToast('Tidak bisa dihapus — barang ini memiliki riwayat pembelian. Nonaktifkan barang jika tidak ingin dipakai lagi.', 'error');
+      } else {
+        showToast('Gagal: '+e.message, 'error');
+      }
+    }
     finally { btn.disabled=false; btn.textContent='Hapus'; }
   }
 
@@ -1088,7 +1095,7 @@ const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
   }
 
   async function doLogout() {
-    if(!confirm('Yakin ingin keluar?')) return;
+    if(!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut();
   }
 
@@ -1493,9 +1500,9 @@ const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
   }
 
   async function deleteBarcode(id, barangId) {
-    if (!confirm('Hapus barcode ini?')) return;
+    if (!await showConfirm({ title:'Hapus Barcode', msg:'Hapus barcode ini?', okLabel:'Hapus', okDanger:true })) return;
     const { error } = await window._sb.from('barang_barcodes').delete().eq('id', id);
-    if (error) { alert('Gagal hapus: ' + error.message); return; }
+    if (error) { showToast('Gagal hapus barcode: ' + error.message, 'error'); return; }
     loadDetailBarcodes(barangId);
   }
 
@@ -1766,7 +1773,8 @@ const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
           showToast('Catatan harga dihapus','success');
           if (document.getElementById('detailOverlay').classList.contains('show')) openDetailModal(barangId);
         } catch(e) {
-          showToast('Gagal menghapus: '+e.message,'error');
+          const isFK = e.message && e.message.includes('foreign key');
+          showToast(isFK ? 'Catatan harga ini terkait data lain dan tidak bisa dihapus.' : 'Gagal menghapus: ' + e.message, 'error');
         }
       }
     });
@@ -1817,22 +1825,36 @@ const delBarang = await window._sb.from('barang').delete().eq('id', deleteId);
       .filter(s => s.nama !== satuanDasar)
       .map(s => `<option value="${s.nama}">${s.nama}</option>`)
       .join('');
-    container.innerHTML = _satuanOrderTemp.map((row, i) => `
-      <div class="satuan-order-row">
-        <span class="satuan-order-label">1</span>
-        <select oninput="_satuanOrderTemp[${i}].satuan=this.value" style="flex:1;max-width:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 9px;outline:none;transition:border-color .2s">
-          <option value="">— pilih —</option>
-          ${(window.allSatuan || []).filter(s => s.nama !== satuanDasar).map(s =>
-            `<option value="${s.nama}" ${s.nama === row.satuan ? 'selected' : ''}>${s.nama}</option>`
-          ).join('')}
-        </select>
-        <span class="satuan-order-label">=</span>
-        <input type="number" value="${row.faktor}" placeholder="12" min="0.001" step="any"
-          oninput="_satuanOrderTemp[${i}].faktor=parseFloat(this.value)||''"
-          title="1 satuan order = berapa ${satuanDasar||'satuan dasar'}?"/>
-        <span class="satuan-order-label">${satuanDasar||'(satuan dasar)'}</span>
-        <button type="button" class="satuan-order-del" onclick="removeSatuanOrderRow(${i})" title="Hapus">✕</button>
-      </div>`).join('');
+    container.innerHTML = _satuanOrderTemp.map((row, i) => {
+      const fv = (row.faktor !== '' && parseFloat(row.faktor) > 0) ? parseFloat(row.faktor) : '';
+      const iv = fv > 0 ? Math.round(1 / fv * 10000) / 10000 : '';
+      return `
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="satuan-order-row">
+          <span class="satuan-order-label">1</span>
+          <select oninput="_satuanOrderTemp[${i}].satuan=this.value" style="flex:1;max-width:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 9px;outline:none;transition:border-color .2s">
+            <option value="">— pilih —</option>
+            ${(window.allSatuan || []).filter(s => s.nama !== satuanDasar).map(s =>
+              `<option value="${s.nama}" ${s.nama === row.satuan ? 'selected' : ''}>${s.nama}</option>`
+            ).join('')}
+          </select>
+          <span class="satuan-order-label">=</span>
+          <input id="_sf${i}" type="number" value="${fv}" placeholder="0.083" min="0.001" step="any"
+            title="1 ${row.satuan||'satuan order'} = berapa ${satuanDasar||'satuan dasar'}?"
+            oninput="const v=parseFloat(this.value);_satuanOrderTemp[${i}].faktor=v>0?v:'';const el=document.getElementById('_si${i}');if(el)el.value=v>0?Math.round(1/v*10000)/10000:''" placeholder="faktor"/>
+          <span class="satuan-order-label">${satuanDasar||'(satuan dasar)'}</span>
+          <button type="button" class="satuan-order-del" onclick="removeSatuanOrderRow(${i})" title="Hapus">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:2px 10px 4px">
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">atau: 1 ${satuanDasar||'satuan dasar'} =</span>
+          <input id="_si${i}" type="number" value="${iv}" placeholder="12" min="0.001" step="any"
+            style="width:66px;background:var(--bg);border:1px solid rgba(0,194,179,0.3);border-radius:6px;color:var(--accent3);font-family:var(--mono);font-size:12px;padding:4px 8px;outline:none;text-align:center;transition:border-color .2s"
+            title="Masukkan berapa ${row.satuan||'satuan order'} dalam 1 ${satuanDasar||'satuan dasar'} — faktor akan dihitung otomatis"
+            oninput="const v=parseFloat(this.value);if(v>0){const f=Math.round(1/v*10000)/10000;_satuanOrderTemp[${i}].faktor=f;const el=document.getElementById('_sf${i}');if(el)el.value=f;}else{_satuanOrderTemp[${i}].faktor='';}"/>
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${row.satuan||'(satuan order)'}</span>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   async function loadSatuanOrderForBarang(barangId) {

@@ -824,12 +824,12 @@
 
       <!-- Tambah barang di edit modal -->
       <div style="position:relative;margin-bottom:14px">
+        <span class="search-icon">🔍</span>
         <input type="text" id="eItemSearchInput" autocomplete="off"
-          placeholder="🔍 Tambah barang..."
+          placeholder="Tambah barang..."
           oninput="eItemSearchUpdate(this.value)"
-          onfocus="eItemSearchUpdate(this.value)"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px;outline:none;transition:border-color .2s;box-sizing:border-box"
           onfocus="this.style.borderColor='var(--accent)';eItemSearchUpdate(this.value)"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 13px 9px 36px;outline:none;transition:border-color .2s;box-sizing:border-box"
           onblur="this.style.borderColor='var(--border)';setTimeout(()=>{const d=document.getElementById('eItemSearchDrop');if(d)d.style.display='none'},180)"/>
         <div id="eItemSearchDrop" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:220px;overflow-y:auto"></div>
       </div>
@@ -1022,7 +1022,7 @@
     inputTo      : 'rDateTo',
 
     default      : 'none', /* init dilakukan di dalam init() setelah URL param dicek */
-    onChange     : (from, to) => { rPage = 1; fetchRiwayatPage(); },
+    onChange     : (from, to) => { rPage = 1; window.fetchRiwayatPage?.(); },
   });
 
   const cbDf = DateFilter.create({
@@ -2978,7 +2978,7 @@
   }
 
   async function doLogout() {
-    if (!confirm('Yakin ingin keluar?')) return;
+    if (!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut();
     window.location.href = 'index.html';
   }
@@ -4537,7 +4537,7 @@
   async function diReject() {
     const draft = DiState.activeDraft;
     if (!draft) return;
-    if (!confirm('Tolak draft ini dari Automation Discord?\n\nDraft tetap ada di halaman Invoice Drafts untuk finance.')) return;
+    if (!await showConfirm({ title:'Tolak Draft', msg:'Tolak draft ini dari Automation Discord?\n\nDraft tetap ada di halaman Invoice Drafts untuk finance.', okLabel:'Ya, Tolak', okDanger:true })) return;
     const { error } = await window._sb.from('invoice_drafts').update({
       discord_rejected_at: new Date().toISOString(),
     }).eq('id', draft.id);
@@ -4594,7 +4594,7 @@
   async function diHapusDraft() {
     const draft = DiState.activeDraft;
     if (!draft) return;
-    if (!confirm('Hapus invoice draft ini secara permanen?\n\nTindakan ini tidak bisa dibatalkan.')) return;
+    if (!await showConfirm({ title:'Hapus Draft', msg:'Hapus invoice draft ini secara permanen?\n\nTindakan ini tidak bisa dibatalkan.', okLabel:'Hapus', okDanger:true })) return;
     if (draft.image_url) {
       try {
         const urlObj = new URL(draft.image_url);
@@ -4664,7 +4664,7 @@
   window.clearDateFilter=()=>rDf.clear();
   window.doLogout=doLogout;
   window.toggleSidebar=toggleSidebar; window.closeSidebar=closeSidebar;
-  window.closeConfirm=closeConfirm; window.checkDuplikatFaktur=checkDuplikatFaktur;
+  window.checkDuplikatFaktur=checkDuplikatFaktur;
   window.toggleActionMenu=toggleActionMenu; window.closeAllMenus=closeAllMenus;
 
   /* ══════════════════════════════════════════

@@ -564,7 +564,8 @@ async function hapusRiwayat(id, label) {
         logActivity('hapus', 'pembelian', label);
         await window.loadRiwayat();
       } catch(e) {
-        showToast('Gagal menghapus: ' + e.message, 'error');
+        const isFK = e.message && e.message.includes('foreign key');
+        showToast(isFK ? 'Transaksi ini terkait data lain dan tidak bisa dihapus.' : 'Gagal menghapus: ' + e.message, 'error');
       }
     }
   });
@@ -828,7 +829,7 @@ async function saveEdit() {
         nama:          i.nama || '',
         sku:           i.sku || '',
         satuan:        i.satuan || '',
-        brand_id:      i.brand_id || null,
+        brand_id:      editBrandId || i.brand_id || null,
         qty:           i.qty,
         harga_satuan:  excHarga,        /* selalu simpan exc */
         harga_exc_ppn: excHarga,

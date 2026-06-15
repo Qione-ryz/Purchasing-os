@@ -1436,7 +1436,7 @@ function renderBarangDropdown(i, candidates) {
         <div class="scan-suggest-opt-name">${b.nama}</div>
         <div class="scan-suggest-opt-sub">${[b.sku, b.satuan].filter(Boolean).join(" · ")}</div>
       </div>
-    `).join("");
+    `).join("") + createBtn;
   }
   drop.classList.add("open");
   positionDropdown(drop, input);
@@ -1577,7 +1577,6 @@ async function scanCreateBarangSubmit(i) {
   try {
     const payload = { nama, satuan };
     if (kategori) payload.kategori = kategori;
-    if (brandId && brandId !== 'all') payload.brand_id = brandId;
 
     const { data, error } = await window._sb.from('barang').insert(payload).select().single();
     if (error) throw error;

@@ -89,7 +89,7 @@ body::after {
 /* ── SIDEBAR ── */
 .sidebar {
   width: var(--sidebar);
-  min-height: 100vh;
+  height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -97,6 +97,7 @@ body::after {
   position: fixed;
   top: 0; left: 0;
   z-index: 100;
+  overflow: hidden;
   transition: transform .3s;
 }
 
@@ -108,7 +109,7 @@ body::after {
 .brand-row {
   display: flex;
   align-items: center;
-  gap: calc(calc(var(--sp-sm) + 2px));
+  gap: calc(var(--sp-sm) + 2px);
 }
 
 .brand-icon {
@@ -175,8 +176,8 @@ body::after {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: calc(calc(var(--sp-sm) + 2px));
-  padding: calc(calc(var(--sp-sm) + 2px));
+  gap: calc(var(--sp-sm) + 2px);
+  padding: calc(var(--sp-sm) + 2px);
   border-radius: 8px;
   text-decoration: none;
   color: var(--muted);
@@ -187,7 +188,8 @@ body::after {
 }
 
 .nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: rgba(0,212,255,0.1); color: var(--accent); border-left: 2px solid var(--accent); padding-left: calc(calc(var(--sp-sm) + 2px) - 2px); }
+.nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.nav-item.active { background: rgba(0,212,255,0.1); color: var(--accent); border-left: 2px solid var(--accent); padding-left: var(--sp-sm); }
 
 .nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
@@ -199,7 +201,7 @@ body::after {
 .user-row {
   display: flex;
   align-items: center;
-  gap: calc(calc(var(--sp-sm) + 2px));
+  gap: calc(var(--sp-sm) + 2px);
 }
 
 .user-avatar {
@@ -231,6 +233,7 @@ body::after {
   justify-content: center;
 }
 .btn-logout:hover { color: var(--danger); }
+.btn-logout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── MAIN LAYOUT ── */
 .main {
@@ -453,6 +456,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 /* ── ANIMATIONS ── */
 /* Standardized: .35s (dashboard was .5s) */
+@keyframes badgePulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .75; transform: scale(1.1); }
+}
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1686,6 +1693,7 @@ tr.so-separator-row > td {
 .schema-req  { font-size:10px; font-family:var(--mono); padding:1px 6px; border-radius:3px; flex-shrink:0; }
 .req-yes  { background:rgba(248,113,113,0.12); color:var(--danger); }
 .req-no   { background:rgba(107,114,128,0.1);  color:var(--muted); }
+.req      { color:var(--danger); font-weight:600; }
 .schema-desc { color:var(--muted); flex:1; }
 
 .import-progress-wrap { background:var(--border); border-radius:4px; height:6px; margin:12px 0; overflow:hidden; }

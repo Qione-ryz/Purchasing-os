@@ -191,7 +191,7 @@
     <div class="modal-body">
       <div class="error-box" id="modalError"></div>
       <div class="field">
-        <label>Nama Pastry *</label>
+        <label>Nama Pastry <span class="req">*</span></label>
         <input type="text" id="fNama" placeholder="cth: Croissant Butter"/>
       </div>
       <input type="hidden" id="fSatuan" value="pcs"/>
@@ -229,11 +229,11 @@
     <div class="modal-body">
       <div class="error-box" id="rModalError"></div>
       <div class="field">
-        <label>Pastry *</label>
+        <label>Pastry <span class="req">*</span></label>
         <select id="rFPastry"><option value="">— Pilih Pastry —</option></select>
       </div>
       <div class="field">
-        <label>Tipe *</label>
+        <label>Tipe <span class="req">*</span></label>
         <select id="rFTipe">
           <option value="">— Pilih Tipe —</option>
           <option value="dispose">Dispose</option>
@@ -241,11 +241,11 @@
         </select>
       </div>
       <div class="field">
-        <label>Jumlah *</label>
+        <label>Jumlah <span class="req">*</span></label>
         <input type="number" id="rFJumlah" min="0.01" step="0.01" placeholder="cth: 12"/>
       </div>
       <div class="field">
-        <label>Tanggal *</label>
+        <label>Tanggal <span class="req">*</span></label>
         <input type="date" id="rFTanggal"/>
       </div>
       <div class="field">
@@ -751,7 +751,10 @@
       if(error)throw error;
       logActivity('hapus','pastry',name); showToast('Pastry berhasil dihapus','success');
       closeConfirm(); await fetchPage();
-    } catch(e) { showToast('Gagal: '+e.message,'error'); }
+    } catch(e) {
+      const isFK = e.message && e.message.includes('foreign key');
+      showToast(isFK ? 'Pastry ini memiliki data terkait dan tidak bisa dihapus.' : 'Gagal: ' + e.message, 'error');
+    }
     finally { btn.disabled=false; btn.textContent='Hapus'; }
   }
 
@@ -833,7 +836,10 @@
       const {error}=await window._sb.from('pastry_riwayat').delete().eq('id',rDeleteId);
       if(error)throw error;
       showToast('Riwayat dihapus','success'); closeRConfirm(); await fetchRiwayat();
-    } catch(e) { showToast('Gagal: '+e.message,'error'); }
+    } catch(e) {
+      const isFK = e.message && e.message.includes('foreign key');
+      showToast(isFK ? 'Riwayat ini terkait data lain dan tidak bisa dihapus.' : 'Gagal: ' + e.message, 'error');
+    }
     finally { btn.disabled=false; btn.textContent='Hapus'; }
   }
 
@@ -848,7 +854,7 @@
     clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
   }
 
-  async function doLogout() { if(!confirm('Yakin keluar?'))return; await window._sb.auth.signOut(); }
+  async function doLogout() { if(!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' }))return; await window._sb.auth.signOut(); }
   function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
   function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 

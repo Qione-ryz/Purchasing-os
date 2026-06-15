@@ -73,6 +73,14 @@ const DateFilter = (() => {
       case 'today':
         from = _fmt(today); to = _fmt(today); label = 'Hari Ini'; break;
 
+      case 'thisweek': {
+        const day = today.getDay(); // 0=Sun
+        const diffToMon = day === 0 ? -6 : 1 - day;
+        const mon = new Date(today); mon.setDate(today.getDate() + diffToMon);
+        const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+        from = _fmt(mon); to = _fmt(sun); label = 'Minggu Ini'; break;
+      }
+
       case 'yesterday': {
         const yest = new Date(today); yest.setDate(today.getDate() - 1);
         from = _fmt(yest); to = _fmt(yest); label = 'Kemarin'; break;

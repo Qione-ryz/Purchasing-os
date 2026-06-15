@@ -77,6 +77,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .badge-orange{background:rgba(247,146,79,0.12);color:var(--accent3);border:1px solid rgba(247,146,79,0.2)}
 .badge-yellow{background:rgba(247,146,79,0.12);color:var(--accent3);border:1px solid rgba(247,146,79,0.2)}
 .badge-blue{background:rgba(0,212,255,0.10);color:var(--accent);border:1px solid rgba(0,212,255,0.18)}
+.badge-purple{background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.25)}
 .badge-red{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.2)}
 .badge-progress{background:rgba(56,189,248,0.14);color:#38bdf8;border:1px solid rgba(56,189,248,0.32)}
 
@@ -95,6 +96,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .satuan-sel{appearance:none;-webkit-appearance:none;background-color:var(--bg);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a6e78' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 28px 5px 9px;outline:none;cursor:pointer;min-width:90px;transition:border-color .2s}
 .satuan-sel:focus{border-color:var(--accent)}
 .satuan-sel.alt{border-color:var(--accent)}
+.satuan-sel.satuan-changeable{border-color:rgba(0,194,179,0.5);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2300c2b3' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.satuan-fixed-badge{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;white-space:nowrap;cursor:default}
+.btn-remove-item{width:28px;height:28px;padding:0;background:none;border:1px solid transparent;border-radius:6px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;flex-shrink:0}
+.btn-remove-item:hover,.btn-remove-item:active{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:var(--danger)}
 
 /* SUMMARY BOX */
 .summary-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-top:16px}
@@ -125,6 +130,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .order-card-body.open{display:block}
 .chevron{transition:transform .2s;font-size:14px;color:var(--muted)}
 .chevron.open{transform:rotate(180deg)}
+
+/* ORDER CARD ACTIONS ROW */
+.order-card-actions{display:flex;gap:8px;padding:0 14px 12px}
+.order-action-btn{flex:1;padding:9px 12px !important;font-size:12px !important;justify-content:center;border-radius:8px}
+
+/* ORDER ITEM SUMMARY (header) */
+.order-item-summary{display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap}
+.ois-ordered{font-family:var(--mono);font-size:11px;color:#38bdf8;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);border-radius:4px;padding:2px 7px}
+.ois-pending{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ois-dot{font-size:11px;color:var(--border)}
 
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4);transform:translateY(80px);opacity:0;transition:transform .3s,opacity .3s;max-width:320px}
@@ -267,6 +282,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* MOBILE PREVIEW BAR — tidak dipakai lagi */
 .mob-preview-bar{display:none !important}
 
+/* DRAWER FOOTER — tombol barang custom */
+.drawer-footer-custom{border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0;background:var(--surface)}
+.drawer-custom-btn{width:100%;padding:11px 14px;background:rgba(0,212,255,0.05);border:1px dashed rgba(0,212,255,0.25);border-radius:10px;color:var(--accent);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s,border-color .15s;line-height:1.4}
+.drawer-custom-btn span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px}
+.drawer-custom-btn:active{background:rgba(0,212,255,0.11);border-color:rgba(0,212,255,0.45)}
+
 /* ── DRAWER: List Barang (slide dari kiri di mobile) ── */
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:120;backdrop-filter:blur(2px)}
 .drawer-overlay.open{display:block}
@@ -319,7 +340,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   }
   /* Tambah padding bawah di scroll area supaya konten tidak ketutupan footer */
   .order-col-right .order-col-scroll{
-    padding-bottom:160px !important;
+    padding-bottom:120px !important;
   }
 }
 
@@ -468,12 +489,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div class="barang-drawer" id="barangDrawer">
   <!-- Drawer header dengan tombol tutup -->
   <div class="order-col-header" style="flex-shrink:0;justify-content:space-between">
-    <span class="order-col-title">List All Item</span>
-    <div style="display:flex;gap:6px;align-items:center">
-      <button class="btn-kelola" onclick="openKelolaBrg()">⚙ Tampilan</button>
-      <button class="btn-kelola" onclick="openCustomModal()" style="border-color:rgba(0,212,255,0.22);color:var(--accent)">＋ Lainnya</button>
-      <button onclick="closeDrawer()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px" title="Tutup">✕</button>
-    </div>
+    <span class="order-col-title">Pilih Barang</span>
+    <button onclick="closeDrawer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 8px" title="Tutup">✕</button>
   </div>
   <div class="barang-search-wrap">
     <span class="barang-search-icon">🔍</span>
@@ -483,6 +500,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="barang-search-hint" id="searchHintDrawer"></div>
   <div class="order-col-scroll" id="barangListDrawer" style="flex:1;min-height:0;overflow-y:auto"></div>
+  <div class="drawer-footer-custom">
+    <button class="drawer-custom-btn" onclick="openCustomModal()">
+      ＋ Barang tidak ada di daftar?
+      <span>Tambah barang lain / request ke tim purchasing</span>
+    </button>
+  </div>
 </div>
 
 <!-- SECTION: BUAT ORDER -->
@@ -588,7 +611,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div id="sectionMyorder" class="section content" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div style="font-size:14px;font-weight:600">Order Saya</div>
-    <button class="btn btn-ghost btn-sm" onclick="loadMyOrders()">↻ Refresh</button>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button id="tabArsip" onclick="switchMyOrderTab('arsip')"
+        style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s">
+        📦 Arsip
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="loadMyOrders()">↻ Refresh</button>
+    </div>
   </div>
   <!-- Tab bar -->
   <div style="display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:3px;width:100%;margin-bottom:16px;overflow:hidden">
@@ -608,10 +637,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       style="flex:1;padding:7px 4px;border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
       Batal <span id="badgeCancelled" style="display:none;background:rgba(248,113,113,0.15);color:var(--danger);border-radius:10px;font-size:10px;padding:1px 6px;margin-left:2px"></span>
     </button>
-    <button id="tabArsip" onclick="switchMyOrderTab('arsip')"
-      style="flex:1;padding:7px 4px;border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-      📦 Arsip
-    </button>
   </div>
   <div id="myOrderList">
     <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Memuat...</div></div>
@@ -630,7 +655,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         Barang hanya ditambahkan ke daftar orderan ini — tidak mengubah database barang.
       </div>
       <div class="field">
-        <label>Nama Barang *</label>
+        <label>Nama Barang <span class="req">*</span></label>
         <input type="text" id="customNama" placeholder="Nama barang yang diinginkan"/>
       </div>
       <div class="field-row">
@@ -839,6 +864,10 @@ function simpanNama() {
 // Hapus baris "Order by: ..." dari catatan sebelum ditampilkan ke form edit
 function _stripOrderBy(catatan) {
   return catatan.split('\n').filter(line => !/^Order by:/i.test(line.trim())).join('\n').trim();
+}
+function _extractOrderBy(catatan) {
+  const line = (catatan || '').split('\n').find(l => /^Order by:/i.test(l.trim()));
+  return line ? line.replace(/^Order by:\s*/i, '').trim() : '';
 }
 
 async function muatNamaPemesan() {
@@ -1477,7 +1506,7 @@ function buildSatuanDropdown(i, it, satuanOrder) {
   </select>`;
 }
 
-function buildSatuanDropdownByUid(uid, it, satuanOrder) {
+function buildSatuanDropdownByUid(uid, it, satuanOrder, extraClass = '') {
   const satuanDasar = it.satuan || '';
   const opts = (it.barang_id && satuanOrderMap[it.barang_id]) || [];
   const allOpts = [
@@ -1489,7 +1518,7 @@ function buildSatuanDropdownByUid(uid, it, satuanOrder) {
   ).join('');
   const placeholder = satuanOrder ? '' : '<option value="" disabled selected>Pilih satuan</option>';
   const altClass = (satuanOrder && satuanOrder !== satuanDasar) ? ' alt' : '';
-  return `<select class="satuan-sel${altClass}" onchange="updateSatuanByUid(${uid}, this.value)">
+  return `<select class="satuan-sel${altClass}${extraClass ? ' '+extraClass : ''}" onchange="updateSatuanByUid(${uid}, this.value)">
     ${placeholder}${options}
   </select>`;
 }
@@ -1552,11 +1581,14 @@ function renderItems() {
         </div>`
       : '';
 
+    const hasMultiSatuan = !it.is_custom && it.barang_id && (satuanOrderMap[it.barang_id] || []).length > 0;
     const satuanOptions = it.is_custom
       ? `<input type="text" value="${satuanOrder}" placeholder="satuan"
            style="width:68px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 6px;outline:none;text-align:center"
            onchange="updateSatuanByUid(${uid}, this.value)"/>`
-      : buildSatuanDropdownByUid(uid, it, satuanOrder);
+      : hasMultiSatuan
+        ? buildSatuanDropdownByUid(uid, it, satuanOrder, 'satuan-changeable')
+        : `<span class="satuan-fixed-badge">${satuanOrder || '—'}</span>`;
 
     return `
     <tr>
@@ -1577,7 +1609,7 @@ function renderItems() {
         </div>
       </td>
       <td style="text-align:right">
-        <button class="btn btn-danger btn-sm btn-icon" onclick="removeItemByUid(${uid})" title="Hapus">✕</button>
+        <button class="btn-remove-item" onclick="removeItemByUid(${uid})" title="Hapus">✕</button>
       </td>
     </tr>`;
   }).join('');
@@ -1595,11 +1627,14 @@ function renderItems() {
       const hargaDisplay = hargaPerSatuanOrder
         ? 'Rp ' + hargaPerSatuanOrder.toLocaleString('id-ID') : '—';
 
+      const hasMultiSatuanMob = !it.is_custom && it.barang_id && (satuanOrderMap[it.barang_id] || []).length > 0;
       const satuanControl = it.is_custom
         ? `<input type="text" value="${satuanOrder}" placeholder="satuan"
              style="flex:1;max-width:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;outline:none;text-align:center"
              onchange="updateSatuanByUid(${uid}, this.value)"/>`
-        : buildSatuanDropdownByUid(uid, it, satuanOrder);
+        : hasMultiSatuanMob
+          ? buildSatuanDropdownByUid(uid, it, satuanOrder, 'satuan-changeable')
+          : `<span class="satuan-fixed-badge">${satuanOrder || '—'}</span>`;
 
       const konversiTag = satuanBeda
         ? `<span style="font-size:10px;color:var(--accent3);font-family:var(--mono);background:rgba(247,146,79,0.1);border:1px solid rgba(247,146,79,0.2);border-radius:4px;padding:2px 6px">1 ${satuanOrder} = ${faktor} ${satuanDb}</span>`
@@ -1609,16 +1644,17 @@ function renderItems() {
       <div class="item-card-mobile-row">
         <div class="item-card-mobile-name">
           <span>${it.nama}${it.is_custom?'<span class="custom-tag">lainnya</span>':''}</span>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="removeItemByUid(${uid})" style="flex-shrink:0">✕</button>
+          <button class="btn-remove-item" onclick="removeItemByUid(${uid})">✕</button>
         </div>
         <div class="item-card-mobile-harga">${hargaDisplay}${satuanOrder?' / '+satuanOrder:''}</div>
         ${konversiTag ? `<div style="margin-top:5px">${konversiTag}</div>` : ''}
-        <div class="item-card-mobile-controls">
-          <span style="font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap">Qty:</span>
+        <div class="item-card-mobile-controls" style="gap:8px;margin-top:10px">
           <input type="number" value="${it.qty}" min="0.1" step="0.1"
+            style="width:60px;text-align:center"
             oninput="debouncedUpdateQty(${uid}, this.value)"
             onchange="debouncedUpdateQty(${uid}, this.value)"/>
           ${satuanControl}
+          ${hasMultiSatuanMob ? '<span style="font-size:10px;color:var(--accent3);font-family:var(--mono);white-space:nowrap">⇄ ganti</span>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -2147,6 +2183,26 @@ async function loadMyOrders() {
       wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">${emptyMsg}</div></div>`;
       return;
     }
+
+    // Cek status_item untuk deteksi "Dipesan" + hitung summary per order
+    const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'partial');
+    if (activeOrders.length > 0) {
+      const activeIds = activeOrders.map(o => o.id);
+      const { data: itemRows } = await _sb.from('order_items')
+        .select('order_id,status_item')
+        .in('order_id', activeIds);
+      if (itemRows) {
+        activeOrders.forEach(o => {
+          const items = itemRows.filter(it => it.order_id === o.id);
+          const active = items.filter(it => (it.status_item || 'pending') !== 'cancelled');
+          o._allOrdered    = active.length > 0 && active.every(it => it.status_item === 'ordered');
+          o._orderedCount  = active.filter(it => it.status_item === 'ordered').length;
+          o._pendingCount  = active.filter(it => !it.status_item || it.status_item === 'pending').length;
+          o._totalCount    = active.length;
+        });
+      }
+    }
+
     wrap.innerHTML = orders.map((o, idx) => buildOrderCard(o, idx)).join('');
   } catch(e) {
     const detail = e?.message || JSON.stringify(e) || '';
@@ -2157,39 +2213,54 @@ async function loadMyOrders() {
 
 function buildOrderCard(o, idx) {
   const isPending = o.status === 'pending';
-  const statusBadge = {
+  const statusBadge = o.status === 'pending' && o._allOrdered
+    ? '<span class="badge badge-purple">Dipesan</span>'
+    : {
     'pending':  '<span class="badge badge-gray">Pending</span>',
     'partial':  '<span class="badge badge-progress">Diproses</span>',
     'selesai':  '<span class="badge badge-green">Selesai</span>',
     'cancelled':'<span class="badge badge-red">Dibatalkan</span>',
-    'archived': '<span class="badge badge-purple" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.2)">📦 Diarsip</span>',
+    'archived': '<span class="badge badge-purple">📦 Diarsip</span>',
   }[o.status] || '<span class="badge badge-gray">—</span>';
   const tgl = new Date(o.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 
-
   const isArchived = o.status === 'archived';
-  const editCancelBtns = isArchived ? `` : isPending ? `
-    <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editOrder('${o.id}','body-${idx}')"
-      style="font-size:11px;padding:5px 10px">✏ Edit</button>
-    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelOrder('${o.id}',${idx})"
-      style="font-size:11px;padding:5px 10px">✕ Cancel</button>
+  const actionBtns = isArchived ? '' : isPending ? `
+    <div class="order-card-actions">
+      <button class="btn btn-ghost order-action-btn" onclick="editOrder('${o.id}','body-${idx}')">✏ Edit Order</button>
+      <button class="btn btn-danger order-action-btn" onclick="cancelOrder('${o.id}',${idx})">✕ Batalkan</button>
+    </div>
   ` : '';
+
+  // Item summary: "3 dipesan · 2 pending" — hanya muncul jika data tersedia
+  let itemSummary = '';
+  if (typeof o._totalCount === 'number' && o._totalCount > 0) {
+    const parts = [];
+    if (o._orderedCount > 0) parts.push(`<span class="ois-ordered">${o._orderedCount} dipesan</span>`);
+    if (o._pendingCount > 0) parts.push(`<span class="ois-pending">${o._pendingCount} pending</span>`);
+    if (parts.length) itemSummary = `<div class="order-item-summary">${parts.join('<span class="ois-dot"> · </span>')}</div>`;
+  }
+
+  const orderedBy      = _extractOrderBy(o.catatan);
+  const hasActualNotes = !!_stripOrderBy(o.catatan);
+
   return `
     <div class="order-card" id="ocard-${idx}">
       <div class="order-card-head" onclick="toggleOrderCard(this, '${o.id}', 'body-${idx}')">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:2px">${tgl}</div>
-            <div class="order-id">${o.id.substring(0,8).toUpperCase()}</div>
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${itemSummary ? '5px' : '0'}">
+            <span style="font-size:13px;font-weight:600">${tgl}</span>
+            ${statusBadge}
+            ${hasActualNotes ? '<span style="font-size:12px;opacity:0.55" title="Ada catatan">📝</span>' : ''}
           </div>
-          ${statusBadge}
+          ${itemSummary}
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${editCancelBtns}
-          <span style="font-size:12px;color:var(--muted)">${o.catatan?'📝':''}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:10px">
+          ${orderedBy ? `<span style="font-size:12px;color:var(--muted);font-family:var(--mono);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 ${orderedBy.replace(/</g,'&lt;')}</span>` : ''}
           <span class="chevron" id="chev-${idx}">▾</span>
         </div>
       </div>
+      ${actionBtns}
       <div class="order-card-body" id="body-${idx}" data-order-status="${o.status}" data-catatan="${(o.catatan||'').replace(/"/g,'&quot;')}"></div>
     </div>
   `;
@@ -2296,12 +2367,25 @@ function buildOrderItems(items, catatan) {
       </div>`;
   }).join('');
 
-  const catatanBlock = catatan
-    ? `<div style="margin:12px 16px 14px;padding:10px 14px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;display:flex;align-items:flex-start;gap:8px">
+  const _orderedBy    = _extractOrderBy(catatan);
+  const _actualNotes  = _stripOrderBy(catatan);
+
+  const orderedByBlock = _orderedBy
+    ? `<div style="margin:8px 16px 0;padding:8px 14px;background:rgba(0,212,255,0.04);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:15px;flex-shrink:0">👤</span>
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Dipesan oleh</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text)">${_orderedBy.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        </div>
+      </div>`
+    : '';
+
+  const catatanBlock = _actualNotes
+    ? `<div style="margin:8px 16px 14px;padding:10px 14px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;display:flex;align-items:flex-start;gap:8px">
         <span style="font-size:13px;flex-shrink:0;margin-top:1px">📝</span>
         <div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Catatan Order</div>
-          <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap">${catatan.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap">${_actualNotes.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
         </div>
       </div>`
     : '';
@@ -2314,6 +2398,7 @@ function buildOrderItems(items, catatan) {
       <tbody>${desktopRows}</tbody>
     </table>
     <div class="order-items-mobile-cards">${mobileCards}</div>
+    ${orderedByBlock}
     ${catatanBlock}
   `;
 }
@@ -2357,6 +2442,12 @@ async function cancelOrder(orderId, idx) {
       showToast('error', '✕ Gagal: tidak ada baris yang diupdate. Periksa RLS policy di Supabase.');
       return;
     }
+    // Cancel semua order_items agar FIFO di ordermasuk tidak memproses item ini
+    const { error: errItems } = await _sb
+      .from('order_items')
+      .update({ status_item: 'cancelled' })
+      .eq('order_id', orderId);
+    if (errItems) console.warn('[cancelOrder] gagal cancel order_items:', errItems);
     showToast('success', '✓ Order berhasil dibatalkan');
     await loadMyOrders();
     _updateMyOrderBadges();

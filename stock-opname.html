@@ -19,6 +19,7 @@
 <body>
 <div id="page-loader"><div class="loader-ring"></div></div>
 <script src="loader.js"></script>
+<script src="ppn.js"></script>
 <script>
   /* ── Theme init — baca dari localStorage sebelum render ── */
   if (localStorage.getItem('appTheme') === 'light') {
@@ -52,6 +53,16 @@
   </div>
 
   <div class="content" style="position:relative">
+
+    <!-- Brand Selection Screen -->
+    <div id="brandSelectScreen" style="position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px">
+      <div style="text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">📦</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Pilih Brand</div>
+        <div style="font-size:13px;color:var(--muted)">Stock opname akan ditampilkan berdasarkan brand yang dipilih</div>
+      </div>
+      <div id="brandSelectGrid" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:700px"></div>
+    </div>
 
     <!-- TAB BAR -->
     <div class="tab-bar">
@@ -127,15 +138,13 @@
             <thead>
               <tr>
                 <th>Barang</th>
-                <th style="width:100px">SKU</th>
                 <th style="width:70px">Satuan</th>
                 <th style="text-align:right;width:120px">Stok Bulan Lalu</th>
-                <th style="text-align:right;width:130px">Stok Bulan Ini <span style="color:var(--accent3)">*</span></th>
-                <th style="text-align:right;width:90px">Selisih</th>
+                <th style="text-align:right;width:130px">Stok Bulan Ini <span class="req">*</span></th>
               </tr>
             </thead>
             <tbody id="opnameTableBody">
-              <tr class="empty-row"><td colspan="6">Memuat data...</td></tr>
+              <tr class="empty-row"><td colspan="4">Memuat data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -483,6 +492,7 @@
     planDraft:          null,
     hideEmptyMode:      false,
     soBarangConfig:     {}, // key: brandId, val: Set<barang_id> — sync via Supabase
+    soSatuanConfig:     {}, // key: brandId, val: {barang_id: satuan} — from localStorage
     collapseEmptyGroups:{}, // key: groupKey, val: boolean
     groupByMode:        'brand', // 'brand' | 'kategori'
     pickerYear:         new Date().getFullYear(),
@@ -509,6 +519,7 @@
     planDraft:           { get: () => PageState.planDraft,           set: v => { PageState.planDraft = v; },           configurable: true },
     hideEmptyMode:       { get: () => PageState.hideEmptyMode,       set: v => { PageState.hideEmptyMode = v; },       configurable: true },
     soBarangConfig:      { get: () => PageState.soBarangConfig,      set: v => { PageState.soBarangConfig = v; },      configurable: true },
+    soSatuanConfig:      { get: () => PageState.soSatuanConfig,      set: v => { PageState.soSatuanConfig = v; },      configurable: true },
     collapseEmptyGroups: { get: () => PageState.collapseEmptyGroups, set: v => { PageState.collapseEmptyGroups = v; }, configurable: true },
     groupByMode:         { get: () => PageState.groupByMode,         set: v => { PageState.groupByMode = v; },         configurable: true },
     pickerYear:          { get: () => PageState.pickerYear,          set: v => { PageState.pickerYear = v; },          configurable: true },
@@ -664,6 +675,12 @@
     return getActiveBarang();
   }
 
+  function getSatuanForBarang(barangId) {
+    const brandCfg = soSatuanConfig[filterBrandId] || {};
+    const b = allBarang.find(function(x){ return x.id === barangId; });
+    return brandCfg[barangId] || (b ? b.satuan : '') || '—';
+  }
+
   function filterSearch(list, q) {
     if (!q) return list;
     const lq = q.toLowerCase();
@@ -784,10 +801,13 @@
     await loadBrands();
     await loadBarang();
     await loadItemGroups();
+    soSatuanConfig = JSON.parse(localStorage.getItem('soSatuanConfig') || '{}');
     updateMonthLabel();
-    await loadAllData();
-    renderTab();
     hideLoader();
+
+    // Always show brand selection screen on page load
+    const screen = document.getElementById('brandSelectScreen');
+    if (screen) screen.style.display = 'flex';
   })();
 
   /* ── MASTER DATA ── */
@@ -814,8 +834,39 @@
     sbf.value = pick;
     filterBrandId = pick;
     if (pick && pick !== saved) localStorage.setItem('activeBrand', pick);
+    _renderBrandSelectGrid();
     updateBrandLabel();
   }
+
+  function _renderBrandSelectGrid() {
+    const grid = document.getElementById('brandSelectGrid');
+    if (!grid) return;
+    grid.innerHTML = (allBrands || []).map(b => {
+      const color = b.warna || '#4f8ef7';
+      return `<div onclick="selectBrandAndLoad('${b.id}')"
+        style="display:flex;align-items:center;gap:14px;padding:20px 28px;background:var(--surface);border:1px solid var(--border);border-radius:14px;cursor:pointer;min-width:200px;transition:all .15s"
+        onmouseover="this.style.borderColor='${color}';this.style.background='${color}18';this.style.transform='translateY(-2px)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)';this.style.transform='translateY(0)'">
+        <div style="width:16px;height:16px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 10px ${color}88"></div>
+        <span style="font-size:16px;font-weight:600;color:var(--text)">${b.nama}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function selectBrandAndLoad(brandId) {
+    const sbf = document.getElementById('soFilterBrand');
+    const sbs = document.getElementById('brandSelect');
+    if (sbf) sbf.value = brandId;
+    if (sbs) sbs.value = brandId;
+    filterBrandId = brandId;
+    localStorage.setItem('activeBrand', brandId);
+    localStorage.setItem('soActiveBrand', brandId);
+    const screen = document.getElementById('brandSelectScreen');
+    if (screen) screen.style.display = 'none';
+    updateBrandLabel();
+    loadAllData().then(() => renderTab());
+  }
+  window.selectBrandAndLoad = selectBrandAndLoad;
 
   async function loadBarang() {
     const { data } = await window._sb
@@ -1003,22 +1054,14 @@
       const prevQty  = getStock(p.y, p.m, b.id);
       const rawQty   = _currStockData[b.id] ?? null;
       const currQty  = opnameDraft[b.id] !== undefined ? opnameDraft[b.id] : rawQty;
-      const diff     = prevQty != null && currQty != null ? currQty - prevQty : null;
       const isDraft  = opnameDraft[b.id] !== undefined;
       const isFilled = currQty != null;
-
-      const diffHtml = diff == null
-        ? '<span style="color:var(--muted)">—</span>'
-        : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
-        : diff < 0 ? '<span style="color:var(--danger)">'   + fmt(diff) + '</span>'
-        : '<span style="color:var(--muted)">0</span>';
 
       return {
         isFilled,
         html: '<tr class="' + (isFilled ? 'row-filled' : 'empty-data-row') + '">'
           + '<td><div class="item-name">' + b.nama + '</div></td>'
-          + '<td><span class="item-meta">' + (b.sku    || '—') + '</span></td>'
-          + '<td><span class="item-meta">' + (b.satuan || '—') + '</span></td>'
+          + '<td><span class="item-meta">' + getSatuanForBarang(b.id) + '</span></td>'
           + '<td class="td-num">' + (prevQty != null ? fmt(prevQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
@@ -1029,7 +1072,6 @@
                 +   ' onkeydown="handleNumKeydown(event)"/></td>'
               : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
-          + '<td class="td-num" data-diff="' + b.id + '">' + diffHtml + '</td>'
           + '</tr>'
       };
     }
@@ -1041,19 +1083,12 @@
       const primerPrev = getStock(p.y, p.m, grp.primer_barang_id);
       const rawQty     = _currStockData[grp.primer_barang_id] ?? null;
       const currQty    = opnameDraft['grp_' + grp.id] !== undefined ? opnameDraft['grp_' + grp.id] : rawQty;
-      const diff       = primerPrev != null && currQty != null ? currQty - primerPrev : null;
       const isDraft    = opnameDraft['grp_' + grp.id] !== undefined;
       const isFilled   = currQty != null;
-      const diffHtml = diff == null
-        ? '<span style="color:var(--muted)">—</span>'
-        : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
-        : diff < 0 ? '<span style="color:var(--danger)">'   + fmt(diff) + '</span>'
-        : '<span style="color:var(--muted)">0</span>';
       const memberNames = grp.members.map(function(mid) {
         const b = allBarang.find(function(x){ return x.id === mid; });
         return b ? b.nama : mid;
       }).join(', ');
-      const satuan = (allBarang.find(function(x){return x.id===grp.primer_barang_id;})||{}).satuan || '—';
       return {
         isFilled,
         html: '<tr class="' + (isFilled ? 'row-filled' : 'empty-data-row') + '">'
@@ -1061,8 +1096,7 @@
           + '<span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;flex-shrink:0">GRUP</span>'
           + grp.nama
           + '</div><div style="font-size:11px;color:var(--muted);margin-top:2px">' + memberNames + '</div></td>'
-          + '<td><span class="item-meta">—</span></td>'
-          + '<td><span class="item-meta">' + satuan + '</span></td>'
+          + '<td><span class="item-meta">' + getSatuanForBarang(grp.primer_barang_id) + '</span></td>'
           + '<td class="td-num">' + (primerPrev != null ? fmt(primerPrev) : '<span style="color:var(--muted)">—</span>') + '</td>'
           + (window._isAdmin
               ? '<td class="cell-input-wrap" style="text-align:right"><input type="text" inputmode="decimal" autocomplete="off"'
@@ -1073,7 +1107,6 @@
                 + ' onkeydown="handleNumKeydown(event)"/></td>'
               : '<td class="td-num">' + (currQty != null ? fmt(currQty) : '<span style="color:var(--muted)">—</span>') + '</td>'
             )
-          + '<td class="td-num" data-diff="grp_' + grp.id + '">' + diffHtml + '</td>'
           + '</tr>'
       };
     }
@@ -1153,6 +1186,7 @@
 
   async function hideEmptyToConfig(gKey) {
     if (!filterBrandId) { showToast('Pilih brand terlebih dahulu', 'error'); return; }
+    if (!await showConfirm({ title:'Sembunyikan Barang', msg:'Sembunyikan semua barang kosong di grup ini dari daftar opname?\n\nBarang bisa ditampilkan kembali melalui Settings → Barang Store.', okLabel:'Ya, Sembunyikan' })) return;
 
     /* Kumpulkan barang yang belum terisi di bulan ini untuk group ini */
     const curr        = mk(curYear, curMonth);
@@ -1213,21 +1247,8 @@
     document.getElementById('opnameSaveBar').style.display = 'flex';
     document.getElementById('opnameSaveStatus').textContent = '';
     el.classList.add('changed');
-    // Update diff cell without re-rendering (preserves focus)
-    const curr = mk(curYear, curMonth);
-    const p    = prevYM(curYear, curMonth);
-    // Untuk grup, prevQty pakai primer barang; untuk barang biasa, pakai barangId
-    const lookupId = primerBarangId || barangId;
-    const prevQty = getStock(p.y, p.m, lookupId);
-    const currQty = opnameDraft[barangId];
-    const diff    = prevQty != null && currQty != null ? currQty - prevQty : null;
-    const diffCell = document.querySelector('#opnameTableBody td[data-diff="' + barangId + '"]');
-    if (diffCell) diffCell.innerHTML = diff == null
-      ? '<span style="color:var(--muted)">—</span>'
-      : diff > 0 ? '<span style="color:var(--accent2)">+' + fmt(diff) + '</span>'
-      : diff < 0 ? '<span style="color:var(--danger)">'  + fmt(diff) + '</span>'
-      : '<span style="color:var(--muted)">0</span>';
     // Update progress bar
+    const curr = mk(curYear, curMonth);
     const list = getFilteredBarang();
     const _csData = (stockData[_bkey()] || {})[curr] || {};
     const filled = list.filter(b => {
@@ -1279,9 +1300,16 @@
         showToast('Tidak ada data yang diubah untuk disimpan.', 'error'); return;
       }
 
-      // Upsert nilai yang diisi
+      // Delete existing rows for these barang_ids, then insert fresh (no unique constraint needed)
       if (ups.length) {
-        const { error } = await window._sb.from('stock_opname').upsert(ups, { onConflict: 'periode,brand_id,barang_id' });
+        const upsIds = ups.map(function(u) { return u.barang_id; });
+        const { error: delUpsErr } = await window._sb.from('stock_opname')
+          .delete()
+          .eq('periode', curr)
+          .eq('brand_id', bkey)
+          .in('barang_id', upsIds);
+        if (delUpsErr) throw delUpsErr;
+        const { error } = await window._sb.from('stock_opname').insert(ups);
         if (error) throw error;
         if (!stockData[bkey])         stockData[bkey] = {};
         if (!stockData[bkey][curr])   stockData[bkey][curr] = {};
@@ -1865,7 +1893,7 @@
   }
 
   async function doLogout() {
-    if (!confirm('Yakin ingin keluar?')) return;
+    if (!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut();
     window.location.href = 'index.html';
   }
@@ -2256,7 +2284,7 @@
   async function deleteGroup(groupId) {
     const grp = soItemGroups.find(function(g){ return g.id === groupId; });
     if (!grp) return;
-    if (!confirm('Hapus grup "' + grp.nama + '"? Barang anggotanya akan kembali tampil individual.')) return;
+    if (!await showConfirm({ title:'Hapus Grup', msg:'Hapus grup "' + grp.nama + '"? Barang anggotanya akan kembali tampil individual.', okLabel:'Hapus', okDanger:true })) return;
     try {
       const { error } = await window._sb.from('so_item_groups').delete().eq('id', groupId);
       if (error) throw error;

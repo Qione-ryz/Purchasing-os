@@ -1031,7 +1031,7 @@
     clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500);
   }
   async function doLogout() {
-    if(!confirm('Yakin ingin keluar?')) return;
+    if(!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut(); window.location.href='index.html';
   }
   function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }

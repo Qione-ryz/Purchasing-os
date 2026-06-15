@@ -726,6 +726,31 @@ async function _aksiOrdered(itemId, orderId) {
     showToast('success', '↩ Tanda dipesan dihapus');
   }
 
+  // Update allItemRows in-memory agar progress cell tidak stale
+  const cachedItem = (PageState.allItemRows || []).find(it => it.id === itemId);
+  if (cachedItem) cachedItem.status_item = newStatus;
+
+  // Rebuild progress untuk order ini
+  const activeItems = (PageState.allItemRows || []).filter(it => it.order_id === orderId && (it.status_item || 'pending') !== 'cancelled');
+  const prog = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0, orderedItems: 0 };
+  activeItems.forEach(it => {
+    const f    = it.faktor_konversi || 1;
+    const need = (it.qty_order || 0) * f;
+    const got  = it.qty_terpenuhi || 0;
+    prog.totalOrder     += need;
+    prog.totalTerpenuhi += Math.min(got, need);
+    prog.totalItems     += 1;
+    if (got >= need) prog.doneItems += 1;
+    if ((it.status_item || 'pending') === 'ordered') prog.orderedItems += 1;
+  });
+  const cachedOrder = (typeof allOrders !== 'undefined' ? allOrders : []).find(x => x.id === orderId);
+  if (cachedOrder) cachedOrder.progress = prog;
+
+  // Patch DOM — progress cell + status badge
+  const progCell = document.querySelector('#row-' + orderId + ' td[data-prog]');
+  if (progCell) progCell.innerHTML = _buildProgressCell(prog);
+  _refreshRowBadge(orderId, cachedOrder?.status || 'pending');
+
   // Refresh detail modal tanpa menutup/membuka ulang
   await _refreshDetailBody(orderId);
 }
@@ -973,7 +998,7 @@ async function loadAll() {
         cancelledItemsMap[it.order_id] = true;
         return;
       }
-      if (!progressMap[it.order_id]) progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+      if (!progressMap[it.order_id]) progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0, orderedItems: 0 };
       const f    = it.faktor_konversi || 1;
       const need = it.qty_order * f;
       const got  = it.qty_terpenuhi || 0;
@@ -981,10 +1006,11 @@ async function loadAll() {
       progressMap[it.order_id].totalTerpenuhi += Math.min(got, need);
       progressMap[it.order_id].totalItems     += 1;
       if (got >= need) progressMap[it.order_id].doneItems += 1;
+      if ((it.status_item || 'pending') === 'ordered') progressMap[it.order_id].orderedItems += 1;
     });
     (allItemRows || []).forEach(it => {
       if (!progressMap[it.order_id]) {
-        progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+        progressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0, orderedItems: 0 };
       }
     });
 
@@ -1077,7 +1103,7 @@ async function loadAll() {
           allItemRows.forEach(it => {
             if ((it.status_item || 'pending') === 'cancelled') return;
             if (!fifoProgressMap[it.order_id]) {
-              fifoProgressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0 };
+              fifoProgressMap[it.order_id] = { totalOrder: 0, totalTerpenuhi: 0, totalItems: 0, doneItems: 0, orderedItems: 0 };
             }
             const f         = it.faktor_konversi || 1;
             const kebutuhan = (it.qty_order || 0) * f;
@@ -1091,6 +1117,7 @@ async function loadAll() {
             fifoProgressMap[it.order_id].totalTerpenuhi += Math.min(dapat, kebutuhan);
             fifoProgressMap[it.order_id].totalItems     += 1;
             if (dapat >= kebutuhan) fifoProgressMap[it.order_id].doneItems += 1;
+            if ((it.status_item || 'pending') === 'ordered') fifoProgressMap[it.order_id].orderedItems += 1;
           });
 
           // Terapkan ke allOrders + update status
@@ -1125,8 +1152,8 @@ async function loadAll() {
             // -- Progress cell --
             const progCell = row.querySelector('[data-prog]');
             if (progCell) {
-              const pct = prog.totalOrder > 0
-                ? Math.min(100, Math.round(prog.totalTerpenuhi / prog.totalOrder * 100)) : 0;
+              const pct = prog.totalItems > 0
+                ? Math.min(100, Math.round(prog.doneItems / prog.totalItems * 100)) : 0;
               const clr = pct >= 100 ? '#38c96a' : pct >= 50 ? '#d4b800' : pct > 0 ? '#e07032' : '#e05252';
               const txt = `${prog.doneItems}/${prog.totalItems} item`;
               // Update teks
@@ -1140,6 +1167,16 @@ async function loadAll() {
               if (barEl) {
                 barEl.style.width    = pct + '%';
                 barEl.style.background = clr;
+              }
+              // Update sub-line dipesan/pending
+              const orderedEl = progCell.querySelector('[data-prog-ordered]');
+              if (orderedEl) {
+                const _ord = prog.orderedItems || 0;
+                const _pen = Math.max(0, prog.totalItems - prog.doneItems - _ord);
+                const _parts = [];
+                if (_ord > 0) _parts.push(`<span style="color:#a78bfa">${_ord} dipesan</span>`);
+                if (_pen > 0) _parts.push(`<span style="color:var(--muted)">${_pen} pending</span>`);
+                orderedEl.innerHTML = pct < 100 && _parts.length ? _parts.join('<span style="color:var(--border)">·</span>') : '';
               }
             }
 
@@ -1326,12 +1363,22 @@ function getBadgeTextColor(hex) {
 // Build status badge order — single source of truth
 function _buildStatusBadge(o) {
   if (!o) return '<span class="badge badge-gray">—</span>';
+  // UI-only: tampilkan "Dipesan" jika semua item aktif yang belum selesai sudah dipesan
+  let displayStatus = o.status;
+  if (o.status === 'pending' && o.progress) {
+    const { orderedItems = 0, totalItems = 0, doneItems = 0 } = o.progress;
+    const activeUndone = totalItems - doneItems;
+    if (orderedItems > 0 && orderedItems >= activeUndone && activeUndone > 0) {
+      displayStatus = 'ordered';
+    }
+  }
   const base = {
     pending:   '<span class="badge badge-gray">Pending</span>',
+    ordered:   '<span class="badge badge-purple">Dipesan</span>',
     partial:   '<span class="badge badge-progress">Partial</span>',
     selesai:   '<span class="badge badge-green">Selesai</span>',
     cancelled: '<span class="badge badge-red">Cancelled</span>',
-  }[o.status] || '<span class="badge badge-gray">—</span>';
+  }[displayStatus] || '<span class="badge badge-gray">—</span>';
   const warn = (o.has_cancelled_items && o.status !== 'cancelled')
     ? `<span title="Ada item yang dibatalkan" style="font-size:9px;font-family:var(--mono);background:rgba(255,77,106,0.1);color:var(--danger);border:1px solid rgba(255,77,106,0.25);border-radius:3px;padding:1px 5px;margin-left:4px;cursor:default">⚠</span>`
     : '';
@@ -1357,15 +1404,24 @@ function _buildProgressCell(progress) {
     // Semua item cancelled
     return '<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">0/0 item</span>';
   }
-  const pct  = progress.totalOrder > 0
-    ? Math.min(100, Math.round(progress.totalTerpenuhi / progress.totalOrder * 100)) : 0;
+  const pct  = progress.totalItems > 0
+    ? Math.min(100, Math.round(progress.doneItems / progress.totalItems * 100)) : 0;
   const clr  = pct >= 100 ? '#38c96a' : pct >= 50 ? '#d4b800' : pct > 0 ? '#e07032' : '#e05252';
   const txt  = `${progress.doneItems}/${progress.totalItems} item`;
+  const orderedItems  = progress.orderedItems || 0;
+  const pendingItems  = Math.max(0, progress.totalItems - progress.doneItems - orderedItems);
+  const subParts = [];
+  if (orderedItems > 0) subParts.push(`<span style="color:#a78bfa">${orderedItems} dipesan</span>`);
+  if (pendingItems > 0) subParts.push(`<span style="color:var(--muted)">${pendingItems} pending</span>`);
+  const subLine = pct < 100 && subParts.length
+    ? `<div data-prog-ordered style="font-size:10px;font-family:var(--mono);margin-top:3px;display:flex;gap:6px">${subParts.join('<span style="color:var(--border)">·</span>')}</div>`
+    : `<div data-prog-ordered></div>`;
   return `<div style="min-width:90px">
     <div data-prog-txt style="font-size:11px;font-family:var(--mono);color:${clr};margin-bottom:3px;white-space:nowrap">${txt}</div>
     <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden">
       <div data-prog-bar style="width:${pct}%;height:100%;border-radius:4px;background:${clr};transition:width .5s cubic-bezier(.4,0,.2,1),background .4s ease"></div>
     </div>
+    ${subLine}
   </div>`;
 }
 
@@ -1689,7 +1745,7 @@ function buildInlinePanel(o, items) {
 // ARSIP
 // ═══════════════════════════════════════════════
 // _showArsip, archivedOrders, _cancelItemState dikelola via PageState + proxy
-const ARCHIVE_DAYS = 7; // arsip otomatis setelah X hari selesai
+const ARCHIVE_DAYS = 3; // arsip otomatis setelah X hari selesai
 
 // Auto-archive: cek order selesai yang sudah >= 7 hari, ubah ke 'archived'
 async function _autoArchiveSelesai() {
@@ -2182,7 +2238,7 @@ async function openDetail(orderId) {
 // ─────────────────────────────────────────────────────────────
 function _updateTableRowProgress(orderId, o, itemsArr) {
   const activeItems = (itemsArr || []).filter(it => (it.status_item || 'pending') !== 'cancelled');
-  let totalOrder = 0, totalTerpenuhi = 0, totalItems = 0, doneItems = 0;
+  let totalOrder = 0, totalTerpenuhi = 0, totalItems = 0, doneItems = 0, orderedItems = 0;
   activeItems.forEach(it => {
     const f    = it.faktor_konversi || 1;
     const need = it.qty_order * f;
@@ -2191,8 +2247,9 @@ function _updateTableRowProgress(orderId, o, itemsArr) {
     totalTerpenuhi += Math.min(got, need);
     totalItems     += 1;
     if (got >= need) doneItems += 1;
+    if ((it.status_item || 'pending') === 'ordered') orderedItems += 1;
   });
-  const newProg = { totalOrder, totalTerpenuhi, totalItems, doneItems };
+  const newProg = { totalOrder, totalTerpenuhi, totalItems, doneItems, orderedItems };
   o.progress = newProg;
 
   // Update progress cell di baris tabel
@@ -3091,7 +3148,7 @@ async function _recalcOrderStatus(orderId, overrides) {
       if (newStatus === 'selesai') cached.selesai_at = updatePayload.selesai_at;
       // Rebuild progress dari allItems (sudah di-override)
       const activeForProg = allItems.filter(it => (it.status_item || 'pending') !== 'cancelled');
-      let totalOrder = 0, totalTerpenuhi = 0, doneItems = 0;
+      let totalOrder = 0, totalTerpenuhi = 0, doneItems = 0, orderedItems = 0;
       activeForProg.forEach(it => {
         const f    = it.faktor_konversi || 1;
         const need = it.qty_order * f;
@@ -3099,8 +3156,9 @@ async function _recalcOrderStatus(orderId, overrides) {
         totalOrder     += need;
         totalTerpenuhi += Math.min(got, need);
         if (got >= need) doneItems += 1;
+        if ((it.status_item || 'pending') === 'ordered') orderedItems += 1;
       });
-      cached.progress = { totalOrder, totalTerpenuhi, totalItems: activeForProg.length, doneItems };
+      cached.progress = { totalOrder, totalTerpenuhi, totalItems: activeForProg.length, doneItems, orderedItems };
 
       if (newStatus === 'cancelled') {
         // Semua item cancelled → hapus baris dari DOM aktif dan refresh filter
@@ -3225,11 +3283,10 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
 }
-function doLogout() {
-  if (confirm('Yakin ingin keluar?')) {
-    if (typeof clearRoleCache === 'function') clearRoleCache();
-    _sb.auth.signOut();
-  }
+async function doLogout() {
+  if (!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
+  if (typeof clearRoleCache === 'function') clearRoleCache();
+  _sb.auth.signOut();
 }
 
 // ═══════════════════════════════════════════════

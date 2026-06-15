@@ -136,7 +136,7 @@ async function hapusDuplikatDipilih() {
   const ids = Array.from(document.querySelectorAll('#duplikatList input[type=checkbox]:checked'))
     .map(cb => cb.dataset.id);
   if (!ids.length) return;
-  if (!confirm(`Hapus ${ids.length} barang duplikat yang dipilih?\n\nRiwayat harga terkait juga ikut dihapus. Tidak bisa dibatalkan.`)) return;
+  if (!await showConfirm({ title:'Hapus Duplikat', msg:`Hapus ${ids.length} barang duplikat yang dipilih?\n\nRiwayat harga terkait juga ikut dihapus. Tidak bisa dibatalkan.`, okLabel:'Hapus', okDanger:true })) return;
 
   const btn = document.getElementById('btnHapusDipilih');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menghapus...';
@@ -151,7 +151,8 @@ async function hapusDuplikatDipilih() {
     closeDuplikatModal();
     await window.loadBarang();
   } catch(e) {
-    showToast('Gagal: '+e.message, 'error');
+    const isFK = e.message && e.message.includes('foreign key');
+    showToast(isFK ? 'Sebagian barang memiliki riwayat pembelian dan tidak bisa dihapus.' : 'Gagal: ' + e.message, 'error');
     btn.disabled = false; btn.textContent = `🗑 Hapus ${ids.length} yang Dipilih`;
   }
 }

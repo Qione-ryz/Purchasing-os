@@ -13,7 +13,8 @@ const _SIDEBAR_NAV = [
   { href: 'stock-opname.html', icon: '📦', label: 'Stock Opname' },
   { href: 'ordermasuk.html',   icon: '📥', label: 'Order Masuk',     section: 'Order' },
   { href: 'order.html',        icon: '📝', label: 'Order Internal',  newTab: true },
-  { href: 'inventory.html',    icon: '📊', label: 'Inventory Track', section: 'Operasional', newTab: true },
+  { href: 'orderpattern.html', icon: '📉', label: 'Pola Order',      adminOnly: true },
+  { href: 'inventory.html',    icon: '🗃️', label: 'Inventory Track', section: 'Operasional', newTab: true },
   { href: 'pastry.html',       icon: '🥐', label: 'Pastry' },
   { href: 'invoice-drafts.html', icon: '📄', label: 'Invoice Drafts', section: 'Finance' },
   { href: 'finance.html',        icon: '💳', label: 'Pembayaran' },
@@ -31,10 +32,13 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
   // Select tetep ada di DOM (hidden) supaya existing logic yg baca `document.getElementById('brandSelect').value` tetep jalan.
   const hideBrandSelector = true;
 
+  let _firstSection = true;
   const navHTML = _SIDEBAR_NAV.map(item => {
     let html = '';
     if (item.section) {
-      html += `<div class="nav-section" style="${item.section !== 'Menu' ? 'margin-top:12px' : ''}">${item.section}</div>`;
+      const mt = _firstSection ? '' : 'margin-top:12px';
+      _firstSection = false;
+      html += `<div class="nav-section" style="${mt}">${item.section}</div>`;
     }
     const isActive = item.href === activePage;
     /* Badge notif order masuk */
@@ -57,9 +61,9 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
           ">0</span>`
       : '';
     const newTabIndicator = item.newTab
-      ? `<span style="font-size:9px;color:var(--muted);opacity:.7;flex-shrink:0;line-height:1">↗</span>`
+      ? `<span style="font-size:9px;color:var(--muted);flex-shrink:0;line-height:1">↗</span>`
       : '';
-    html += `<a class="nav-item${isActive ? ' active' : ''}" href="${item.href}"${item.newTab ? ' target="_blank"' : ''} style="display:flex;align-items:center;gap:10px">
+    html += `<a class="nav-item${isActive ? ' active' : ''}${item.adminOnly ? ' admin-only' : ''}" href="${item.href}"${item.newTab ? ' target="_blank"' : ''}>
       <span class="nav-icon">${item.icon}</span>
       <span style="flex:1">${item.label}</span>
       ${newTabIndicator}
@@ -81,19 +85,7 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
         </select>
        </div>`;
 
-  sidebar.style.display       = 'flex';
-  sidebar.style.flexDirection = 'column';
-  sidebar.style.height        = '100vh';
-  sidebar.style.maxHeight     = '100vh';
-  sidebar.style.overflow      = 'hidden';
-
   sidebar.innerHTML = `
-    <style>
-      @keyframes badgePulse {
-        0%,100% { opacity:1; transform:scale(1); }
-        50%      { opacity:.75; transform:scale(1.1); }
-      }
-    </style>
     <div class="sidebar-brand">
       <div class="brand-row">
         <div class="brand-icon">📦</div>
@@ -135,7 +127,7 @@ function renderSidebar(activePage, brandLabel = 'Brand aktif', onchange = '', op
    Page lama yg sudah punya `doLogout` lokal akan overwrite (no harm — same behavior). */
 if (typeof window.doLogout !== 'function') {
   window.doLogout = async function () {
-    if (!confirm('Yakin ingin keluar?')) return;
+    if (!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     try {
       if (window._sb) await window._sb.auth.signOut();
       sessionStorage.removeItem('userRole');
@@ -243,8 +235,27 @@ function _trySubscribeOrderRealtime() {
   trySubscribe();
 }
 
+/* Bersihkan interval saat navigasi antar halaman */
+window.addEventListener('beforeunload', () => {
+  if (_orderNotifInterval) clearInterval(_orderNotifInterval);
+});
+
 /* Expose agar halaman lain bisa trigger refresh manual (misal setelah tambah order) */
 window._refreshOrderNotif = _fetchOrderNotifCount;
 window._updateOrderBadge  = _updateOrderBadge;
 
 window.renderSidebar = renderSidebar;
+
+/* Mobile sidebar toggle — fallback jika halaman tidak mendefinisikan sendiri */
+if (typeof window.toggleSidebar !== 'function') {
+  window.toggleSidebar = function () {
+    document.getElementById('sidebar')?.classList.toggle('open');
+    document.getElementById('overlay')?.classList.toggle('show');
+  };
+}
+if (typeof window.closeSidebar !== 'function') {
+  window.closeSidebar = function () {
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('overlay')?.classList.remove('show');
+  };
+}

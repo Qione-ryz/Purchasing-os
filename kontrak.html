@@ -199,14 +199,14 @@
   <div class="modal" style="max-width:780px">
     <div class="modal-header">
       <div class="modal-title" id="modalTitleK">Tambah Kontrak</div>
-      <button class="modal-close" onclick="closeKontrakModal()">×</button>
+      <button class="modal-close" onclick="closeKontrakModal()">✕</button>
     </div>
     <div class="modal-body">
       <div id="kModalError" style="display:none;margin-bottom:14px;padding:10px 12px;background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.3);border-radius:8px;color:var(--danger);font-size:12px;font-family:var(--mono)"></div>
 
       <div class="field field-row">
         <div>
-          <label>Vendor *</label>
+          <label>Vendor <span class="req">*</span></label>
           <select id="kVendor"></select>
         </div>
         <div>
@@ -216,17 +216,17 @@
       </div>
 
       <div class="field">
-        <label>Judul Kontrak *</label>
+        <label>Judul Kontrak <span class="req">*</span></label>
         <input id="kJudul" type="text" placeholder="Misal: Pasokan tepung Q1 2026"/>
       </div>
 
       <div class="field field-row-3">
         <div>
-          <label>Tanggal Mulai *</label>
+          <label>Tanggal Mulai <span class="req">*</span></label>
           <input id="kMulai" type="date"/>
         </div>
         <div>
-          <label>Tanggal Selesai *</label>
+          <label>Tanggal Selesai <span class="req">*</span></label>
           <input id="kSelesai" type="date"/>
         </div>
         <div>
@@ -289,13 +289,13 @@
         <div class="modal-title" id="dTitle">—</div>
         <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:3px" id="dMeta">—</div>
       </div>
-      <button class="modal-close" onclick="closeDetailModal()">×</button>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
     </div>
     <div class="modal-body" id="dBody">Memuat...</div>
     <div class="modal-footer" style="justify-content:space-between">
       <button class="btn btn-danger btn-sm admin-only" id="btnDeleteK" onclick="">🗑 Hapus Kontrak</button>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeDetailModal()">Tutup</button>
+        <button class="btn btn-ghost" onclick="closeDetailModal()" style="color:var(--muted)">Tutup</button>
         <button class="btn btn-primary admin-only" id="btnEditK" onclick="editFromDetail()">Edit</button>
       </div>
     </div>
@@ -519,7 +519,7 @@ function renderList() {
     const ful  = computeFulfillment(k);
     const statBadge = ({
       aktif:     'badge-green',
-      selesai:   'badge-blue',
+      selesai:   'badge-green',
       expired:   'badge-orange',
       dibatalkan:'badge-gray',
     })[stat] || 'badge-gray';
@@ -955,7 +955,7 @@ function editFromDetail() {
 }
 
 async function deleteKontrak(id) {
-  if (!confirm('Hapus kontrak ini? Tindakan tidak bisa dibatalkan.')) return;
+  if (!await showConfirm({ title:'Hapus Kontrak', msg:'Hapus kontrak ini? Tindakan tidak bisa dibatalkan.', okLabel:'Hapus', okDanger:true })) return;
   try {
     const k = State.list.find(x => x.id === id);
     if (k?.attachment_path) await removeAttachmentFile(k.attachment_path);
@@ -965,7 +965,10 @@ async function deleteKontrak(id) {
     showToast('Kontrak dihapus', 'success');
     closeDetailModal();
     await loadAll();
-  } catch(e) { showToast('Gagal hapus: ' + e.message, 'error'); }
+  } catch(e) {
+    const isFK = e.message && e.message.includes('foreign key');
+    showToast(isFK ? 'Kontrak ini terkait data pembelian dan tidak bisa dihapus.' : 'Gagal hapus: ' + e.message, 'error');
+  }
 }
 
 // ───────────── HELPERS ─────────────

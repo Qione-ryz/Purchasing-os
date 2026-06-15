@@ -147,9 +147,10 @@ body.light-mode .nav-item      {
 }
 body.light-mode .nav-item:hover  { background: var(--surface2); color: var(--text); }
 body.light-mode .nav-item.active {
-  background: rgba(0,212,255,0.08);
+  background: rgba(0,136,204,0.10);
   color: var(--accent);
   font-weight: 600;
+  border-left: 2px solid var(--accent);
 }
 body.light-mode .brand-selector label  { color: #9e9e9e; }
 body.light-mode .brand-selector select {

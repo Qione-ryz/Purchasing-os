@@ -57,6 +57,8 @@
     .color-dot-btn { width:28px; height:28px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform .15s,border-color .15s; flex-shrink:0; }
     .color-dot-btn:hover { transform:scale(1.15); }
     .color-dot-btn.selected { border-color:var(--text); transform:scale(1.1); }
+    .color-dot-free { position:relative; overflow:hidden; background: radial-gradient(circle at 50% 50%, white 0%, transparent 65%), conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
+    .color-dot-free input[type=color] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; border:none; padding:0; }
 
     /* TOGGLE — definisi di style.css (Vendor section), settings hanya tambah flex-shrink */
     .toggle { flex-shrink:0; }
@@ -168,7 +170,8 @@
     .bs-cb { width:18px; height:18px; border-radius:5px; border:1.5px solid var(--border); background:transparent; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; }
     .bs-barang-row.checked .bs-cb { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
     .bs-barang-nama { font-size:14px; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .bs-barang-meta { font-size:11px; font-family:var(--mono); color:var(--muted); flex-shrink:0; }
+    .bs-barang-meta { font-size:11px; font-family:var(--mono); color:var(--muted); flex-shrink:0; width:90px; text-align:right; }
+    .bs-satuan-sel  { width:90px; flex-shrink:0; }
     .bs-grup-item { display:flex; align-items:flex-start; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); }
     .bs-grup-item:last-child { border-bottom:none; }
     .bs-grup-nama { font-size:14px; font-weight:600; margin-bottom:3px; }
@@ -738,13 +741,19 @@
     <div class="modal-body">
       <div class="error-box" id="brandModalError"></div>
       <div class="field">
-        <label>Nama Brand *</label>
+        <label>Nama Brand <span class="req">*</span></label>
         <input type="text" id="bNama" placeholder="cth: Brand Alpha"/>
       </div>
       <div class="field">
         <label>Warna Brand</label>
         <div class="color-picker-row" id="colorPicker"></div>
         <input type="hidden" id="bWarna" value="#4f8ef7"/>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+          <div id="colorFreeBtn" class="color-dot-btn color-dot-free" title="Pilih warna bebas">
+            <input type="color" id="bWarnaFree" value="#4f8ef7" oninput="pickColorFree(this.value)" onchange="pickColorFree(this.value)"/>
+          </div>
+          <span id="colorFreeLabel" style="font-size:11px;font-family:var(--mono);color:var(--muted)">#4f8ef7</span>
+        </div>
       </div>
       <div class="field">
         <label>Deskripsi</label>
@@ -874,15 +883,15 @@
       <div class="error-box"   id="cuError"></div>
       <div class="success-box" id="cuSuccess"></div>
       <div class="field">
-        <label>Nama Lengkap *</label>
+        <label>Nama Lengkap <span class="req">*</span></label>
         <input type="text" id="cuName" placeholder="Nama pengguna"/>
       </div>
       <div class="field">
-        <label>Email *</label>
+        <label>Email <span class="req">*</span></label>
         <input type="email" id="cuEmail" placeholder="email@domain.com"/>
       </div>
       <div class="field">
-        <label>Password *</label>
+        <label>Password <span class="req">*</span></label>
         <input type="password" id="cuPass" placeholder="Min. 6 karakter"/>
       </div>
       <div class="field">
@@ -1296,10 +1305,19 @@
 
   function buildColorPicker() {
     const wrap = document.getElementById('colorPicker');
+    const inPalette = PALETTE.includes(selectedColor);
     wrap.innerHTML = PALETTE.map(c => `
       <div class="color-dot-btn${c===selectedColor?' selected':''}"
         style="background:${c}"
         onclick="pickColor('${c}')" title="${c}"></div>`).join('');
+    // sync free picker UI
+    const freeBtn = document.getElementById('colorFreeBtn');
+    const freeInput = document.getElementById('bWarnaFree');
+    const freeLabel = document.getElementById('colorFreeLabel');
+    if (freeBtn) freeBtn.style.background = inPalette ? '' : selectedColor;
+    if (freeBtn) freeBtn.classList.toggle('selected', !inPalette);
+    if (freeInput) freeInput.value = selectedColor;
+    if (freeLabel) freeLabel.textContent = selectedColor;
   }
 
   function pickColor(c) {
@@ -1307,6 +1325,13 @@
     document.getElementById('bWarna').value = c;
     buildColorPicker();
   }
+
+  function pickColorFree(c) {
+    selectedColor = c;
+    document.getElementById('bWarna').value = c;
+    buildColorPicker();
+  }
+  window.pickColorFree = pickColorFree;
 
   /* ── ASSIGN HELPERS ── */
   function _getMode(tipe) {
@@ -1321,7 +1346,7 @@
     });
   }
 
-  function onToggleAssign(tipe) {
+  async function onToggleAssign(tipe) {
     const T        = tipe === 'barang' ? 'Barang' : 'Vendor';
     const toggleEl = document.getElementById('bAssign' + T);
     const checked  = toggleEl.checked;
@@ -1334,8 +1359,8 @@
       const brandId   = document.getElementById('bId').value;
       const brandNama = (window.allBrands||[]).find(function(b){ return b.id===brandId; })?.nama || brandId;
       const label     = tipe === 'barang' ? 'barang' : 'vendor';
-      if (!confirm('Lepas semua ' + label + ' dari brand "' + brandNama + '"?\n\nRelasi brand pada ' + label + ' tersebut akan dihapus.')) {
-        toggleEl.checked = true; // batalkan, kembalikan toggle ke ON
+      if (!await showConfirm({ title:'Lepas ' + label, msg:'Lepas semua ' + label + ' dari brand "' + brandNama + '"?\n\nRelasi brand pada ' + label + ' tersebut akan dihapus.', okLabel:'Ya, Lepas', okDanger:true })) {
+        toggleEl.checked = true;
         return;
       }
       const tbl = tipe === 'barang' ? 'barang_brands' : 'vendor_brands';
@@ -1682,7 +1707,7 @@
       ? `\n\nData terdampak (akan ikut dihapus):\n• ${dampak.join('\n• ')}`
       : '\n\nBrand ini belum dipakai oleh data apapun.';
 
-    if (!confirm(`Hapus brand "${nama}"?${pesanDampak}\n\nAksi ini tidak bisa dibatalkan.`)) return;
+    if (!await showConfirm({ title:'Hapus Brand', msg:`Hapus brand "${nama}"?${pesanDampak}\n\nAksi ini tidak bisa dibatalkan.`, okLabel:'Hapus', okDanger:true })) return;
     try {
       /* Hapus semua dependent rows dulu */
       const cleanups = [
@@ -1806,8 +1831,8 @@
   }
 
   /* CLEAR CACHE */
-  function clearLocalCache() {
-    if(!confirm('Reset semua preferensi browser?')) return;
+  async function clearLocalCache() {
+    if(!await showConfirm({ title:'Reset Preferensi', msg:'Reset semua preferensi browser?', okLabel:'Ya, Reset' })) return;
     ['activeBrand','activeBrands','sysPref','vendorGhostCache','soBarangConfig'].forEach(k=>localStorage.removeItem(k));
     showToast('Cache dihapus','success');
   }
@@ -1838,6 +1863,7 @@
   let bsGrupList      = [];
   let bsGrupSelected  = new Set();
   let bsSortMode      = 'kategori'; // 'kategori' | 'abjad'
+  let bsSatuanConfig  = {}; // { barang_id: satuan_value } for current brand
 
   function bsSetSort(mode) {
     bsSortMode = mode;
@@ -1883,12 +1909,33 @@
       const { data: bb } = await window._sb.from('barang_brands').select('barang_id').eq('brand_id', bsActiveBrandId);
       const ids = (bb||[]).map(r=>r.barang_id).filter(Boolean);
       if (!ids.length) { bsAllBarang = []; bsSelected = new Set(); return; }
-      const { data: brg } = await window._sb.from('barang').select('id,nama,satuan,sku,kategori').in('id', ids).order('nama');
-      bsAllBarang = brg || [];
+      const { data: brg } = await window._sb.from('barang').select('id,nama,satuan,sku,kategori,barang_satuan_order(satuan,faktor)').in('id', ids).order('nama');
+      bsAllBarang = (brg || []).map(b => ({ ...b, satuan_orders: (b.barang_satuan_order||[]) }));
       // Load so_barang_config untuk brand ini
       const { data: cfg } = await window._sb.from('so_barang_config').select('included_ids').eq('brand_id', bsActiveBrandId).maybeSingle();
       bsSelected = cfg?.included_ids?.length ? new Set(cfg.included_ids) : new Set(bsAllBarang.map(b=>b.id));
+      // Load satuan config dari localStorage
+      const allSatuanCfg = JSON.parse(localStorage.getItem('soSatuanConfig')||'{}');
+      bsSatuanConfig = allSatuanCfg[bsActiveBrandId] || {};
     } catch(e) { bsAllBarang = []; bsSelected = new Set(); showToast('Gagal load barang: '+e.message, 'error'); }
+  }
+
+  function _bsBarangRow(b) {
+    const on = bsSelected?.has(b.id);
+    const orders = b.satuan_orders || [];
+    const chosen = bsSatuanConfig[b.id] || b.satuan || '';
+    const hasOrders = orders.length > 0;
+    const satuanSel = hasOrders
+      ? `<select class="bs-satuan-sel" onclick="event.stopPropagation()" onchange="bsSetSatuan('${b.id}',this.value)" style="font-size:11px;font-family:var(--mono);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:2px 6px;cursor:pointer;outline:none">
+          <option value="${b.satuan||''}"${chosen===(b.satuan||'')?' selected':''}>${b.satuan||'—'}</option>
+          ${orders.map(o=>`<option value="${o.satuan}"${chosen===o.satuan?' selected':''}>${o.satuan} ×${o.faktor}</option>`).join('')}
+        </select>`
+      : `<span class="bs-barang-meta">${b.satuan||''}</span>`;
+    return `<div class="bs-barang-row${on?' checked':''}" onclick="bsToggleBarang('${b.id}')">
+      <div class="bs-cb">${on?'✓':''}</div>
+      <span class="bs-barang-nama">${b.nama}</span>
+      ${satuanSel}
+    </div>`;
   }
 
   function bsRenderBarangList() {
@@ -1898,33 +1945,17 @@
     let html = '';
 
     if (bsSortMode === 'abjad') {
-      // Urut A-Z flat, tanpa group header
       const sorted = [...list].sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
       if (!sorted.length) { html = '<div class="bs-empty">Tidak ada barang</div>'; }
-      else sorted.forEach(b => {
-        const on = bsSelected?.has(b.id);
-        html += `<div class="bs-barang-row${on?' checked':''}" onclick="bsToggleBarang('${b.id}')">
-          <div class="bs-cb">${on?'✓':''}</div>
-          <span class="bs-barang-nama">${b.nama}</span>
-          <span class="bs-barang-meta">${b.satuan||''}</span>
-        </div>`;
-      });
+      else sorted.forEach(b => { html += _bsBarangRow(b); });
     } else {
-      // Group by kategori
       const byKat = {}, katOrder = [];
       list.forEach(b => { const k=(b.kategori||'Tanpa Kategori').trim(); if(!byKat[k]){byKat[k]=[];katOrder.push(k)} byKat[k].push(b); });
       katOrder.sort();
       if (!list.length) { html = '<div class="bs-empty">Tidak ada barang</div>'; }
       else katOrder.forEach(k => {
         html += `<div class="bs-barang-group">${k}</div>`;
-        byKat[k].forEach(b => {
-          const on = bsSelected?.has(b.id);
-          html += `<div class="bs-barang-row${on?' checked':''}" onclick="bsToggleBarang('${b.id}')">
-            <div class="bs-cb">${on?'✓':''}</div>
-            <span class="bs-barang-nama">${b.nama}</span>
-            <span class="bs-barang-meta">${b.satuan||''}</span>
-          </div>`;
-        });
+        byKat[k].forEach(b => { html += _bsBarangRow(b); });
       });
     }
 
@@ -1932,6 +1963,11 @@
     const sel = bsSelected?.size ?? bsAllBarang.length;
     document.getElementById('bsBarangInfo').textContent = `${sel} dari ${bsAllBarang.length} barang ditampilkan`;
   }
+
+  function bsSetSatuan(id, val) {
+    bsSatuanConfig[id] = val;
+  }
+  window.bsSetSatuan = bsSetSatuan;
 
   function bsToggleBarang(id) {
     if (!bsSelected) bsSelected = new Set(bsAllBarang.map(b=>b.id));
@@ -1960,6 +1996,10 @@
       } else {
         await window._sb.from('so_barang_config').upsert({ brand_id: bsActiveBrandId, included_ids: sel }, { onConflict: 'brand_id' });
       }
+      // Simpan satuan config ke localStorage
+      const allCfg = JSON.parse(localStorage.getItem('soSatuanConfig')||'{}');
+      allCfg[bsActiveBrandId] = bsSatuanConfig;
+      localStorage.setItem('soSatuanConfig', JSON.stringify(allCfg));
       showToast(`✓ Disimpan — ${sel.length} barang ditampilkan`);
     } catch(e) { showToast('Gagal: '+e.message, 'error'); }
   }
@@ -2162,7 +2202,7 @@
   }
 
   async function bsDeleteGrup(id) {
-    if (!confirm('Yakin ingin menghapus grup ini?')) return;
+    if (!await showConfirm({ title:'Hapus Grup', msg:'Yakin ingin menghapus grup ini?', okLabel:'Hapus', okDanger:true })) return;
     try {
       await window._sb.from('so_item_group_members').delete().eq('group_id', id);
       await window._sb.from('so_item_groups').delete().eq('id', id);
@@ -2177,7 +2217,7 @@
   }
 
   async function doLogout() {
-    if (!confirm('Yakin ingin keluar?')) return;
+    if (!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut();
     window.location.href = 'index.html';
   }
@@ -2371,7 +2411,7 @@ async function saveSatuan() {
 }
 
 async function deleteSatuan(id, nama) {
-  if (!confirm(`Hapus satuan "${nama}"?`)) return;
+  if (!await showConfirm({ title:'Hapus Satuan', msg:`Hapus satuan "${nama}"?`, okLabel:'Hapus', okDanger:true })) return;
   try {
     const { error } = await window._sb.from('satuan').delete().eq('id', id);
     if (error) throw error;
@@ -2447,7 +2487,7 @@ async function saveKategori() {
 }
 
 async function deleteKategori(id, nama) {
-  if (!confirm(`Hapus kategori "${nama}"?`)) return;
+  if (!await showConfirm({ title:'Hapus Kategori', msg:`Hapus kategori "${nama}"?`, okLabel:'Hapus', okDanger:true })) return;
   try {
     const { error } = await window._sb.from('kategori').delete().eq('id', id);
     if (error) throw error;
@@ -2607,7 +2647,7 @@ async function saveKodeOrder() {
 }
 
 async function deleteKodeOrder(id, kode) {
-  if (!confirm(`Hapus kode "${kode}"?\nBrand yang menggunakan kode ini tidak bisa login lagi.`)) return;
+  if (!await showConfirm({ title:'Hapus Kode', msg:`Hapus kode "${kode}"?\nBrand yang menggunakan kode ini tidak bisa login lagi.`, okLabel:'Hapus', okDanger:true })) return;
   try {
     const { error } = await window._sb.from('pemesan').delete().eq('id', id);
     if (error) throw error;

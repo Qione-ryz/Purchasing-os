@@ -148,7 +148,7 @@
       <div class="section-label">Informasi Dasar</div>
       <div class="field-row">
         <div class="field">
-          <label>Nama Vendor *</label>
+          <label>Nama Vendor <span class="req">*</span></label>
           <input type="text" id="fNama" placeholder="cth: PT Maju Bersama"/>
         </div>
         <div class="field">
@@ -273,7 +273,7 @@
     </div>
     <div class="modal-body" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0" id="detailBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeDetail()">
+      <button class="btn btn-ghost" onclick="closeDetail()" style="margin-right:auto;color:var(--muted)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Tutup
       </button>
@@ -1062,7 +1062,7 @@
   }
 
   async function doLogout() {
-    if(!confirm('Yakin ingin keluar?')) return;
+    if(!await showConfirm({ title:'Keluar', msg:'Yakin ingin keluar?', okLabel:'Keluar' })) return;
     await window._sb.auth.signOut();
     window.location.href = 'index.html';
   }

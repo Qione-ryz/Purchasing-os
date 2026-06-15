@@ -386,7 +386,7 @@ function renderDraftList() {
     const isDup = fKey && fKey !== '—' && window._dupFakturs?.has(fKey);
     const dupBadge = isDup ? `<span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent3);background:rgba(247,146,79,0.12);border:1px solid rgba(247,146,79,0.25);border-radius:4px;padding:1px 5px;white-space:nowrap;flex-shrink:0">⚠ duplikat</span>` : '';
     return `<div class="nav-item${isActive ? ' active' : ''}"
-      style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:4px${isDup ? ';border-left:2px solid rgba(247,146,79,0.5)' : ''}"
+      style="flex-direction:column;align-items:flex-start;gap:6px;padding:12px 14px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:6px${isDup ? ';border-left:2px solid rgba(247,146,79,0.5)' : ''}"
       onclick="selectDraft('${d.id}')">
       <div style="display:flex;justify-content:space-between;width:100%;gap:6px;align-items:center">
         <span style="font-size:13px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(vendor)}</span>
@@ -542,12 +542,12 @@ function renderInfoSection() {
 
   document.getElementById('infoSection').innerHTML = `
     <!-- Brand -->
-    ${brandNama ? `<div style="margin-bottom:10px"><span class="badge" style="background:${brandWarna};color:${getBadgeTextColor(brandWarna)};padding:4px 14px;font-size:13px;font-weight:600">${escHtml(brandNama)}</span></div>` : ''}
+    ${brandNama ? `<div style="margin-bottom:14px"><span class="badge" style="background:${brandWarna};color:${getBadgeTextColor(brandWarna)};padding:4px 14px;font-size:13px;font-weight:600">${escHtml(brandNama)}</span></div>` : ''}
 
     <!-- Row 1: No Faktur + Tanggal + Meta -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">No. Faktur</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">No. Faktur</div>
         <input type="text" id="nomorFakturInput"
           value="${escHtml(DraftState.nomorFakturEdit)}"
           placeholder="Nomor faktur..."
@@ -555,7 +555,7 @@ function renderInfoSection() {
           style="${_inp('color:var(--accent);font-weight:600')}"/>
       </div>
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Tanggal Invoice</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Tanggal Invoice</div>
         <input type="date" id="tanggalInvoiceInput"
           value="${escHtml(DraftState.tanggalEdit)}"
           onchange="DraftState.tanggalEdit=this.value;DraftState._tanggalTahunLama=false;document.getElementById('tanggalTahunLamaWarn')?.remove()"
@@ -564,20 +564,20 @@ function renderInfoSection() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Masuk</div>
+          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Masuk</div>
           <div style="font-size:12px;font-family:var(--mono);color:var(--muted);padding:7px 0">${formatDate(draft.created_at)}</div>
         </div>
         <div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Sumber</div>
+          <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Sumber</div>
           <div style="font-size:12px;font-family:var(--mono);color:var(--accent3);font-weight:500;padding:7px 0">${escHtml(draft.source || 'discord')}</div>
         </div>
       </div>
     </div>
 
     <!-- Row 2: Vendor + Rekening -->
-    <div class="field-row" style="margin-bottom:10px">
+    <div class="field-row" style="margin-bottom:14px">
       <div class="field" style="margin-bottom:0">
-        <label style="margin-bottom:4px">Vendor</label>
+        <label style="margin-bottom:5px">Vendor</label>
         ${DraftState.vendorNamaOcr ? `<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);margin-bottom:4px">OCR: ${escHtml(DraftState.vendorNamaOcr)}</div>` : ''}
         <input type="text" id="vendorInput"
           placeholder="Ketik nama vendor..."
@@ -585,7 +585,7 @@ function renderInfoSection() {
           onchange="DraftState.vendorNamaEdit=this.value"/>
       </div>
       <div class="field" style="margin-bottom:0">
-        <label style="margin-bottom:4px">Rekening Tujuan</label>
+        <label style="margin-bottom:5px">Rekening Tujuan</label>
         <div id="bankSelectContainer">${bankHTML}</div>
       </div>
     </div>
@@ -628,7 +628,7 @@ function renderItemsSection() {
 
   el.innerHTML = `
     <!-- Header kolom -->
-    <div style="display:flex;align-items:center;padding:4px 6px;gap:6px;border-bottom:1px solid var(--border);margin-bottom:2px">
+    <div style="display:flex;align-items:center;padding:8px 8px;gap:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
       <div style="flex:1;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Nama Barang</div>
       <div style="width:64px;flex-shrink:0;text-align:right;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Qty</div>
       <div style="width:72px;flex-shrink:0;text-align:center;font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Satuan</div>
@@ -638,7 +638,7 @@ function renderItemsSection() {
     <!-- Rows -->
     <div id="draftItemRows">${DraftState.items.map(renderItemRow).join('')}</div>
     <!-- Add button -->
-    <div style="padding:6px 0 2px">
+    <div style="padding:10px 0 6px">
       <button class="btn btn-ghost btn-sm" onclick="addItemRow()" style="width:100%;justify-content:center">＋ Tambah Item</button>
     </div>`;
 }
@@ -646,9 +646,9 @@ function renderItemsSection() {
 function renderItemRow(item) {
   const subtotal = formatRp(item.qty * item.harga);
   return `
-    <div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.04)">
-      <div style="font-size:10px;font-family:var(--mono);color:var(--accent3);margin-bottom:3px">📄 ${escHtml(item.namaOcr || '—')}</div>
-      <div style="display:flex;align-items:center;gap:6px">
+    <div style="padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <div style="font-size:10px;font-family:var(--mono);color:var(--accent3);margin-bottom:6px">📄 ${escHtml(item.namaOcr || '—')}</div>
+      <div style="display:flex;align-items:center;gap:8px">
         <input class="item-input" type="text" style="flex:1;min-width:0;text-align:left" value="${escHtml(item.namaEdit)}" placeholder="Nama barang"
           onchange="updateItemField(${item.idx},'namaEdit',this.value)"/>
         <input class="item-input" type="text" inputmode="decimal" value="${item.qty}" style="width:64px;flex-shrink:0;text-align:right"
@@ -661,7 +661,7 @@ function renderItemRow(item) {
           onblur="this.value=parseFloat(this.value)||0"/>
         <button onclick="removeItemRow(${item.idx})" style="width:24px;flex-shrink:0;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Hapus">✕</button>
       </div>
-      <div style="text-align:right;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px" id="draftSub_${item.idx}">${subtotal}</div>
+      <div style="text-align:right;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:6px" id="draftSub_${item.idx}">${subtotal}</div>
     </div>`;
 }
 
@@ -697,23 +697,23 @@ function renderSummarySection() {
   const _inp   = (style='') => `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);outline:none;padding:10px 14px;width:100%;box-sizing:border-box;font-size:15px;font-weight:600;${style}`;
 
   document.getElementById('summarySection').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Subtotal (exc. PPN)</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Subtotal (exc. PPN)</div>
         <input type="number" min="0" step="1"
           value="${DraftState.subtotalEdit || ''}" placeholder="0"
           onchange="DraftState.subtotalEdit=Number(this.value)"
           style="${_inp()}"/>
       </div>
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">PPN</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">PPN</div>
         <input type="number" min="0" step="1"
           value="${DraftState.ppnEdit || ''}" placeholder="0"
           onchange="DraftState.ppnEdit=Number(this.value)"
           style="${_inp()}"/>
       </div>
       <div>
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Grand Total</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Grand Total</div>
         <input type="number" min="0" step="1"
           value="${DraftState.grandTotalEdit || ''}" placeholder="0"
           onchange="DraftState.grandTotalEdit=Number(this.value)"
@@ -956,7 +956,7 @@ async function undoConfirmDraft() {
   if (!draft.riwayat_beli_id) {
     showToast('Tidak ada data pembelian terkait', 'error'); return;
   }
-  const ok = confirm('Batalkan konfirmasi? Ini akan menghapus riwayat pembelian & payment request yang sudah dibuat.');
+  const ok = await showConfirm({ title:'Batalkan Konfirmasi', msg:'Batalkan konfirmasi? Ini akan menghapus riwayat pembelian & payment request yang sudah dibuat.', okLabel:'Ya, Batalkan', okDanger:true });
   if (!ok) return;
 
   const sb     = window._sb;

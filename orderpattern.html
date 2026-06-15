@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PurchaseOS — Pola Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="theme.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="datefilter.js"></script>
+<script src="sidebar.js" defer></script>
+<style>
+  /* Layout khusus page Pola Order */
+  .op-summary  { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-lg); margin-bottom:var(--sp-xl); }
+  .op-summary .mini-stat { padding:14px 18px; }
+  .op-summary .mini-stat-val { font-size:22px; font-weight:600; }
+  .op-summary .mini-stat-sub { font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono); }
+
+
+  .op-table { width:100%; border-collapse:collapse; }
+  .op-table thead th {
+    text-align:left; font-size:11px; color:var(--muted); font-weight:600;
+    text-transform:uppercase; letter-spacing:.6px;
+    padding:12px var(--sp-md); border-bottom:1px solid var(--border);
+    cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .op-table thead th.sortable:hover { color:var(--accent); }
+  .op-table thead th .sort-ind { opacity:.5; margin-left:4px; font-family:var(--mono); }
+  .op-table thead th.sort-active .sort-ind { opacity:1; color:var(--accent); }
+  .op-table tbody td { padding:12px var(--sp-md); border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+  .op-table tbody tr:hover { background:rgba(0,212,255,0.04); }
+  .op-table .col-item { font-weight:500; }
+  .op-table .col-num  { font-family:var(--mono); text-align:right; white-space:nowrap; }
+  .op-table .col-unit { font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+  .dow-chips { display:flex; gap:3px; flex-wrap:nowrap; }
+  .dow-chip {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:5px;
+    font-size:10px; font-family:var(--mono); font-weight:600;
+    background:var(--surface2); color:var(--muted); border:1px solid var(--border);
+  }
+  .dow-chip.active { background:var(--accent); color:#000; border-color:var(--accent); box-shadow:0 0 8px rgba(0,212,255,0.3); }
+  body.light-mode .dow-chip.active { color:#fff; }
+
+  .spark-cell svg { display:block; }
+
+  .op-empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .op-empty .ico { font-size:38px; margin-bottom:8px; }
+
+  @media (max-width:1024px) {
+    .op-summary { grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:600px) {
+    .op-summary { grid-template-columns:1fr 1fr; }
+    .op-filter-bar .search-wrap { max-width:none; width:100%; }
+    .op-table thead th, .op-table tbody td { padding:10px 8px; font-size:12px; }
+    .op-table .col-spark { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="page-loader"><div class="loader-ring"></div></div>
+<script src="loader.js"></script>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title">Pola Order</div>
+      <div class="page-sub" id="pageSub">Analisa frekuensi & qty order per brand</div>
+    </div>
+    <div class="topbar-right" style="display:flex;align-items:center;gap:12px">
+      <input type="date" id="opDateFrom" style="display:none"/>
+      <input type="date" id="opDateTo"   style="display:none"/>
+      <button class="btn btn-ghost btn-sm" id="btnOpDate">📅 <span id="opDateLabel">Bulan Ini</span></button>
+      <div id="opDatePicker" class="date-picker-panel" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- FILTER BAR -->
+    <div class="toolbar">
+      <div class="search-wrap" style="position:relative;flex:1">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="opSearch" type="text" placeholder="Cari nama barang..." oninput="render();toggleOpSearchClear()"/>
+        <button id="opSearchClear" onclick="clearOpSearch()" title="Hapus pencarian"
+          style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s"
+          onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+      </div>
+      <div class="brand-filter-wrap" style="position:relative">
+        <button class="brand-mfilter-btn" id="opBrandBtn" onclick="toggleOpBrandDropdown(event)"
+          style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;transition:border-color .2s;font-family:var(--sans)"
+          onmouseover="this.style.borderColor='var(--accent)'"
+          onmouseout="if(!(State.selectedBrands||[]).length)this.style.borderColor='var(--border)'">
+          <span id="opBrandLabel">🏷 Semua Brand</span>
+          <span id="opBrandCount" style="display:none;background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px"></span>
+          <span style="font-size:10px;color:var(--muted)">▾</span>
+        </button>
+        <div id="opBrandDropdown"
+          style="display:none;position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:280px;overflow-y:auto">
+          <div onclick="selectAllOpBrands()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s;user-select:none" onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
+            <input type="checkbox" id="opChkAllBrands" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+            <span>Semua Brand</span>
+          </div>
+          <div style="height:1px;background:var(--border);margin:6px 0"></div>
+          <div id="opBrandList"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="op-summary">
+      <div class="mini-stat">
+        <div class="mini-stat-label">Total Order</div>
+        <div class="mini-stat-val" id="sumTotalOrder">—</div>
+        <div class="mini-stat-sub" id="sumTotalOrderSub">di periode</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">Item Unik</div>
+        <div class="mini-stat-val" id="sumItemUnik">—</div>
+        <div class="mini-stat-sub">SKU berbeda</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">Hari Order Aktif</div>
+        <div class="mini-stat-val" id="sumActiveDays">—</div>
+        <div class="mini-stat-sub" id="sumActiveDaysSub">dari total hari</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">Hari Tersibuk</div>
+        <div class="mini-stat-val" id="sumBusyDay">—</div>
+        <div class="mini-stat-sub" id="sumBusyDaySub">—</div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" id="tableTitle">Pola Item</span>
+        <span style="font-size:12px;color:var(--muted);font-family:var(--mono)" id="tableMeta"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="op-table">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="setSort('nama')">Item <span class="sort-ind" id="ind-nama"></span></th>
+              <th class="sortable col-num sort-active" onclick="setSort('freq')" style="text-align:right">Freq <span class="sort-ind" id="ind-freq">↓</span></th>
+              <th class="sortable col-num" onclick="setSort('avgWeek')" style="text-align:right">Avg Qty/Mgg <span class="sort-ind" id="ind-avgWeek"></span></th>
+              <th class="sortable col-num" onclick="setSort('total')" style="text-align:right">Total Qty <span class="sort-ind" id="ind-total"></span></th>
+              <th>Hari Order</th>
+              <th class="col-spark" title="Total qty dipesan per hari selama periode yang dipilih. Kiri = hari pertama, kanan = hari terakhir. Tinggi puncak = hari dengan qty tertinggi.">Tren Harian <span style="font-size:10px;opacity:0.5;cursor:help">ⓘ</span></th>
+            </tr>
+          </thead>
+          <tbody id="opTbody">
+            <tr><td colspan="6"><div class="op-empty"><div class="ico">⏳</div>Memuat data...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════
+   Pola Order — Brand pattern analytics
+   ═══════════════════════════════════════════ */
+window._sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+const sb = window._sb;
+
+const State = {
+  brands: [],
+  brandsMap: {},
+  selectedBrands: [],
+  fromISO: '',
+  toISO: '',
+  orders: [],          // raw data
+  itemsAgg: [],        // aggregated per item
+  sortKey: 'freq',
+  sortDir: 'desc',
+  search: '',
+};
+
+const DOW_LABEL = ['Min','Sen','Sel','Rab','Kam','Jum','Sab']; // JS getDay(): 0=Sun
+const DOW_ORDER = [1,2,3,4,5,6,0]; // tampil Sen..Min
+
+/* ───────────────── Sidebar toggle ───────────────── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+/* ───────────────── Auth + init ───────────────── */
+(async function init() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+
+    const role = await getUserRole();
+    if (!isAdminLevel(role)) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    applyRoleUI(role);
+
+    if (typeof renderSidebar === 'function') {
+      renderSidebar('orderpattern.html');
+    } else {
+      window.addEventListener('load', () => {
+        if (typeof renderSidebar === 'function') renderSidebar('orderpattern.html');
+      });
+    }
+
+    /* DateFilter init */
+    DateFilter.create({
+      pickerEl  : 'opDatePicker',
+      triggerBtn: 'btnOpDate',
+      labelEl   : 'opDateLabel',
+      inputFrom : 'opDateFrom',
+      inputTo   : 'opDateTo',
+      quickPresets: [
+        { preset: 'today',     label: 'Hari Ini'   },
+        { preset: 'thisweek',  label: 'Minggu Ini' },
+        { preset: 'thismonth', label: 'Bulan Ini'  },
+        { preset: 'lastmonth', label: 'Bulan Lalu' },
+        { preset: 'thisyear',  label: 'Tahun Ini'  },
+        { preset: 'all',       label: 'Semua Waktu'},
+      ],
+      default      : 'thismonth',
+      triggerOnInit: true,
+      onChange     : (from, to) => {
+        State.fromISO = from;
+        State.toISO   = to;
+        loadAll();
+      },
+    });
+
+    await loadBrands();
+    await loadAll();
+  } catch (e) {
+    console.error('[orderpattern] init gagal:', e);
+    document.getElementById('opTbody').innerHTML =
+      `<tr><td colspan="6"><div class="op-empty"><div class="ico">⚠️</div>Gagal init: ${e.message || e}</div></td></tr>`;
+  } finally {
+    const pl = document.getElementById('page-loader');
+    if (pl) pl.style.display = 'none';
+  }
+})();
+
+/* ───────────────── Load brands ───────────────── */
+async function loadBrands() {
+  const { data, error } = await sb.from('brands').select('id, nama, warna').order('nama');
+  if (error) { console.error(error); return; }
+  State.brands = data || [];
+  State.brandsMap = {};
+  State.brands.forEach(b => State.brandsMap[b.id] = b.nama);
+  State.brandOptions = State.brands.map(b => ({ id: b.id, nama: b.nama, color: b.warna || 'var(--muted)' }));
+  buildOpBrandOptions();
+}
+
+function buildOpBrandOptions() {
+  const list = document.getElementById('opBrandList');
+  if (!list) return;
+  list.innerHTML = (State.brandOptions || []).map(b =>
+    `<div data-opbrand="${b.id}" onclick="toggleOpBrand(event,'${b.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;user-select:none"
+      onmouseover="this.style.background='rgba(0,212,255,0.07)'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="opChkBrand" data-id="${b.id}" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;pointer-events:none"/>
+      <div style="width:8px;height:8px;border-radius:50%;background:${b.color};flex-shrink:0"></div>
+      <span>${escHtml(b.nama)}</span>
+    </div>`
+  ).join('');
+}
+
+function toggleOpBrandDropdown(e) {
+  e.stopPropagation();
+  const dd  = document.getElementById('opBrandDropdown');
+  if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+  const btn  = document.getElementById('opBrandBtn');
+  const rect = btn.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = (rect.bottom + 4) + 'px';
+  dd.style.width = Math.max(rect.width, 200) + 'px';
+  dd.style.display = 'block';
+}
+
+function _positionOpBrandDropdown() {
+  const dd  = document.getElementById('opBrandDropdown');
+  const btn = document.getElementById('opBrandBtn');
+  if (!dd || !btn) return;
+  const rect = btn.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = (rect.bottom + 4) + 'px';
+  dd.style.width = Math.max(rect.width, 200) + 'px';
+}
+
+window.addEventListener('scroll', (e) => {
+  const dd = document.getElementById('opBrandDropdown');
+  if (dd && dd.style.display !== 'none' && !dd.contains(e.target)) dd.style.display = 'none';
+}, true);
+window.addEventListener('resize', _positionOpBrandDropdown);
+
+function toggleOpBrand(e, id) {
+  e.stopPropagation();
+  const idx = State.selectedBrands.indexOf(id);
+  if (idx === -1) State.selectedBrands.push(id);
+  else            State.selectedBrands.splice(idx, 1);
+  updateOpBrandUI();
+  loadAll();
+}
+
+function selectAllOpBrands() {
+  State.selectedBrands = [];
+  updateOpBrandUI();
+  loadAll();
+}
+
+function updateOpBrandUI() {
+  const sel   = State.selectedBrands;
+  const isAll = sel.length === 0;
+  const allChk = document.getElementById('opChkAllBrands');
+  if (allChk) allChk.checked = isAll;
+  document.querySelectorAll('.opChkBrand').forEach(c => {
+    c.checked = !isAll && sel.includes(c.dataset.id);
+    const row = c.closest('[data-opbrand]');
+    if (row) row.style.background = (!isAll && sel.includes(c.dataset.id)) ? 'rgba(0,212,255,0.10)' : '';
+  });
+  const lbl   = document.getElementById('opBrandLabel');
+  const count = document.getElementById('opBrandCount');
+  const btn   = document.getElementById('opBrandBtn');
+  if (isAll) {
+    if (lbl)   lbl.textContent = '🏷 Semua Brand';
+    if (count) count.style.display = 'none';
+    if (btn)   btn.style.borderColor = 'var(--border)';
+  } else if (sel.length === 1) {
+    const found = (State.brandOptions || []).find(b => b.id === sel[0]);
+    if (lbl)   lbl.textContent = '🏷 ' + (found?.nama || sel[0]);
+    if (count) count.style.display = 'none';
+    if (btn)   btn.style.borderColor = 'var(--accent)';
+  } else {
+    if (lbl)   lbl.textContent = '🏷 Brand';
+    if (count) { count.textContent = sel.length; count.style.display = ''; }
+    if (btn)   btn.style.borderColor = 'var(--accent)';
+  }
+}
+
+/* ───────────────── Load orders ───────────────── */
+async function loadAll() {
+  if (!State.fromISO || !State.toISO) return;
+  document.getElementById('opTbody').innerHTML =
+    `<tr><td colspan="6"><div class="op-empty"><div class="ico">⏳</div>Memuat data...</div></td></tr>`;
+
+  let q = sb.from('orders')
+    .select('id, created_at, brand_id, status, order_items(barang_id, nama_barang, qty_order, satuan, faktor_konversi, status_item)')
+    .gte('created_at', State.fromISO + 'T00:00:00')
+    .lte('created_at', State.toISO   + 'T23:59:59')
+    .neq('status', 'cancelled');
+
+  if (State.selectedBrands.length === 1)      q = q.eq('brand_id', State.selectedBrands[0]);
+  else if (State.selectedBrands.length > 1)  q = q.in('brand_id', State.selectedBrands);
+
+  const { data, error } = await q;
+  if (error) {
+    console.error(error);
+    document.getElementById('opTbody').innerHTML =
+      `<tr><td colspan="6"><div class="op-empty"><div class="ico">⚠️</div>Gagal load: ${escHtml(error.message)}</div></td></tr>`;
+    return;
+  }
+  State.orders = data || [];
+  aggregate();
+  render();
+}
+
+/* ───────────────── Aggregation ───────────────── */
+function aggregate() {
+  const itemsMap = {}; // barang_id (or nama_barang fallback) → agg
+  const orderDays = new Set();
+  const dowCount  = [0,0,0,0,0,0,0]; // count orders per day-of-week
+  const orderIds  = new Set();
+
+  /* Build daily series buckets */
+  const from = new Date(State.fromISO + 'T00:00:00');
+  const to   = new Date(State.toISO   + 'T00:00:00');
+  const dayMs = 24 * 3600 * 1000;
+  const totalDays = Math.max(1, Math.round((to - from) / dayMs) + 1);
+  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+
+  function dayIndex(d) {
+    return Math.floor((d - from) / dayMs);
+  }
+
+  for (const o of State.orders) {
+    if (!o.created_at) continue;
+    const od = new Date(o.created_at);
+    const dStr = od.toISOString().slice(0,10);
+    orderDays.add(dStr);
+    orderIds.add(o.id);
+    const dow = od.getDay();
+    dowCount[dow] += 1;
+    const di = dayIndex(od);
+
+    const items = o.order_items || [];
+    for (const it of items) {
+      if (it.status_item === 'cancelled') continue;
+      const key = it.barang_id || ('NAMA:' + (it.nama_barang || ''));
+      if (!itemsMap[key]) {
+        itemsMap[key] = {
+          key,
+          nama: it.nama_barang || '(tanpa nama)',
+          satuan: it.satuan || '',
+          freq: 0,            // count of orders containing this item
+          total: 0,           // total qty (qty_order summed)
+          orderIds: new Set(),
+          dowSet: new Set(),
+          dailySeries: new Array(totalDays).fill(0),
+        };
+      }
+      const ag = itemsMap[key];
+      const qty = Number(it.qty_order || 0);
+      ag.total += qty;
+      ag.orderIds.add(o.id);
+      ag.dowSet.add(dow);
+      if (di >= 0 && di < totalDays) ag.dailySeries[di] += qty;
+      if (!ag.satuan && it.satuan) ag.satuan = it.satuan;
+    }
+  }
+
+  /* Finalize freq + avg */
+  const arr = Object.values(itemsMap).map(ag => ({
+    key:     ag.key,
+    nama:    ag.nama,
+    satuan:  ag.satuan,
+    freq:    ag.orderIds.size,
+    total:   round2(ag.total),
+    avgWeek: round2(ag.total / totalWeeks),
+    dow:     ag.dowSet,
+    series:  ag.dailySeries,
+  }));
+
+  State.itemsAgg = arr;
+
+  /* Summary */
+  document.getElementById('sumTotalOrder').textContent = orderIds.size;
+  document.getElementById('sumTotalOrderSub').textContent = `${totalDays} hari periode`;
+  document.getElementById('sumItemUnik').textContent = arr.length;
+  document.getElementById('sumActiveDays').textContent = orderDays.size;
+  document.getElementById('sumActiveDaysSub').textContent = `dari ${totalDays} hari`;
+
+  let busyIdx = 0, busyMax = -1;
+  for (let i=0;i<7;i++) if (dowCount[i] > busyMax) { busyMax = dowCount[i]; busyIdx = i; }
+  if (orderIds.size === 0) {
+    document.getElementById('sumBusyDay').textContent = '—';
+    document.getElementById('sumBusyDaySub').textContent = 'Belum ada order';
+  } else {
+    document.getElementById('sumBusyDay').textContent = DOW_LABEL[busyIdx];
+    document.getElementById('sumBusyDaySub').textContent = `${busyMax} order`;
+  }
+
+  /* Table meta */
+  const brandLabel = State.selectedBrands.length === 0
+    ? 'Semua Brand'
+    : State.selectedBrands.length === 1
+      ? (State.brandsMap[State.selectedBrands[0]] || 'Brand')
+      : `${State.selectedBrands.length} Brand`;
+  document.getElementById('tableTitle').textContent = `Pola Item — ${brandLabel}`;
+  document.getElementById('tableMeta').textContent =
+    `${State.fromISO} → ${State.toISO} · ${totalWeeks} minggu`;
+}
+
+/* ───────────────── Render table ───────────────── */
+function toggleOpSearchClear() {
+  const btn = document.getElementById('opSearchClear');
+  const val = document.getElementById('opSearch')?.value || '';
+  if (btn) btn.style.display = val ? 'block' : 'none';
+}
+
+function clearOpSearch() {
+  const inp = document.getElementById('opSearch');
+  if (inp) { inp.value = ''; inp.focus(); }
+  toggleOpSearchClear();
+  render();
+}
+
+function render() {
+  const tbody = document.getElementById('opTbody');
+  const search = (document.getElementById('opSearch').value || '').trim().toLowerCase();
+  State.search = search;
+
+  let rows = State.itemsAgg.slice();
+  if (search) rows = rows.filter(r => (r.nama || '').toLowerCase().includes(search));
+
+  /* Sort */
+  const dir = State.sortDir === 'desc' ? -1 : 1;
+  rows.sort((a,b) => {
+    const av = a[State.sortKey];
+    const bv = b[State.sortKey];
+    if (typeof av === 'string') return av.localeCompare(bv) * dir;
+    return ((av || 0) - (bv || 0)) * dir;
+  });
+
+  /* Sort indicator */
+  ['nama','freq','avgWeek','total'].forEach(k => {
+    const ind = document.getElementById('ind-' + k);
+    const th  = ind ? ind.parentElement : null;
+    if (!ind || !th) return;
+    if (k === State.sortKey) {
+      th.classList.add('sort-active');
+      ind.textContent = State.sortDir === 'desc' ? '↓' : '↑';
+    } else {
+      th.classList.remove('sort-active');
+      ind.textContent = '';
+    }
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="op-empty"><div class="ico">📭</div>${
+      State.itemsAgg.length === 0
+        ? 'Belum ada order di periode ini.'
+        : 'Tidak ada item yang cocok dengan pencarian.'
+    }</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="col-item">${escHtml(r.nama)} <span class="col-unit">${escHtml(r.satuan || '')}</span></td>
+      <td class="col-num">${r.freq}</td>
+      <td class="col-num">${fmtNum(r.avgWeek)}</td>
+      <td class="col-num">${fmtNum(r.total)}</td>
+      <td>${renderDowChips(r.dow)}</td>
+      <td class="spark-cell col-spark">${sparkline(r.series, 120, 24, State.fromISO)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderDowChips(dowSet) {
+  return `<div class="dow-chips">${
+    DOW_ORDER.map(d => {
+      const active = dowSet.has(d);
+      return `<span class="dow-chip${active ? ' active' : ''}" title="${DOW_LABEL[d]}">${DOW_LABEL[d][0]}</span>`;
+    }).join('')
+  }</div>`;
+}
+
+function sparkline(values, w=120, h=24, fromISO='') {
+  if (!values || !values.length) return '';
+  const max = Math.max(...values, 1);
+  const n   = values.length;
+  const step = w / Math.max(n - 1, 1);
+  const pts = values.map((v,i) => `${(i*step).toFixed(1)},${(h - (v/max)*h).toFixed(1)}`).join(' ');
+  const area = `0,${h} ${pts} ${w},${h}`;
+
+  /* Build tooltip: peak day + total active days */
+  let titleText = '';
+  const peakIdx = values.indexOf(max);
+  if (fromISO && peakIdx >= 0) {
+    const peakDate = new Date(fromISO + 'T00:00:00');
+    peakDate.setDate(peakDate.getDate() + peakIdx);
+    const dd = String(peakDate.getDate()).padStart(2,'0');
+    const mm = String(peakDate.getMonth()+1).padStart(2,'0');
+    titleText = `Puncak: ${max} pada ${dd}/${mm}`;
+  }
+  const activeDays = values.filter(v => v > 0).length;
+  if (activeDays > 0) titleText += (titleText ? ' · ' : '') + `${activeDays} hari ada order`;
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="cursor:default">
+    ${titleText ? `<title>${titleText}</title>` : ''}
+    <polygon points="${area}" fill="var(--accent)" fill-opacity="0.12"/>
+    <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function setSort(key) {
+  if (State.sortKey === key) {
+    State.sortDir = State.sortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    State.sortKey = key;
+    State.sortDir = (key === 'nama') ? 'asc' : 'desc';
+  }
+  render();
+}
+
+/* ───────────────── Helpers ───────────────── */
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '—';
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(n);
+}
+function round2(n) { return Math.round(n * 100) / 100; }
+</script>
+</body>
+</html>
